@@ -10,27 +10,28 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 ## Current Position
 
 Phase: 2 of 6 (Business Logic Extraction)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-01-21 — Phase 1 verified and complete
+Plan: 2 of 3 in current phase
+Status: In progress
+Last activity: 2026-01-21 - Completed 02-02-PLAN.md (brain viewer functions)
 
-Progress: [██--------] 17%
+Progress: [███-------] 30%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 4.6 min
-- Total execution time: 18.5 min
+- Total plans completed: 6
+- Average duration: 4.5 min
+- Total execution time: 27 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-testing-foundation | 4 | 18.5 min | 4.6 min |
+| 02-business-logic-extraction | 2 | 8.5 min | 4.25 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (2.4 min), 01-02 (4 min), 01-03 (7 min), 01-04 (5.1 min)
+- Last 5 plans: 01-02 (4 min), 01-03 (7 min), 01-04 (5.1 min), 02-01 (4.1 min), 02-02 (4 min)
 - Trend: Consistent fast execution
 
 *Updated after each plan completion*
@@ -54,6 +55,9 @@ Recent decisions affecting current work:
 | 2026-01-21 | 01-03 | Mock results instead of running analysis | Tests use fixtures, avoid slow PLS execution |
 | 2026-01-21 | 01-04 | Direct local state modification for parent module tests | Avoids triggering child module observer errors |
 | 2026-01-21 | 01-04 | Mock filters list pattern for brain_viewer testing | Enables testing without fully initialized filter_bar |
+| 2026-01-21 | 02-02 | fct_* files sourced by app.R before modules | Functions available when modules load |
+| 2026-01-21 | 02-02 | Pure functions take/return plain R objects | Enables unit testing without Shiny context |
+| 2026-01-21 | 02-02 | Reactive wrapper pattern for module delegation | Extract values from reactives, call pure functions |
 
 ### Pending Todos
 
@@ -68,5 +72,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-21
-Stopped at: Phase 1 complete, ready for Phase 2 planning
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None
