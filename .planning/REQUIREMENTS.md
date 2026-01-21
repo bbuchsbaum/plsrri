@@ -15,7 +15,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Architecture
 
-- [ ] **ARCH-01**: Business logic extracted from modules to fct_* files for unit testability
+- [x] **ARCH-01**: Business logic extracted from modules to fct_* files for unit testability
 - [ ] **ARCH-02**: BrainRenderer R6 abstract class with Neuroim2Renderer implementation
 - [ ] **ARCH-03**: RendererRegistry factory for visualization backend selection
 
@@ -74,7 +74,7 @@ Which phases cover which requirements.
 | TEST-01 | Phase 1: Testing Foundation | Pending |
 | TEST-02 | Phase 1: Testing Foundation | Pending |
 | TEST-03 | Phase 5: E2E Test Suite | Pending |
-| ARCH-01 | Phase 2: Business Logic Extraction | Pending |
+| ARCH-01 | Phase 2: Business Logic Extraction | Complete |
 | ARCH-02 | Phase 3: Visualization Abstraction | Pending |
 | ARCH-03 | Phase 3: Visualization Abstraction | Pending |
 | SURF-01 | Phase 4: surfwidget Integration | Pending |

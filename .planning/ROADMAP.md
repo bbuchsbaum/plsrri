@@ -11,7 +11,7 @@ This milestone transforms the existing plsrri Shiny GUI from working prototype t
 - Decimal phases (e.g., 2.1): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 1: Testing Foundation** - Module tests, fixtures, data-test conventions
-- [ ] **Phase 2: Business Logic Extraction** - Extract fct_* files for unit testability
+- [x] **Phase 2: Business Logic Extraction** - Extract fct_* files for unit testability
 - [ ] **Phase 3: Visualization Abstraction** - BrainRenderer R6 interface with registry
 - [ ] **Phase 4: surfwidget Integration** - neurosurf surface visualization
 - [ ] **Phase 5: E2E Test Suite** - shinytest2 critical path tests
@@ -50,8 +50,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Extract fct_data_validation.R with validation functions and unit tests
-- [ ] 02-02-PLAN.md — Extract fct_brain_viewer.R with computation functions and unit tests
+- [x] 02-01-PLAN.md — Extract fct_data_validation.R with validation functions and unit tests
+- [x] 02-02-PLAN.md — Extract fct_brain_viewer.R with computation functions and unit tests
 
 ### Phase 3: Visualization Abstraction
 **Goal**: Brain visualization uses pluggable backend via R6 strategy pattern
@@ -124,7 +124,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Testing Foundation | 4/4 | Complete | 2026-01-21 |
-| 2. Business Logic Extraction | 0/2 | Ready | - |
+| 2. Business Logic Extraction | 2/2 | Complete | 2026-01-21 |
 | 3. Visualization Abstraction | 0/TBD | Not started | - |
 | 4. surfwidget Integration | 0/TBD | Not started | - |
 | 5. E2E Test Suite | 0/TBD | Not started | - |
