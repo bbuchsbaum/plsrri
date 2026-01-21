@@ -7,6 +7,12 @@
 # These tests focus on the parent module's own reactive logic. Child modules
 # have their own test files.
 
+testthat::skip_if_not_installed("shiny")
+testthat::skip_if_not_installed("shinyjs")
+testthat::skip_if_not_installed("bslib")
+testthat::skip_if_not_installed("bsicons")
+testthat::skip_if_not_installed("shinyFiles")
+
 describe("explore_server initialization", {
 
   it("module initializes with selected_lv = 1", {

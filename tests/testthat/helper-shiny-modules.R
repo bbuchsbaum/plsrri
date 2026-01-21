@@ -3,7 +3,15 @@
 # Sources all Shiny module files so they're available during testing.
 # This file is automatically loaded by testthat before running tests.
 
-# Load required packages for module testing
+# Load required packages for module testing (skip if optional deps missing)
+required_pkgs <- c("shiny", "shinyjs", "bslib", "bsicons", "shinyFiles", "R6")
+has_pkg <- vapply(required_pkgs, requireNamespace, logical(1), quietly = TRUE)
+if (!all(has_pkg)) {
+  # Avoid hard failures when Suggests packages are not installed. The
+  # corresponding module tests should skip.
+  return(invisible(NULL))
+}
+
 library(shiny)
 library(shinyjs)
 

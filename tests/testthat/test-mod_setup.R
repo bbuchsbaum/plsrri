@@ -1,6 +1,12 @@
 # Test file for mod_setup Shiny module
 # Tests reactive server logic using testServer()
 
+testthat::skip_if_not_installed("shiny")
+testthat::skip_if_not_installed("shinyjs")
+testthat::skip_if_not_installed("shinyFiles")
+testthat::skip_if_not_installed("bslib")
+testthat::skip_if_not_installed("R6")
+
 # Required packages for Shiny module testing
 library(shiny)
 library(shinyjs)
