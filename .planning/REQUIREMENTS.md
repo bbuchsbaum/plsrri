@@ -9,8 +9,8 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Testing
 
-- [ ] **TEST-01**: All 6 Shiny modules have testServer() tests covering reactive logic
-- [ ] **TEST-02**: Test fixtures exist with mock pls_result objects (with/without bootstrap, with/without permutation)
+- [x] **TEST-01**: All 6 Shiny modules have testServer() tests covering reactive logic
+- [x] **TEST-02**: Test fixtures exist with mock pls_result objects (with/without bootstrap, with/without permutation)
 - [ ] **TEST-03**: shinytest2 E2E tests cover critical path: Setup -> Analyze -> Explore
 
 ### Architecture

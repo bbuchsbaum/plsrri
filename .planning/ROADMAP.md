@@ -10,7 +10,7 @@ This milestone transforms the existing plsrri Shiny GUI from working prototype t
 - Integer phases (1, 2, 3, 4, 5, 6): Planned milestone work
 - Decimal phases (e.g., 2.1): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 1: Testing Foundation** - Module tests, fixtures, data-test conventions
+- [x] **Phase 1: Testing Foundation** - Module tests, fixtures, data-test conventions
 - [ ] **Phase 2: Business Logic Extraction** - Extract fct_* files for unit testability
 - [ ] **Phase 3: Visualization Abstraction** - BrainRenderer R6 interface with registry
 - [ ] **Phase 4: surfwidget Integration** - neurosurf surface visualization
@@ -32,10 +32,10 @@ This milestone transforms the existing plsrri Shiny GUI from working prototype t
 **Plans**: 4 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Create mock pls_result fixtures and helper functions
-- [ ] 01-02-PLAN.md — Add data-test attributes to UI components
-- [ ] 01-03-PLAN.md — testServer tests for mod_setup, mod_analyze, mod_filter_bar
-- [ ] 01-04-PLAN.md — testServer tests for mod_explore, mod_brain_viewer, mod_inspector
+- [x] 01-01-PLAN.md — Create mock pls_result fixtures and helper functions
+- [x] 01-02-PLAN.md — Add data-test attributes to UI components
+- [x] 01-03-PLAN.md — testServer tests for mod_setup, mod_analyze, mod_filter_bar
+- [x] 01-04-PLAN.md — testServer tests for mod_explore, mod_brain_viewer, mod_inspector
 
 ### Phase 2: Business Logic Extraction
 **Goal**: Business logic is testable via pure functions separate from reactive module code
@@ -122,7 +122,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Testing Foundation | 0/4 | Ready to execute | - |
+| 1. Testing Foundation | 4/4 | ✓ Complete | 2026-01-21 |
 | 2. Business Logic Extraction | 0/TBD | Not started | - |
 | 3. Visualization Abstraction | 0/TBD | Not started | - |
 | 4. surfwidget Integration | 0/TBD | Not started | - |
