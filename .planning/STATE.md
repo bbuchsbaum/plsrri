@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 ## Current Position
 
 Phase: 2 of 6 (Business Logic Extraction)
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-01-21 - Completed 02-02-PLAN.md (brain viewer functions)
+Plan: 2 of 2 in current phase
+Status: Phase complete
+Last activity: 2026-01-21 - Completed 02-01-PLAN.md and 02-02-PLAN.md
 
-Progress: [███-------] 30%
+Progress: [██████----] 100% of Phase 2 (6/6 plans total)
 
 ## Performance Metrics
 
@@ -55,6 +55,9 @@ Recent decisions affecting current work:
 | 2026-01-21 | 01-03 | Mock results instead of running analysis | Tests use fixtures, avoid slow PLS execution |
 | 2026-01-21 | 01-04 | Direct local state modification for parent module tests | Avoids triggering child module observer errors |
 | 2026-01-21 | 01-04 | Mock filters list pattern for brain_viewer testing | Enables testing without fully initialized filter_bar |
+| 2026-01-21 | 02-01 | Pure functions sourced globally by app.R | Avoids path resolution issues when sourcing inside moduleServer |
+| 2026-01-21 | 02-01 | Test helper sources fct_* before modules | Ensures pure functions available when modules are sourced |
+| 2026-01-21 | 02-01 | NULL handling before NA checks in validation | Shiny inputs may be NULL when not yet initialized |
 | 2026-01-21 | 02-02 | fct_* files sourced by app.R before modules | Functions available when modules load |
 | 2026-01-21 | 02-02 | Pure functions take/return plain R objects | Enables unit testing without Shiny context |
 | 2026-01-21 | 02-02 | Reactive wrapper pattern for module delegation | Extract values from reactives, call pure functions |
@@ -72,5 +75,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-21
-Stopped at: Completed 02-02-PLAN.md
+Stopped at: Phase 2 complete (both 02-01 and 02-02 plans executed)
 Resume file: None
