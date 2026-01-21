@@ -28,10 +28,13 @@ if (shiny_r_path == "") {
 }
 
 # Source Shiny module files
+# fct_* files must be sourced before modules that depend on them
 shiny_files <- c(
   "state.R",
   "theme.R",
   "ui_components.R",
+  "fct_brain_viewer.R",
+  "fct_data_validation.R",
   "mod_filter_bar.R",
   "mod_brain_viewer.R",
   "mod_inspector.R",

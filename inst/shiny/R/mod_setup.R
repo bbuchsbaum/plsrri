@@ -254,6 +254,8 @@ setup_server <- function(id, state_rv) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
+    # Business logic functions are sourced by app.R (fct_data_validation.R)
+
     # Local reactive values
     local_rv <- reactiveValues(
       groups = list(
@@ -304,26 +306,17 @@ setup_server <- function(id, state_rv) {
         file_path <- files$datapath[i]
         file_name <- files$name[i]
 
-        tryCatch({
-          if (grepl("\\.csv$", file_name, ignore.case = TRUE)) {
-            mat <- as.matrix(read.csv(file_path, row.names = 1))
-          } else if (grepl("\\.rds$", file_name, ignore.case = TRUE)) {
-            mat <- readRDS(file_path)
-          } else if (grepl("\\.rda$", file_name, ignore.case = TRUE)) {
-            env <- new.env()
-            load(file_path, envir = env)
-            mat <- get(ls(env)[1], envir = env)
-          }
+        # Delegate to pure function for file parsing
+        mat <- parse_uploaded_file(file_path, file_name)
 
-          if (is.matrix(mat)) {
-            matrices[[length(matrices) + 1]] <- mat
-          }
-        }, error = function(e) {
+        if (!is.null(mat)) {
+          matrices[[length(matrices) + 1]] <- mat
+        } else {
           showNotification(
-            paste("Error loading", file_name, ":", e$message),
+            paste("Error loading", file_name, ": file could not be parsed as matrix"),
             type = "error"
           )
-        })
+        }
       }
 
       if (length(matrices) > 0) {
@@ -530,41 +523,15 @@ setup_server <- function(id, state_rv) {
     # =========================================================================
 
     validate_setup <- reactive({
-      errors <- character(0)
-
-      # Check data
-      if (input$data_source == "manual" && !local_rv$data_loaded) {
-        errors <- c(errors, "No data matrices loaded")
-      }
-
-      if (input$data_source == "bids") {
-        dir_info <- input$bids_dir
-        if (is.integer(dir_info)) {
-          errors <- c(errors, "No BIDS directory selected")
-        }
-      }
-
-      # Check design
-      groups <- local_rv$groups
-      if (length(groups) == 0) {
-        errors <- c(errors, "At least one group required")
-      }
-
-      if (any(sapply(groups, function(g) g$n_subj < 1))) {
-        errors <- c(errors, "All groups must have at least 1 subject")
-      }
-
-      n_cond <- input$num_conditions
-      if (is.na(n_cond) || n_cond < 1) {
-        errors <- c(errors, "At least one condition required")
-      }
-
-      # Check bootstrap requirements
-      if (input$num_boot > 0 && any(sapply(groups, function(g) g$n_subj < 3))) {
-        errors <- c(errors, "Bootstrap requires at least 3 subjects per group")
-      }
-
-      errors
+      # Delegate to pure validation function
+      validate_setup_config(
+        data_source = input$data_source,
+        data_loaded = local_rv$data_loaded,
+        bids_dir = input$bids_dir,
+        groups = local_rv$groups,
+        num_conditions = input$num_conditions,
+        num_boot = input$num_boot
+      )
     })
 
     output$validation_messages <- renderUI({
@@ -606,14 +573,8 @@ setup_server <- function(id, state_rv) {
       groups <- local_rv$groups
       n_cond <- input$num_conditions
 
-      # Determine method integer
-      method_int <- switch(
-        input$method,
-        task = 1L,
-        behavior = 3L,
-        multiblock = 4L,
-        1L
-      )
+      # Determine method integer (delegate to pure function)
+      method_int <- map_method_to_int(input$method)
 
       # Create spec
       spec <- plsrri::pls_spec()

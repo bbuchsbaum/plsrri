@@ -17,6 +17,11 @@
 validate_setup_config <- function(data_source, data_loaded, bids_dir, groups, num_conditions, num_boot) {
   errors <- character(0)
 
+  data_source <- as.character(data_source)[1]
+  data_loaded <- isTRUE(data_loaded)
+  num_conditions <- suppressWarnings(as.integer(num_conditions)[1])
+  num_boot <- suppressWarnings(as.integer(num_boot)[1])
+
   # Validate data source
   data_errors <- validate_data_source(data_source, data_loaded, bids_dir)
   errors <- c(errors, data_errors)
@@ -50,13 +55,15 @@ validate_setup_config <- function(data_source, data_loaded, bids_dir, groups, nu
 validate_groups <- function(groups) {
   errors <- character(0)
 
+  if (is.null(groups)) groups <- list()
+
   if (length(groups) == 0) {
     errors <- c(errors, "At least one group required")
     return(errors)
   }
 
   # Check all n_subj values
-  subj_counts <- sapply(groups, function(g) g$n_subj)
+  subj_counts <- sapply(groups, function(g) suppressWarnings(as.integer(g$n_subj)[1]))
 
   if (any(is.na(subj_counts) | subj_counts < 1)) {
     errors <- c(errors, "All groups must have at least 1 subject")
@@ -77,13 +84,15 @@ validate_groups <- function(groups) {
 validate_data_source <- function(data_source, data_loaded, bids_dir) {
   errors <- character(0)
 
-  if (data_source == "manual" && !isTRUE(data_loaded)) {
+  data_source <- as.character(data_source)[1]
+
+  if (identical(data_source, "manual") && !isTRUE(data_loaded)) {
     errors <- c(errors, "No data matrices loaded")
   }
 
-  if (data_source == "bids") {
+  if (identical(data_source, "bids")) {
     # Integer means no directory selected (shinyFiles convention)
-    if (is.integer(bids_dir) || is.numeric(bids_dir) && bids_dir == as.integer(bids_dir)) {
+    if (is.null(bids_dir) || (is.atomic(bids_dir) && length(bids_dir) == 0) || is.integer(bids_dir)) {
       errors <- c(errors, "No BIDS directory selected")
     }
   }
@@ -105,8 +114,7 @@ map_method_to_int <- function(method) {
     behavior = 3L,
     multiblock = 4L,
     1L  # default to task
-
-)
+  )
 }
 
 #' Parse Uploaded File
