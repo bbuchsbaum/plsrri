@@ -1,5 +1,8 @@
 # Filter Bar Module
 # Horizontal controls for LV selection, thresholds, and display options
+#
+# Uses pure computation functions from fct_brain_viewer.R:
+# - build_lv_choices()
 
 #' Filter Bar Module UI
 #'
@@ -123,29 +126,16 @@ filter_bar_server <- function(id, result_rv, state_rv) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
-    # Update LV choices when result changes
+    # Update LV choices when result changes using pure function
     observe({
       result <- result_rv()
       if (is.null(result)) return()
 
       n_lv <- length(result$s)
 
-      # Build choices
-      choices <- c("All" = "all")
-      for (i in seq_len(n_lv)) {
-        # Add significance indicator
-        if (!is.null(result$perm_result)) {
-          p_val <- result$perm_result$sprob[i]
-          if (p_val < 0.05) {
-            label <- sprintf("LV%d *", i)
-          } else {
-            label <- sprintf("LV%d", i)
-          }
-        } else {
-          label <- sprintf("LV%d", i)
-        }
-        choices[label] <- as.character(i)
-      }
+      # Build choices using pure function
+      p_vals <- if (!is.null(result$perm_result)) result$perm_result$sprob else NULL
+      choices <- build_lv_choices(n_lv, p_vals)
 
       updateSelectInput(session, "lv", choices = choices, selected = "1")
     })

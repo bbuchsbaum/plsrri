@@ -1,5 +1,8 @@
 # Inspector Module
 # Right-panel context details for selected LV or voxel
+#
+# Uses pure computation functions from fct_brain_viewer.R:
+# - compute_lv_stats(), compute_bsr_summary()
 
 #' Inspector Module UI
 #'
@@ -88,10 +91,10 @@ inspector_server <- function(id, result_rv, selected_lv, state_rv) {
         return(p(class = "text-muted", "Select an LV to view details"))
       }
 
-      # Get LV statistics
-      s <- result$s
-      var_exp <- (s^2 / sum(s^2)) * 100
-      cum_var <- cumsum(var_exp)
+      # Get LV statistics using pure function
+      lv_stats <- compute_lv_stats(result$s, lv)
+      var_exp <- lv_stats$var_explained
+      cum_var <- lv_stats$cum_var_explained
 
       # P-value if available
       p_val <- if (!is.null(result$perm_result)) {
@@ -100,15 +103,10 @@ inspector_server <- function(id, result_rv, selected_lv, state_rv) {
         NA
       }
 
-      # BSR summary if available
+      # BSR summary using pure function
       bsr_summary <- if (!is.null(result$boot_result)) {
         bsr_vals <- plsrri::bsr(result, lv = lv)
-        list(
-          n_pos = sum(bsr_vals > 3, na.rm = TRUE),
-          n_neg = sum(bsr_vals < -3, na.rm = TRUE),
-          max_pos = max(bsr_vals, na.rm = TRUE),
-          max_neg = min(bsr_vals, na.rm = TRUE)
-        )
+        compute_bsr_summary(bsr_vals, threshold = 3)
       } else {
         NULL
       }
@@ -123,11 +121,11 @@ inspector_server <- function(id, result_rv, selected_lv, state_rv) {
           tags$tbody(
             tags$tr(
               tags$td(class = "text-muted", "Variance Explained"),
-              tags$td(class = "text-end", sprintf("%.2f%%", var_exp[lv]))
+              tags$td(class = "text-end", sprintf("%.2f%%", var_exp))
             ),
             tags$tr(
               tags$td(class = "text-muted", "Cumulative"),
-              tags$td(class = "text-end", sprintf("%.2f%%", cum_var[lv]))
+              tags$td(class = "text-end", sprintf("%.2f%%", cum_var))
             ),
             if (!is.na(p_val)) {
               tags$tr(

@@ -1,5 +1,8 @@
 # Brain Viewer Module
 # Interactive brain slice visualization wrapping plot_brain()
+#
+# Uses pure computation functions from fct_brain_viewer.R:
+# - get_filter_defaults(), format_colorbar_label(), compute_plot_height()
 
 #' Brain Viewer Module UI
 #'
@@ -139,12 +142,15 @@ brain_viewer_server <- function(id, result_rv, filters) {
         return(print(p))
       }
 
-      # Get filter values
-      lv <- if (!is.null(filters$lv)) filters$lv() else 1L
-      if (is.null(lv)) lv <- 1L
-
-      threshold <- if (!is.null(filters$bsr_threshold)) filters$bsr_threshold() else 3.0
-      what <- if (!is.null(filters$what)) filters$what() else "bsr"
+      # Get filter values using pure function for defaults
+      filter_vals <- get_filter_defaults(list(
+        lv = if (!is.null(filters$lv)) filters$lv() else NULL,
+        bsr_threshold = if (!is.null(filters$bsr_threshold)) filters$bsr_threshold() else NULL,
+        what = if (!is.null(filters$what)) filters$what() else NULL
+      ))
+      lv <- filter_vals$lv
+      threshold <- filter_vals$bsr_threshold
+      what <- filter_vals$what
       view <- local_rv$view_mode
       along <- as.integer(input$axis)
 
@@ -164,15 +170,11 @@ brain_viewer_server <- function(id, result_rv, filters) {
         text(0.5, 0.5, paste("Plot error:", e$message), cex = 0.9, col = "#EF4444")
       })
     }, height = function() {
-      # Dynamic height based on view mode
-      if (local_rv$view_mode == "ortho") {
-        400
-      } else {
-        350
-      }
+      # Dynamic height using pure function
+      compute_plot_height(local_rv$view_mode)
     })
 
-    # Colorbar info
+    # Colorbar info using pure function
     output$colorbar_info <- renderUI({
       result <- result_rv()
       if (is.null(result)) return(NULL)
@@ -180,11 +182,7 @@ brain_viewer_server <- function(id, result_rv, filters) {
       what <- if (!is.null(filters$what)) filters$what() else "bsr"
       threshold <- if (!is.null(filters$bsr_threshold)) filters$bsr_threshold() else 3.0
 
-      if (what == "bsr") {
-        span(sprintf("Bootstrap Ratio (|BSR| > %.1f)", threshold))
-      } else {
-        span("Salience weights")
-      }
+      span(format_colorbar_label(what, threshold))
     })
 
     # Handle plot clicks
