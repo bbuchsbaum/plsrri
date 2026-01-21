@@ -11,7 +11,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 - [ ] **TEST-01**: All 6 Shiny modules have testServer() tests covering reactive logic
 - [ ] **TEST-02**: Test fixtures exist with mock pls_result objects (with/without bootstrap, with/without permutation)
-- [ ] **TEST-03**: shinytest2 E2E tests cover critical path: Setup → Analyze → Explore
+- [ ] **TEST-03**: shinytest2 E2E tests cover critical path: Setup -> Analyze -> Explore
 
 ### Architecture
 
@@ -67,30 +67,30 @@ Explicitly excluded. Documented to prevent scope creep.
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
+Which phases cover which requirements.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TEST-01 | TBD | Pending |
-| TEST-02 | TBD | Pending |
-| TEST-03 | TBD | Pending |
-| ARCH-01 | TBD | Pending |
-| ARCH-02 | TBD | Pending |
-| ARCH-03 | TBD | Pending |
-| SURF-01 | TBD | Pending |
-| SURF-02 | TBD | Pending |
-| SURF-03 | TBD | Pending |
-| SURF-04 | TBD | Pending |
-| UX-01 | TBD | Pending |
-| UX-02 | TBD | Pending |
-| UX-03 | TBD | Pending |
-| UX-04 | TBD | Pending |
+| TEST-01 | Phase 1: Testing Foundation | Pending |
+| TEST-02 | Phase 1: Testing Foundation | Pending |
+| TEST-03 | Phase 5: E2E Test Suite | Pending |
+| ARCH-01 | Phase 2: Business Logic Extraction | Pending |
+| ARCH-02 | Phase 3: Visualization Abstraction | Pending |
+| ARCH-03 | Phase 3: Visualization Abstraction | Pending |
+| SURF-01 | Phase 4: surfwidget Integration | Pending |
+| SURF-02 | Phase 4: surfwidget Integration | Pending |
+| SURF-03 | Phase 4: surfwidget Integration | Pending |
+| SURF-04 | Phase 4: surfwidget Integration | Pending |
+| UX-01 | Phase 6: UX Polish | Pending |
+| UX-02 | Phase 6: UX Polish | Pending |
+| UX-03 | Phase 6: UX Polish | Pending |
+| UX-04 | Phase 6: UX Polish | Pending |
 
 **Coverage:**
 - v1 requirements: 14 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 14 ⚠️
+- Mapped to phases: 14
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-21*
-*Last updated: 2026-01-21 after initial definition*
+*Last updated: 2026-01-21 after roadmap creation*
