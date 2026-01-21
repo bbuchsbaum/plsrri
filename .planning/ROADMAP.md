@@ -29,10 +29,13 @@ This milestone transforms the existing plsrri Shiny GUI from working prototype t
   2. Mock pls_result fixtures exist with/without bootstrap and with/without permutation variants
   3. Tests use data-test attributes for element selection (not namespaced IDs)
   4. All module tests pass on clean checkout
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 01-01: TBD
+- [ ] 01-01-PLAN.md — Create mock pls_result fixtures and helper functions
+- [ ] 01-02-PLAN.md — Add data-test attributes to UI components
+- [ ] 01-03-PLAN.md — testServer tests for mod_setup, mod_analyze, mod_filter_bar
+- [ ] 01-04-PLAN.md — testServer tests for mod_explore, mod_brain_viewer, mod_inspector
 
 ### Phase 2: Business Logic Extraction
 **Goal**: Business logic is testable via pure functions separate from reactive module code
@@ -119,7 +122,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Testing Foundation | 0/TBD | Not started | - |
+| 1. Testing Foundation | 0/4 | Ready to execute | - |
 | 2. Business Logic Extraction | 0/TBD | Not started | - |
 | 3. Visualization Abstraction | 0/TBD | Not started | - |
 | 4. surfwidget Integration | 0/TBD | Not started | - |
