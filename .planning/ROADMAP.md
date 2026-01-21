@@ -47,10 +47,11 @@ Plans:
   2. fct_data_validation.R exists with validation logic extracted from mod_setup
   3. Unit tests exist for extracted functions (not requiring Shiny context)
   4. Module servers delegate to fct_* functions rather than containing business logic
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: TBD
+- [ ] 02-01-PLAN.md — Extract fct_data_validation.R with validation functions and unit tests
+- [ ] 02-02-PLAN.md — Extract fct_brain_viewer.R with computation functions and unit tests
 
 ### Phase 3: Visualization Abstraction
 **Goal**: Brain visualization uses pluggable backend via R6 strategy pattern
@@ -122,8 +123,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Testing Foundation | 4/4 | ✓ Complete | 2026-01-21 |
-| 2. Business Logic Extraction | 0/TBD | Not started | - |
+| 1. Testing Foundation | 4/4 | Complete | 2026-01-21 |
+| 2. Business Logic Extraction | 0/2 | Ready | - |
 | 3. Visualization Abstraction | 0/TBD | Not started | - |
 | 4. surfwidget Integration | 0/TBD | Not started | - |
 | 5. E2E Test Suite | 0/TBD | Not started | - |
