@@ -74,17 +74,19 @@ Plans:
 **Goal**: Users can view PLS results on cortical surfaces via neurosurf surfwidget
 **Depends on**: Phase 3 (abstraction enables new renderer implementation)
 **Requirements**: SURF-01, SURF-02, SURF-03, SURF-04
-**Research**: Needed (neurosurf API, vol_to_surf mapping, WebGL disposal)
+**Research**: Complete (neurosurf API, vol_to_surf mapping, WebGL disposal)
 **Success Criteria** (what must be TRUE):
   1. SurfwidgetRenderer implements BrainRenderer interface using neurosurf::surfwidget
   2. vol_to_surf() correctly maps BSR and salience volumes to surface meshes
   3. Surface tab appears in Explore view showing cortical surface with mapped results
   4. Filter bar controls (LV, threshold) update both volume and surface views simultaneously
   5. WebGL resources are properly disposed when switching views (no memory leaks)
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 04-01: TBD
+- [ ] 04-01-PLAN.md — Surface mapping infrastructure and SurfwidgetRenderer
+- [ ] 04-02-PLAN.md — Surface viewer module with dual-hemisphere display
+- [ ] 04-03-PLAN.md — Explore tab integration with Volume/Surface views
 
 ### Phase 5: E2E Test Suite
 **Goal**: Critical user flows are verified via automated browser tests
@@ -127,7 +129,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 1. Testing Foundation | 4/4 | Complete | 2026-01-21 |
 | 2. Business Logic Extraction | 2/2 | Complete | 2026-01-21 |
 | 3. Visualization Abstraction | 2/2 | Complete | 2026-01-23 |
-| 4. surfwidget Integration | 0/TBD | Not started | - |
+| 4. surfwidget Integration | 0/3 | Not started | - |
 | 5. E2E Test Suite | 0/TBD | Not started | - |
 | 6. UX Polish | 0/TBD | Not started | - |
 
