@@ -40,6 +40,7 @@ shiny_files <- c(
   "fct_surface_mapper.R",
   "mod_filter_bar.R",
   "mod_brain_viewer.R",
+  "mod_surface_viewer.R",
   "mod_inspector.R",
   "mod_explore.R",
   "mod_analyze.R",

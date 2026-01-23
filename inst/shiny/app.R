@@ -27,6 +27,7 @@ source(file.path(app_dir, "R", "mod_setup.R"))
 source(file.path(app_dir, "R", "mod_analyze.R"))
 source(file.path(app_dir, "R", "mod_explore.R"))
 source(file.path(app_dir, "R", "mod_brain_viewer.R"))
+source(file.path(app_dir, "R", "mod_surface_viewer.R"))
 source(file.path(app_dir, "R", "mod_filter_bar.R"))
 source(file.path(app_dir, "R", "mod_inspector.R"))
 
