@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 ## Current Position
 
 Phase: 4 of 6 (surfwidget Integration)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-01-23 - Completed 04-01-PLAN.md
+Last activity: 2026-01-23 - Completed 04-02-PLAN.md
 
-Progress: [█████▓----] 56%
+Progress: [██████▓---] 62%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
-- Average duration: 3.9 min
-- Total execution time: 35.9 min
+- Total plans completed: 10
+- Average duration: 3.8 min
+- Total execution time: 39.3 min
 
 **By Phase:**
 
@@ -30,10 +30,10 @@ Progress: [█████▓----] 56%
 | 01-testing-foundation | 4 | 18.5 min | 4.6 min |
 | 02-business-logic-extraction | 2 | 8.5 min | 4.25 min |
 | 03-visualization-abstraction | 2 | 4.3 min | 2.15 min |
-| 04-surfwidget-integration | 1 | 4.6 min | 4.6 min |
+| 04-surfwidget-integration | 2 | 8.0 min | 4.0 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (4.1 min), 02-02 (4 min), 03-01 (1.3 min), 03-02 (3 min), 04-01 (4.6 min)
+- Last 5 plans: 02-02 (4 min), 03-01 (1.3 min), 03-02 (3 min), 04-01 (4.6 min), 04-02 (3.4 min)
 - Trend: Consistent execution maintained
 
 *Updated after each plan completion*
@@ -72,6 +72,9 @@ Recent decisions affecting current work:
 | 2026-01-23 | 04-01 | Environment-based cache for surfaces | Avoids repeated loading; faster than disk-based cache |
 | 2026-01-23 | 04-01 | Mask hash for sampler caching | Fast hash (dims + sum) sufficient to distinguish masks |
 | 2026-01-23 | 04-01 | is_widget() method on base class | Enables polymorphic output detection without instanceof checks |
+| 2026-01-23 | 04-02 | MockSurfwidgetRenderer for testing | Avoids neurosurf dependency in unit tests while testing renderer integration |
+| 2026-01-23 | 04-02 | Fallback plot output for non-widget renderers | Enables testing with MockSurfwidgetRenderer |
+| 2026-01-23 | 04-02 | WebGL disposal via parent module dispose() call | Parent knows when tabs switch; child can clean up resources on demand |
 
 ### Pending Todos
 
@@ -84,14 +87,15 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-23
-Stopped at: Completed 04-01-PLAN.md
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
 
 Related artifacts:
+- .planning/phases/04-surfwidget-integration/04-02-SUMMARY.md
 - .planning/phases/04-surfwidget-integration/04-01-SUMMARY.md
 - .planning/phases/04-surfwidget-integration/04-RESEARCH.md
 - .planning/phases/04-surfwidget-integration/04-CONTEXT.md
+- inst/shiny/R/mod_surface_viewer.R (surface_viewer_ui, surface_viewer_server)
+- tests/testthat/test-mod_surface_viewer.R (24 tests)
 - inst/shiny/R/fct_surface_mapper.R (5 functions)
-- inst/shiny/R/fct_brain_renderer.R (6 R6 classes now)
-- tests/testthat/test-fct_surface_mapper.R (26 tests)
-- tests/testthat/test-fct_brain_renderer.R (74 tests)
+- inst/shiny/R/fct_brain_renderer.R (6 R6 classes)
