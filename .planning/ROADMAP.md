@@ -57,17 +57,18 @@ Plans:
 **Goal**: Brain visualization uses pluggable backend via R6 strategy pattern
 **Depends on**: Phase 2 (extracted functions inform interface design)
 **Requirements**: ARCH-02, ARCH-03
-**Research**: Needed (R6 abstract class patterns, renderer capability negotiation)
+**Research**: Complete (R6 abstract class patterns, renderer capability negotiation)
 **Success Criteria** (what must be TRUE):
   1. BrainRenderer R6 abstract class defines render interface (render_volume, update_threshold, etc.)
   2. Neuroim2Renderer implements BrainRenderer using existing plot_brain() approach
   3. RendererRegistry factory returns appropriate renderer based on capabilities
   4. MockBrainRenderer exists for testing without visualization dependencies
   5. mod_brain_viewer uses renderer through registry (not direct plot_brain calls)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: TBD
+- [ ] 03-01-PLAN.md — Create BrainRenderer R6 class hierarchy and unit tests
+- [ ] 03-02-PLAN.md — Refactor mod_brain_viewer to use renderer abstraction
 
 ### Phase 4: surfwidget Integration
 **Goal**: Users can view PLS results on cortical surfaces via neurosurf surfwidget
@@ -125,7 +126,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 |-------|----------------|--------|-----------|
 | 1. Testing Foundation | 4/4 | Complete | 2026-01-21 |
 | 2. Business Logic Extraction | 2/2 | Complete | 2026-01-21 |
-| 3. Visualization Abstraction | 0/TBD | Not started | - |
+| 3. Visualization Abstraction | 0/2 | Planned | - |
 | 4. surfwidget Integration | 0/TBD | Not started | - |
 | 5. E2E Test Suite | 0/TBD | Not started | - |
 | 6. UX Polish | 0/TBD | Not started | - |
