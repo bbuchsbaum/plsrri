@@ -35,6 +35,8 @@ shiny_files <- c(
   "ui_components.R",
   "fct_brain_viewer.R",
   "fct_data_validation.R",
+  "fct_seed_data.R",
+  "fct_brain_renderer.R",
   "mod_filter_bar.R",
   "mod_brain_viewer.R",
   "mod_inspector.R",

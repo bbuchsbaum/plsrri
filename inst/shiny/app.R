@@ -20,6 +20,8 @@ source(file.path(app_dir, "R", "state.R"))
 source(file.path(app_dir, "R", "ui_components.R"))
 source(file.path(app_dir, "R", "fct_brain_viewer.R"))  # Pure functions first
 source(file.path(app_dir, "R", "fct_data_validation.R"))  # Data validation functions
+source(file.path(app_dir, "R", "fct_seed_data.R"))  # Seed PLS helpers
+source(file.path(app_dir, "R", "fct_brain_renderer.R"))  # Brain renderer abstraction
 source(file.path(app_dir, "R", "mod_setup.R"))
 source(file.path(app_dir, "R", "mod_analyze.R"))
 source(file.path(app_dir, "R", "mod_explore.R"))
