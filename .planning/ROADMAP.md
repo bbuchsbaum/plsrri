@@ -12,7 +12,7 @@ This milestone transforms the existing plsrri Shiny GUI from working prototype t
 
 - [x] **Phase 1: Testing Foundation** - Module tests, fixtures, data-test conventions
 - [x] **Phase 2: Business Logic Extraction** - Extract fct_* files for unit testability
-- [ ] **Phase 3: Visualization Abstraction** - BrainRenderer R6 interface with registry
+- [x] **Phase 3: Visualization Abstraction** - BrainRenderer R6 interface with registry
 - [ ] **Phase 4: surfwidget Integration** - neurosurf surface visualization
 - [ ] **Phase 5: E2E Test Suite** - shinytest2 critical path tests
 - [ ] **Phase 6: UX Polish** - Validation, error handling, design audit
@@ -67,8 +67,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Create BrainRenderer R6 class hierarchy and unit tests
-- [ ] 03-02-PLAN.md — Refactor mod_brain_viewer to use renderer abstraction
+- [x] 03-01-PLAN.md — Create BrainRenderer R6 class hierarchy and unit tests
+- [x] 03-02-PLAN.md — Refactor mod_brain_viewer to use renderer abstraction
 
 ### Phase 4: surfwidget Integration
 **Goal**: Users can view PLS results on cortical surfaces via neurosurf surfwidget
@@ -126,7 +126,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 |-------|----------------|--------|-----------|
 | 1. Testing Foundation | 4/4 | Complete | 2026-01-21 |
 | 2. Business Logic Extraction | 2/2 | Complete | 2026-01-21 |
-| 3. Visualization Abstraction | 0/2 | Planned | - |
+| 3. Visualization Abstraction | 2/2 | Complete | 2026-01-23 |
 | 4. surfwidget Integration | 0/TBD | Not started | - |
 | 5. E2E Test Suite | 0/TBD | Not started | - |
 | 6. UX Polish | 0/TBD | Not started | - |
