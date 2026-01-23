@@ -1,5 +1,8 @@
 # Brain Viewer Module
-# Interactive brain slice visualization wrapping plot_brain()
+# Interactive brain slice visualization using pluggable renderer backend
+#
+# Uses renderer abstraction from fct_brain_renderer.R for visualization.
+# Default: Neuroim2Renderer wrapping plot_brain(). Accepts injected renderer for testing.
 #
 # Uses pure computation functions from fct_brain_viewer.R:
 # - get_filter_defaults(), format_colorbar_label(), compute_plot_height()
@@ -82,11 +85,21 @@ brain_viewer_ui <- function(id) {
 #' @param id Module namespace ID
 #' @param result_rv Reactive containing pls_result
 #' @param filters Reactive list of filter values from filter_bar
+#' @param renderer Optional BrainRenderer instance for dependency injection (testing)
 #' @return Reactive with selected voxel info
 #' @keywords internal
-brain_viewer_server <- function(id, result_rv, filters) {
+brain_viewer_server <- function(id, result_rv, filters, renderer = NULL) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
+
+    # Create per-session registry if no renderer injected
+    registry <- if (is.null(renderer)) {
+      RendererRegistry$new()
+    } else {
+      NULL  # Use injected renderer directly
+    }
+
+    active_renderer <- renderer %||% registry$get("neuroim2")
 
     # Local state
     local_rv <- reactiveValues(
@@ -151,15 +164,17 @@ brain_viewer_server <- function(id, result_rv, filters) {
       lv <- filter_vals$lv
       threshold <- filter_vals$bsr_threshold
       what <- filter_vals$what
+      lag <- if (!is.null(filters$lag)) filters$lag() else NULL
       view <- local_rv$view_mode
       along <- as.integer(input$axis)
 
-      # Generate brain plot
+      # Generate brain plot using renderer abstraction
       tryCatch({
-        p <- plsrri::plot_brain(
-          result,
+        p <- active_renderer$render(
+          result = result,
           lv = lv,
           what = what,
+          lag = lag,
           threshold = threshold,
           view = view,
           along = along
@@ -225,9 +240,19 @@ brain_mini_ui <- function(id) {
 #' @param id Module namespace ID
 #' @param result_rv Reactive containing pls_result
 #' @param lv Reactive LV number
+#' @param renderer Optional BrainRenderer instance for dependency injection (testing)
 #' @keywords internal
-brain_mini_server <- function(id, result_rv, lv) {
+brain_mini_server <- function(id, result_rv, lv, renderer = NULL) {
   moduleServer(id, function(input, output, session) {
+    # Create per-session registry if no renderer injected
+    registry <- if (is.null(renderer)) {
+      RendererRegistry$new()
+    } else {
+      NULL  # Use injected renderer directly
+    }
+
+    active_renderer <- renderer %||% registry$get("neuroim2")
+
     output$brain_mini <- renderPlot({
       result <- result_rv()
       lv_val <- lv()
@@ -238,14 +263,15 @@ brain_mini_server <- function(id, result_rv, lv) {
       }
 
       tryCatch({
-        plsrri::plot_brain(
-          result,
+        p <- active_renderer$render(
+          result = result,
           lv = lv_val,
           what = "bsr",
           threshold = 3,
           view = "montage",
           ncol = 3
         )
+        print(p)
       }, error = function(e) {
         plot.new()
       })
