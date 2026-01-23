@@ -1,7 +1,9 @@
 # Tests for brain viewer module server logic
 #
 # testServer() tests for mod_brain_viewer.R covering view toggle,
-# filter integration, result handling, and click events.
+# filter integration, result handling, click events, and renderer integration.
+#
+# MockBrainRenderer is available from fct_brain_renderer.R sourced by helper-shiny-modules.R
 
 describe("brain_viewer_server initialization", {
 
@@ -411,6 +413,285 @@ describe("brain_viewer_server axis selection", {
         view_mode = shiny::reactive({ "montage" }),
         what = shiny::reactive({ "bsr" })
       )
+    ))
+  })
+
+})
+
+# =============================================================================
+# Renderer Integration Tests (using MockBrainRenderer)
+# =============================================================================
+
+describe("brain_viewer_server renderer integration", {
+
+  it("calls renderer with filter values", {
+    mock_renderer <- MockBrainRenderer$new()
+    mock_result <- make_mock_pls_result(include_mask = TRUE)
+
+    shiny::testServer(brain_viewer_server, {
+      # Need to set axis to trigger renderPlot
+      session$setInputs(axis = "3")
+      session$flushReact()
+
+      # Verify render was called
+      expect_gte(length(mock_renderer$render_calls), 1)
+
+      # Check default parameters
+      last_call <- mock_renderer$render_calls[[length(mock_renderer$render_calls)]]
+      expect_equal(last_call$lv, 1L)
+      expect_equal(last_call$what, "bsr")
+      expect_equal(last_call$threshold, 3.0)
+      expect_equal(last_call$view, "montage")
+    }, args = list(
+      result_rv = shiny::reactive({ mock_result }),
+      filters = list(
+        lv = shiny::reactive({ 1L }),
+        bsr_threshold = shiny::reactive({ 3.0 }),
+        p_threshold = shiny::reactive({ 0.05 }),
+        view_mode = shiny::reactive({ NULL }),
+        what = shiny::reactive({ "bsr" }),
+        lag = shiny::reactive({ NULL })
+      ),
+      renderer = mock_renderer
+    ))
+  })
+
+  it("passes updated filter values to renderer", {
+    mock_renderer <- MockBrainRenderer$new()
+    mock_result <- make_mock_pls_result(include_mask = TRUE)
+
+    shiny::testServer(brain_viewer_server, {
+      session$setInputs(axis = "3")
+      session$flushReact()
+
+      # Verify updated values
+      last_call <- mock_renderer$render_calls[[length(mock_renderer$render_calls)]]
+      expect_equal(last_call$lv, 2L)
+      expect_equal(last_call$what, "salience")
+      expect_equal(last_call$threshold, 4.0)
+    }, args = list(
+      result_rv = shiny::reactive({ mock_result }),
+      filters = list(
+        lv = shiny::reactive({ 2L }),
+        bsr_threshold = shiny::reactive({ 4.0 }),
+        p_threshold = shiny::reactive({ 0.05 }),
+        view_mode = shiny::reactive({ NULL }),
+        what = shiny::reactive({ "salience" }),
+        lag = shiny::reactive({ NULL })
+      ),
+      renderer = mock_renderer
+    ))
+  })
+
+  it("handles NULL result gracefully - renderer not called", {
+    mock_renderer <- MockBrainRenderer$new()
+
+    shiny::testServer(brain_viewer_server, {
+      session$setInputs(axis = "3")
+      session$flushReact()
+
+      # With NULL result, renderer should NOT be called
+      expect_equal(length(mock_renderer$render_calls), 0)
+    }, args = list(
+      result_rv = shiny::reactive({ NULL }),
+      filters = list(
+        lv = shiny::reactive({ 1L }),
+        bsr_threshold = shiny::reactive({ 3.0 }),
+        p_threshold = shiny::reactive({ 0.05 }),
+        view_mode = shiny::reactive({ NULL }),
+        what = shiny::reactive({ "bsr" }),
+        lag = shiny::reactive({ NULL })
+      ),
+      renderer = mock_renderer
+    ))
+  })
+
+  it("handles result without mask - renderer not called", {
+    mock_renderer <- MockBrainRenderer$new()
+    mock_result <- make_mock_pls_result(include_mask = FALSE)
+
+    shiny::testServer(brain_viewer_server, {
+      session$setInputs(axis = "3")
+      session$flushReact()
+
+      # Without mask, renderer should NOT be called (falls back to singular values plot)
+      expect_equal(length(mock_renderer$render_calls), 0)
+    }, args = list(
+      result_rv = shiny::reactive({ mock_result }),
+      filters = list(
+        lv = shiny::reactive({ 1L }),
+        bsr_threshold = shiny::reactive({ 3.0 }),
+        p_threshold = shiny::reactive({ 0.05 }),
+        view_mode = shiny::reactive({ NULL }),
+        what = shiny::reactive({ "bsr" }),
+        lag = shiny::reactive({ NULL })
+      ),
+      renderer = mock_renderer
+    ))
+  })
+
+  it("passes view mode to renderer", {
+    mock_renderer <- MockBrainRenderer$new()
+    mock_result <- make_mock_pls_result(include_mask = TRUE)
+
+    shiny::testServer(brain_viewer_server, {
+      session$setInputs(axis = "3")
+      session$flushReact()
+
+      # Check view mode is passed
+      last_call <- mock_renderer$render_calls[[length(mock_renderer$render_calls)]]
+      expect_equal(last_call$view, "montage")
+
+      # Clear and test ortho mode
+      mock_renderer$reset_calls()
+      session$setInputs(btn_ortho = 1L)
+      session$flushReact()
+
+      # Should have a new call with ortho view
+      if (length(mock_renderer$render_calls) > 0) {
+        last_call <- mock_renderer$render_calls[[length(mock_renderer$render_calls)]]
+        expect_equal(last_call$view, "ortho")
+      }
+    }, args = list(
+      result_rv = shiny::reactive({ mock_result }),
+      filters = list(
+        lv = shiny::reactive({ 1L }),
+        bsr_threshold = shiny::reactive({ 3.0 }),
+        p_threshold = shiny::reactive({ 0.05 }),
+        view_mode = shiny::reactive({ NULL }),
+        what = shiny::reactive({ "bsr" }),
+        lag = shiny::reactive({ NULL })
+      ),
+      renderer = mock_renderer
+    ))
+  })
+
+  it("passes axis along to renderer", {
+    mock_renderer <- MockBrainRenderer$new()
+    mock_result <- make_mock_pls_result(include_mask = TRUE)
+
+    shiny::testServer(brain_viewer_server, {
+      # Set coronal axis
+      session$setInputs(axis = "2")
+      session$flushReact()
+
+      expect_gte(length(mock_renderer$render_calls), 1)
+      last_call <- mock_renderer$render_calls[[length(mock_renderer$render_calls)]]
+
+      # along should be passed in extra_args
+      expect_equal(last_call$extra_args$along, 2L)
+    }, args = list(
+      result_rv = shiny::reactive({ mock_result }),
+      filters = list(
+        lv = shiny::reactive({ 1L }),
+        bsr_threshold = shiny::reactive({ 3.0 }),
+        p_threshold = shiny::reactive({ 0.05 }),
+        view_mode = shiny::reactive({ NULL }),
+        what = shiny::reactive({ "bsr" }),
+        lag = shiny::reactive({ NULL })
+      ),
+      renderer = mock_renderer
+    ))
+  })
+
+  it("passes lag to renderer", {
+    mock_renderer <- MockBrainRenderer$new()
+    mock_result <- make_mock_pls_result(include_mask = TRUE)
+
+    shiny::testServer(brain_viewer_server, {
+      session$setInputs(axis = "3")
+      session$flushReact()
+
+      expect_gte(length(mock_renderer$render_calls), 1)
+      last_call <- mock_renderer$render_calls[[length(mock_renderer$render_calls)]]
+
+      # lag should be passed in extra_args
+      expect_equal(last_call$extra_args$lag, 2L)
+    }, args = list(
+      result_rv = shiny::reactive({ mock_result }),
+      filters = list(
+        lv = shiny::reactive({ 1L }),
+        bsr_threshold = shiny::reactive({ 3.0 }),
+        p_threshold = shiny::reactive({ 0.05 }),
+        view_mode = shiny::reactive({ NULL }),
+        what = shiny::reactive({ "bsr" }),
+        lag = shiny::reactive({ 2L })
+      ),
+      renderer = mock_renderer
+    ))
+  })
+
+})
+
+describe("brain_mini_server renderer integration", {
+
+  it("calls renderer with LV value", {
+    mock_renderer <- MockBrainRenderer$new()
+    mock_result <- make_mock_pls_result(include_mask = TRUE)
+
+    shiny::testServer(brain_mini_server, {
+      session$flushReact()
+
+      expect_gte(length(mock_renderer$render_calls), 1)
+      last_call <- mock_renderer$render_calls[[length(mock_renderer$render_calls)]]
+      expect_equal(last_call$lv, 2L)
+      expect_equal(last_call$what, "bsr")
+      expect_equal(last_call$threshold, 3)
+      expect_equal(last_call$view, "montage")
+    }, args = list(
+      result_rv = shiny::reactive({ mock_result }),
+      lv = shiny::reactive({ 2L }),
+      renderer = mock_renderer
+    ))
+  })
+
+  it("handles NULL result gracefully - renderer not called", {
+    mock_renderer <- MockBrainRenderer$new()
+
+    shiny::testServer(brain_mini_server, {
+      session$flushReact()
+
+      # With NULL result, renderer should NOT be called
+      expect_equal(length(mock_renderer$render_calls), 0)
+    }, args = list(
+      result_rv = shiny::reactive({ NULL }),
+      lv = shiny::reactive({ 1L }),
+      renderer = mock_renderer
+    ))
+  })
+
+  it("handles result without mask - renderer not called", {
+    mock_renderer <- MockBrainRenderer$new()
+    mock_result <- make_mock_pls_result(include_mask = FALSE)
+
+    shiny::testServer(brain_mini_server, {
+      session$flushReact()
+
+      # Without mask, renderer should NOT be called
+      expect_equal(length(mock_renderer$render_calls), 0)
+    }, args = list(
+      result_rv = shiny::reactive({ mock_result }),
+      lv = shiny::reactive({ 1L }),
+      renderer = mock_renderer
+    ))
+  })
+
+  it("passes ncol to renderer", {
+    mock_renderer <- MockBrainRenderer$new()
+    mock_result <- make_mock_pls_result(include_mask = TRUE)
+
+    shiny::testServer(brain_mini_server, {
+      session$flushReact()
+
+      expect_gte(length(mock_renderer$render_calls), 1)
+      last_call <- mock_renderer$render_calls[[length(mock_renderer$render_calls)]]
+
+      # ncol should be passed in extra_args
+      expect_equal(last_call$extra_args$ncol, 3)
+    }, args = list(
+      result_rv = shiny::reactive({ mock_result }),
+      lv = shiny::reactive({ 1L }),
+      renderer = mock_renderer
     ))
   })
 
