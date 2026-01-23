@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-21)
 
 **Core value:** The GUI must be reliable and correct before users touch it
-**Current focus:** Phase 3 - Visualization Abstraction (Complete)
+**Current focus:** Phase 4 - surfwidget Integration (In progress)
 
 ## Current Position
 
-Phase: 3 of 6 (Visualization Abstraction)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-01-23 - Completed 03-02-PLAN.md
+Phase: 4 of 6 (surfwidget Integration)
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-01-23 - Completed 04-01-PLAN.md
 
-Progress: [█████-----] 50%
+Progress: [█████▓----] 56%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
-- Average duration: 3.8 min
-- Total execution time: 31.3 min
+- Total plans completed: 9
+- Average duration: 3.9 min
+- Total execution time: 35.9 min
 
 **By Phase:**
 
@@ -30,10 +30,11 @@ Progress: [█████-----] 50%
 | 01-testing-foundation | 4 | 18.5 min | 4.6 min |
 | 02-business-logic-extraction | 2 | 8.5 min | 4.25 min |
 | 03-visualization-abstraction | 2 | 4.3 min | 2.15 min |
+| 04-surfwidget-integration | 1 | 4.6 min | 4.6 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-04 (5.1 min), 02-01 (4.1 min), 02-02 (4 min), 03-01 (1.3 min), 03-02 (3 min)
-- Trend: Efficient execution maintained
+- Last 5 plans: 02-01 (4.1 min), 02-02 (4 min), 03-01 (1.3 min), 03-02 (3 min), 04-01 (4.6 min)
+- Trend: Consistent execution maintained
 
 *Updated after each plan completion*
 
@@ -67,6 +68,10 @@ Recent decisions affecting current work:
 | 2026-01-22 | 03-01 | RendererRegistry manages renderer instances by name | Centralized factory enables runtime renderer selection and validation |
 | 2026-01-23 | 03-02 | Optional renderer parameter with registry fallback | Production uses registry default; tests inject MockBrainRenderer |
 | 2026-01-23 | 03-02 | Per-session registry in moduleServer | Each session gets isolated registry; avoids global state |
+| 2026-01-23 | 04-01 | Valid geometries: pial, white, inflated, smoothwm, sphere | Matches neurosurf::load_fsaverage_std8() API |
+| 2026-01-23 | 04-01 | Environment-based cache for surfaces | Avoids repeated loading; faster than disk-based cache |
+| 2026-01-23 | 04-01 | Mask hash for sampler caching | Fast hash (dims + sum) sufficient to distinguish masks |
+| 2026-01-23 | 04-01 | is_widget() method on base class | Enables polymorphic output detection without instanceof checks |
 
 ### Pending Todos
 
@@ -74,20 +79,19 @@ None.
 
 ### Blockers/Concerns
 
-- Phase 4 (surfwidget Integration): Needs research on neurosurf API, WebGL disposal
 - Note: bsicons package missing from app dependencies (pre-existing, not blocking tests)
 
 ## Session Continuity
 
 Last session: 2026-01-23
-Stopped at: Completed 03-02-PLAN.md (Phase 3 complete)
+Stopped at: Completed 04-01-PLAN.md
 Resume file: None
 
 Related artifacts:
-- .planning/phases/03-visualization-abstraction/03-VERIFICATION.md (PASSED)
-- .planning/phases/03-visualization-abstraction/03-01-SUMMARY.md
-- .planning/phases/03-visualization-abstraction/03-02-SUMMARY.md
-- inst/shiny/R/fct_brain_renderer.R (4 R6 classes)
-- inst/shiny/R/mod_brain_viewer.R (refactored with renderer injection)
-- tests/testthat/test-fct_brain_renderer.R (36 tests)
-- tests/testthat/test-mod_brain_viewer.R (55 tests total, 15 new renderer tests)
+- .planning/phases/04-surfwidget-integration/04-01-SUMMARY.md
+- .planning/phases/04-surfwidget-integration/04-RESEARCH.md
+- .planning/phases/04-surfwidget-integration/04-CONTEXT.md
+- inst/shiny/R/fct_surface_mapper.R (5 functions)
+- inst/shiny/R/fct_brain_renderer.R (6 R6 classes now)
+- tests/testthat/test-fct_surface_mapper.R (26 tests)
+- tests/testthat/test-fct_brain_renderer.R (74 tests)
