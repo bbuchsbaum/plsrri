@@ -10,6 +10,15 @@ if (module_file == "") {
 }
 source(module_file, local = FALSE)
 
+# Also source fct_surface_mapper.R (SurfwidgetRenderer depends on it)
+mapper_file <- system.file("shiny/R/fct_surface_mapper.R", package = "plsrri")
+if (mapper_file == "") {
+  mapper_file <- testthat::test_path("../../inst/shiny/R/fct_surface_mapper.R")
+}
+if (file.exists(mapper_file)) {
+  source(mapper_file, local = FALSE)
+}
+
 describe("BrainRenderer (abstract)", {
 
   it("can be instantiated", {
@@ -25,6 +34,11 @@ describe("BrainRenderer (abstract)", {
     )
   })
 
+  it("is_widget() returns FALSE by default", {
+    renderer <- BrainRenderer$new()
+    expect_false(renderer$is_widget())
+  })
+
 })
 
 describe("Neuroim2Renderer", {
@@ -33,6 +47,11 @@ describe("Neuroim2Renderer", {
     renderer <- Neuroim2Renderer$new()
     expect_s3_class(renderer, "BrainRenderer")
     expect_s3_class(renderer, "Neuroim2Renderer")
+  })
+
+  it("is_widget() returns FALSE", {
+    renderer <- Neuroim2Renderer$new()
+    expect_false(renderer$is_widget())
   })
 
   it("render() calls plot_brain with correct parameters", {
@@ -215,6 +234,156 @@ describe("RendererRegistry", {
     expect_true("mock1" %in% available)
     expect_true("mock2" %in% available)
     expect_equal(length(available), 3)
+  })
+
+  it("has_surfwidget() checks neurosurf availability", {
+    registry <- RendererRegistry$new()
+
+    # Result should be a logical
+    result <- registry$has_surfwidget()
+    expect_type(result, "logical")
+    expect_length(result, 1)
+  })
+
+  it("register_surfwidget() conditionally registers", {
+    skip_if_not_installed("neurosurf")
+
+    registry <- RendererRegistry$new()
+    registry$register_surfwidget()
+
+    # If neurosurf is available, surfwidget should be registered
+    available <- registry$list_available()
+    expect_true("surfwidget" %in% available)
+
+    # Get it and verify it's a SurfwidgetRenderer
+    renderer <- registry$get("surfwidget")
+    expect_s3_class(renderer, "SurfwidgetRenderer")
+    expect_true(renderer$is_widget())
+  })
+
+  it("register_surfwidget() returns self for chaining", {
+    registry <- RendererRegistry$new()
+    result <- registry$register_surfwidget()
+    expect_identical(result, registry)
+  })
+
+})
+
+describe("SurfwidgetRenderer", {
+
+  it("inherits from BrainRenderer", {
+    renderer <- SurfwidgetRenderer$new()
+    expect_s3_class(renderer, "BrainRenderer")
+    expect_s3_class(renderer, "SurfwidgetRenderer")
+  })
+
+  it("is_widget() returns TRUE", {
+    renderer <- SurfwidgetRenderer$new()
+    expect_true(renderer$is_widget())
+  })
+
+  it("initializes with default geometry", {
+    renderer <- SurfwidgetRenderer$new()
+    expect_equal(renderer$geometry, "inflated")
+    expect_null(renderer$surfaces)
+    expect_type(renderer$samplers, "list")
+    expect_equal(length(renderer$samplers), 0)
+  })
+
+  it("accepts custom geometry parameter", {
+    renderer <- SurfwidgetRenderer$new(geometry = "pial")
+    expect_equal(renderer$geometry, "pial")
+  })
+
+  it("set_geometry() updates geometry and clears surface cache", {
+    skip_if_not_installed("neurosurf")
+
+    renderer <- SurfwidgetRenderer$new()
+
+    # Force load surfaces
+    renderer$surfaces <- get_fsaverage_surfaces("inflated")
+    expect_false(is.null(renderer$surfaces))
+
+    # Change geometry
+    renderer$set_geometry("pial")
+    expect_equal(renderer$geometry, "pial")
+    expect_null(renderer$surfaces)  # Should be cleared
+  })
+
+  it("set_geometry() returns self for chaining", {
+    renderer <- SurfwidgetRenderer$new()
+    result <- renderer$set_geometry("white")
+    expect_identical(result, renderer)
+  })
+
+})
+
+describe("MockSurfwidgetRenderer", {
+
+  it("inherits from BrainRenderer", {
+    renderer <- MockSurfwidgetRenderer$new()
+    expect_s3_class(renderer, "BrainRenderer")
+    expect_s3_class(renderer, "MockSurfwidgetRenderer")
+  })
+
+  it("is_widget() returns TRUE", {
+    renderer <- MockSurfwidgetRenderer$new()
+    expect_true(renderer$is_widget())
+  })
+
+  it("initializes with empty render_calls", {
+    renderer <- MockSurfwidgetRenderer$new()
+    expect_type(renderer$render_calls, "list")
+    expect_equal(length(renderer$render_calls), 0)
+  })
+
+  it("records render calls", {
+    renderer <- MockSurfwidgetRenderer$new()
+
+    renderer$render("result1", 1, "bsr", 3, "surface")
+    expect_equal(length(renderer$render_calls), 1)
+
+    renderer$render("result2", 2, "salience", 2.5, "surface")
+    expect_equal(length(renderer$render_calls), 2)
+  })
+
+  it("stores call parameters correctly", {
+    renderer <- MockSurfwidgetRenderer$new()
+
+    renderer$render("my_result", 3, "bsr", 2.5, "surface", extra = "arg")
+
+    call_record <- renderer$render_calls[[1]]
+    expect_equal(call_record$result, "my_result")
+    expect_equal(call_record$lv, 3)
+    expect_equal(call_record$what, "bsr")
+    expect_equal(call_record$threshold, 2.5)
+    expect_equal(call_record$view, "surface")
+    expect_equal(call_record$extra_args$extra, "arg")
+  })
+
+  it("returns htmlwidget-like object", {
+    renderer <- MockSurfwidgetRenderer$new()
+    result <- renderer$render("result", 1, "bsr", 3, "surface")
+
+    expect_s3_class(result, "htmlwidget")
+    expect_s3_class(result, "surfwidget")
+  })
+
+  it("reset_calls() clears history", {
+    renderer <- MockSurfwidgetRenderer$new()
+
+    renderer$render("result1", 1, "bsr", 3, "surface")
+    renderer$render("result2", 2, "bsr", 3, "surface")
+    expect_equal(length(renderer$render_calls), 2)
+
+    renderer$reset_calls()
+    expect_equal(length(renderer$render_calls), 0)
+  })
+
+  it("reset_calls() returns self for chaining", {
+    renderer <- MockSurfwidgetRenderer$new()
+    result <- renderer$reset_calls()
+    expect_identical(result, renderer)
   })
 
 })
