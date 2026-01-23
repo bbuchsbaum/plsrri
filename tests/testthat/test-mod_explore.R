@@ -425,3 +425,108 @@ describe("explore_server result structure validation", {
   })
 
 })
+
+# =========================================================================
+# Tab Integration Tests (Volume/Surface)
+# =========================================================================
+
+describe("explore module tab integration", {
+
+  it("UI contains view_tabs tabsetPanel", {
+    ui <- explore_ui("test")
+    ui_html <- as.character(ui)
+    expect_true(grepl("view_tabs", ui_html))
+  })
+
+  it("UI contains Volume tab", {
+    ui <- explore_ui("test")
+    ui_html <- as.character(ui)
+    expect_true(grepl("Volume", ui_html))
+    expect_true(grepl("explore-volume-tab", ui_html))
+  })
+
+  it("UI contains Surface tab", {
+    ui <- explore_ui("test")
+    ui_html <- as.character(ui)
+    expect_true(grepl("Surface", ui_html))
+    expect_true(grepl("explore-surface-tab", ui_html))
+  })
+
+  it("UI has tabsetPanel with both tabs", {
+    ui <- explore_ui("test")
+    ui_html <- as.character(ui)
+
+    # Should have tabsetPanel
+    expect_true(grepl("nav-tabs|nav nav-pills", ui_html))
+
+    # Both tabs should be present
+    expect_true(grepl("volume", ui_html, ignore.case = TRUE))
+    expect_true(grepl("surface", ui_html, ignore.case = TRUE))
+  })
+
+  it("active_tab defaults to volume in local_rv", {
+    shiny::testServer(explore_server, {
+      # Default active tab should be volume (first tab)
+      expect_equal(local_rv$active_tab, "volume")
+    }, args = list(
+      state_rv = shiny::reactiveValues(
+        step = 3L,
+        max_step = 3L,
+        result = make_mock_pls_result(),
+        selected_lv = 1L,
+        bsr_threshold = 3.0,
+        p_threshold = 0.05,
+        view_mode = "montage"
+      )
+    ))
+  })
+
+  it("server initializes without errors when result is present", {
+    result <- make_mock_pls_result()
+    shiny::testServer(explore_server, {
+      # Both child modules should be initialized
+      # No errors is success
+      session$flushReact()
+
+      # Local state should be initialized
+      expect_equal(local_rv$selected_lv, 1L)
+      expect_equal(local_rv$active_tab, "volume")
+    }, args = list(
+      state_rv = shiny::reactiveValues(
+        step = 3L,
+        max_step = 3L,
+        result = result,
+        selected_lv = 1L,
+        bsr_threshold = 3.0,
+        p_threshold = 0.05,
+        view_mode = "montage"
+      )
+    ))
+  })
+
+  it("active_tab can be updated in local_rv", {
+    shiny::testServer(explore_server, {
+      # Initial state
+      expect_equal(local_rv$active_tab, "volume")
+
+      # Direct modification (simulating tab change)
+      local_rv$active_tab <- "surface"
+      expect_equal(local_rv$active_tab, "surface")
+
+      # Can switch back
+      local_rv$active_tab <- "volume"
+      expect_equal(local_rv$active_tab, "volume")
+    }, args = list(
+      state_rv = shiny::reactiveValues(
+        step = 3L,
+        max_step = 3L,
+        result = make_mock_pls_result(),
+        selected_lv = 1L,
+        bsr_threshold = 3.0,
+        p_threshold = 0.05,
+        view_mode = "montage"
+      )
+    ))
+  })
+
+})
