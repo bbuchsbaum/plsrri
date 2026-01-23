@@ -44,12 +44,35 @@ explore_ui <- function(id) {
         )
       ),
 
-      # Main area: Brain viewer + scores
+      # Main area: Brain viewer (tabbed) + scores
       div(
         class = "pls-explore-main",
 
-        # Brain viewer
-        brain_viewer_ui(ns("brain")),
+        # Tabbed brain visualization (Volume/Surface)
+        panel_card(
+          title = "Brain Visualization",
+
+          tabsetPanel(
+            id = ns("view_tabs"),
+            type = "tabs",
+
+            # Volume tab (existing brain viewer)
+            tabPanel(
+              title = "Volume",
+              value = "volume",
+              `data-test` = "explore-volume-tab",
+              brain_viewer_ui(ns("brain"))
+            ),
+
+            # Surface tab (new surface viewer)
+            tabPanel(
+              title = "Surface",
+              value = "surface",
+              `data-test` = "explore-surface-tab",
+              surface_viewer_ui(ns("surface"))
+            )
+          )
+        ),
 
         # Design scores
         panel_card(
@@ -78,7 +101,8 @@ explore_server <- function(id, state_rv) {
 
     # Local reactive values
     local_rv <- reactiveValues(
-      selected_lv = 1L
+      selected_lv = 1L,
+      active_tab = "volume"  # Track which tab is active (Volume/Surface)
     )
 
     # Result reactive
@@ -193,10 +217,39 @@ explore_server <- function(id, state_rv) {
     }, bg = "transparent")
 
     # =========================================================================
-    # Brain Viewer
+    # Brain Viewer (Volume tab)
     # =========================================================================
 
     brain_info <- brain_viewer_server("brain", result_rv, filters)
+
+    # =========================================================================
+    # Surface Viewer (Surface tab)
+    # =========================================================================
+
+    surface_info <- surface_viewer_server("surface", result_rv, filters)
+
+    # =========================================================================
+    # Tab Change Observer with WebGL Cleanup
+    # =========================================================================
+
+    # Update active_tab when user switches, dispose WebGL resources
+    observeEvent(input$view_tabs, {
+      previous_tab <- local_rv$active_tab
+      local_rv$active_tab <- input$view_tabs
+
+      # CRITICAL: Dispose WebGL resources when switching away from Surface tab
+      # This prevents memory leaks from accumulated WebGL contexts
+      if (previous_tab == "surface" && input$view_tabs != "surface") {
+        if (!is.null(surface_info) && !is.null(surface_info$dispose)) {
+          surface_info$dispose()
+        }
+      }
+    })
+
+    # Create active_tab reactive for child modules (if needed)
+    active_tab <- reactive({
+      local_rv$active_tab
+    })
 
     # =========================================================================
     # Main Scores Plot
