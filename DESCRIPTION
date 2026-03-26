@@ -65,6 +65,8 @@ LinkingTo:
 Remotes:
     bbuchsbaum/neuroim2,
     bbuchsbaum/bidser,
+    bbuchsbaum/delarr,
+    bbuchsbaum/fmrihrf,
     bbuchsbaum/fmridataset,
     bbuchsbaum/fmridesign,
     bbuchsbaum/fmrireg,
