@@ -5,6 +5,8 @@
 [![pkgdown](https://github.com/bbuchsbaum/plsrri/actions/workflows/pkgdown.yaml/badge.svg)](https://bbuchsbaum.github.io/plsrri/)
 <!-- badges: end -->
 
+> **Note:** This package is under active development. The API may change before the first stable release.
+
 A modern R implementation of Partial Least Squares (PLS) for neuroimaging analysis, based on the McIntosh Lab MATLAB toolbox. Supports task PLS, behavior PLS, and multiblock PLS with permutation testing, bootstrap confidence intervals, and split-half validation.
 
 ## Installation
