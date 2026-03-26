@@ -4,6 +4,9 @@
 library(plsrri)
 ```
 
+> **Note:** `plsrri` is under active development. The API may change
+> before the first stable release.
+
 You have subject-by-condition brain data and want to know two things:
 which latent patterns separate your experimental conditions, and how
 stable are those patterns under resampling? `plsrri` gives you both a
