@@ -51,7 +51,6 @@ PlsMethod <- R6::R6Class("PlsMethod",
         cormode            = spec$cormode %||% cfg$cormode %||% 0L,
         boot_type          = spec$boot_type %||% cfg$boot_type %||% "strat",
         is_struct          = spec$is_struct %||% cfg$is_struct %||% FALSE,
-        parallel_config    = spec$.parallel,
         progress           = progress
       )
 

@@ -197,7 +197,7 @@ n_components.pls_result <- function(x, ...) {
 # --- Scores (generic, works on mva_result) ---
 
 #' @export
-scores.mva_result <- function(x, type = "feature", k = NULL, ...) {
+scores.mva_result <- function(x, type = "feature", lv = NULL) {
   type <- match.arg(type, c("feature", "design", "brain", "behavior"))
   # Map PLS-compatible type names
   if (type %in% c("brain", "feature")) {
@@ -208,9 +208,9 @@ scores.mva_result <- function(x, type = "feature", k = NULL, ...) {
   if (is.null(sc)) {
     stop(sprintf("No %s scores available", type), call. = FALSE)
   }
-  if (!is.null(k)) {
-    k <- as.integer(k)
-    sc <- sc[, k, drop = FALSE]
+  if (!is.null(lv)) {
+    lv <- as.integer(lv)
+    sc <- sc[, lv, drop = FALSE]
   }
   sc
 }
@@ -218,7 +218,7 @@ scores.mva_result <- function(x, type = "feature", k = NULL, ...) {
 # --- Significance (generic, works on mva_result) ---
 
 #' @export
-significance.mva_result <- function(x, k = NULL, threshold = NULL, ...) {
+significance.mva_result <- function(x, lv = NULL, threshold = NULL) {
   if (is.null(x$perm_result)) {
     stop("No permutation result available.", call. = FALSE)
   }
@@ -229,13 +229,13 @@ significance.mva_result <- function(x, k = NULL, threshold = NULL, ...) {
   } else "C"
   names(sprob) <- paste0(comp_name, seq_along(sprob))
 
-  if (!is.null(k)) {
-    k <- as.integer(k)
-    sprob <- sprob[k]
+  if (!is.null(lv)) {
+    lv <- as.integer(lv)
+    sprob <- sprob[lv]
   }
   if (is.null(threshold)) return(sprob)
 
-  ve <- importance(x, normalize = TRUE)[if (!is.null(k)) k else seq_along(sprob)]
+  ve <- importance(x, normalize = TRUE)[if (!is.null(lv)) lv else seq_along(sprob)]
   data.frame(
     component = names(sprob),
     pvalue = round(sprob, 3),
@@ -286,6 +286,6 @@ confidence.mva_result <- function(x, what = "feature_weights", lv = NULL) {
 # --- Feature Count (generic) ---
 
 #' @export
-n_features.mva_result <- function(x, ...) {
+n_features.mva_result <- function(x) {
   nrow(x$decomposition$feature_weights)
 }
