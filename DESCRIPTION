@@ -12,7 +12,8 @@ Description: A modern R implementation of the McIntosh Lab PLS package for
     methods with permutation testing, bootstrap confidence intervals, and
     split-half validation. Integrates with neuroim2 for brain imaging data
     structures and bidser for BIDS directory access.
-URL: https://bbuchsbaum.github.io/plsrri
+URL: https://bbuchsbaum.github.io/plsrri/, https://github.com/bbuchsbaum/plsrri
+BugReports: https://github.com/bbuchsbaum/plsrri/issues
 License: GPL-3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -54,6 +55,7 @@ Suggests:
     promises,
     RNifti,
     mockery,
+    pkgdown,
     knitr,
     rmarkdown
 VignetteBuilder: knitr
