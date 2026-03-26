@@ -46,7 +46,7 @@ MvaMethod <- R6::R6Class("MvaMethod",
       self$name <- name
       self$label <- label
       self$family <- family
-      self$capabilities <- modifyList(private$default_capabilities(), capabilities)
+      self$capabilities <- utils::modifyList(private$default_capabilities(), capabilities)
     },
 
     #' @description
@@ -143,7 +143,7 @@ MvaMethod <- R6::R6Class("MvaMethod",
     configure = function(spec, ...) {
       dots <- list(...)
       if (length(dots) > 0) {
-        spec$method_config <- modifyList(spec$method_config %||% list(), dots)
+        spec$method_config <- utils::modifyList(spec$method_config %||% list(), dots)
       }
       spec
     },

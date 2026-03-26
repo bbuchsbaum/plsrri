@@ -19,3 +19,5 @@
 ^\.\.Rcheck$
 ^plsrri\.Rcheck$
 ^scripts$
+^index\.md$
+^paper$
