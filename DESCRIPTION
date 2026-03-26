@@ -63,6 +63,7 @@ LinkingTo:
     Rcpp,
     RcppArmadillo
 Remotes:
+    bbuchsbaum/albersdown,
     bbuchsbaum/neuroim2,
     bbuchsbaum/bidser,
     bbuchsbaum/delarr,
@@ -70,7 +71,6 @@ Remotes:
     bbuchsbaum/fmridataset,
     bbuchsbaum/fmridesign,
     bbuchsbaum/fmrireg,
-    bbuchsbaum/neurosurf,
-    bbuchsbaum/albersdown
+    bbuchsbaum/neurosurf
 Config/testthat/edition: 3
 Config/Needs/website: albersdown
