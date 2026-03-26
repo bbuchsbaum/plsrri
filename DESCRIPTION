@@ -62,5 +62,13 @@ VignetteBuilder: knitr
 LinkingTo:
     Rcpp,
     RcppArmadillo
+Remotes:
+    bbuchsbaum/neuroim2,
+    bbuchsbaum/bidser,
+    bbuchsbaum/fmridataset,
+    bbuchsbaum/fmridesign,
+    bbuchsbaum/fmrireg,
+    bbuchsbaum/neurosurf,
+    bbuchsbaum/albersdown
 Config/testthat/edition: 3
 Config/Needs/website: albersdown
