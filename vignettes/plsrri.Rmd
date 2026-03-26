@@ -1,0 +1,231 @@
+---
+title: "Getting Started with plsrri"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with plsrri}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 6,
+  fig.height = 4
+)
+```
+
+```{r load-package}
+library(plsrri)
+```
+
+You have subject-by-condition brain data and want to know two things: which
+latent patterns separate your experimental conditions, and how stable are
+those patterns under resampling? `plsrri` gives you both a direct entry
+point for standard analyses and a builder workflow when you need more
+control.
+
+## How does a PLS analysis work?
+
+The core workflow has three steps:
+
+1. **Specify** — describe your data, conditions, groups, and analysis
+   parameters in a `pls_spec` object
+2. **Run** — execute the analysis to get a `pls_result` containing singular
+   values, saliences, scores, and optional inference (permutation, bootstrap)
+3. **Extract** — pull out what you need with accessor functions:
+   `significance()`, `salience()`, `bsr()`, `scores()`, `loadings()`,
+   `confidence()`
+
+| Object | What it holds | How you get it |
+|:-------|:-------------|:---------------|
+| `pls_spec` | Data matrices, method, resampling config | `pls_spec()` + builder verbs |
+| `pls_result` | SVD decomposition, scores, inference | `run()` or `quick_pls()` |
+
+The fastest path is `quick_pls()`, which wraps all three steps into one call.
+The builder API (`pls_spec() |> add_subjects() |> configure() |> run()`)
+gives you labels, metadata, and full control over every parameter.
+
+## What does a minimal analysis look like?
+
+This vignette uses a small synthetic dataset: two groups (young, older),
+three conditions, and 200 voxels with planted signal in two blocks.
+
+```{r simulate-task-data, include = FALSE}
+set.seed(123)
+
+n_subj <- 15
+n_cond <- 3
+n_vox <- 200
+
+make_group <- function(effect_size) {
+  signal <- matrix(0, nrow = n_subj * n_cond, ncol = n_vox)
+
+  for (s in seq_len(n_subj)) {
+    row_enc <- (s - 1L) * n_cond + 1L
+    row_ret <- (s - 1L) * n_cond + 2L
+    signal[row_enc, 1:80] <- effect_size
+    signal[row_ret, 81:140] <- effect_size * 0.7
+  }
+
+  signal + matrix(rnorm(n_subj * n_cond * n_vox), ncol = n_vox)
+}
+
+group_young <- make_group(effect_size = 1.0)
+group_older <- make_group(effect_size = 0.5)
+```
+
+Each group matrix has `r n_subj` subjects $\times$ `r n_cond` conditions =
+`r n_subj * n_cond` rows and `r n_vox` voxels:
+
+```{r inspect-task-data}
+rbind(
+  young = dim(group_young),
+  older = dim(group_older)
+)
+```
+
+`quick_pls()` is the shortest path. It runs mean-centering Task PLS with
+permutation and bootstrap inference in one call:
+
+```{r run-task-pls}
+result <- quick_pls(
+  datamat_lst = list(group_young, group_older),
+  num_subj_lst = c(n_subj, n_subj),
+  num_cond = n_cond,
+  nperm = 200,
+  nboot = 200,
+  progress = FALSE
+)
+```
+
+The result object carries everything: `r n_lv(result)` latent variables,
+each with a p-value from the permutation test and voxel-level bootstrap
+ratios.
+
+## Which latent variable matters?
+
+Start with `significance()` to see which latent variables survive the
+permutation test, and `singular_values()` to see how variance is distributed:
+
+```{r task-significance}
+cbind(
+  pvalue = round(significance(result), 3),
+  variance = round(singular_values(result, normalize = TRUE), 1)
+)
+```
+
+LV1 captures `r round(singular_values(result, normalize = TRUE)[1], 1)`%
+of the variance. The scree plot makes this dominance visual:
+
+```{r plot-task-singular-values, fig.cap = "Variance explained by each latent variable. LV1 dominates, consistent with the planted signal."}
+plot_singular_values(result)
+```
+
+## How do conditions load onto LV1?
+
+Design scores show how each group-by-condition cell projects onto the latent
+variable. Large positive and negative bars indicate conditions that drive the
+pattern in opposite directions.
+
+```{r plot-task-design-scores, fig.cap = "Design scores for LV1. Encoding (condition 1) loads positively; retrieval (condition 2) loads in the opposite direction."}
+plot_scores(result, lv = 1, type = "design", plot_type = "bar")
+```
+
+The separation between conditions confirms that LV1 captures a genuine
+experimental effect, not noise.
+
+## How consistent are subjects?
+
+Brain scores show whether individual subjects express the same latent
+pattern. Tight distributions mean the effect is reliable; wide spread
+suggests individual differences.
+
+```{r plot-task-brain-scores, fig.cap = "Brain scores for LV1. Each point is one subject-condition observation."}
+plot_scores(result, lv = 1, type = "brain", plot_type = "violin")
+```
+
+## Which voxels contribute reliably?
+
+Bootstrap ratios (BSRs) are saliences divided by their bootstrap standard
+errors — they work like z-scores. Voxels with $|BSR| > 2$ or $3$ are
+typically considered reliable.
+
+```{r task-bsr}
+lv1_bsr <- bsr(result, lv = 1)
+reliable <- sum(abs(lv1_bsr) > 2)
+```
+
+`r reliable` of `r n_features(result)` voxels have $|BSR| > 2$. A quick
+profile shows where the reliable voxels cluster:
+
+```{r plot-task-bsr, echo = FALSE, fig.cap = "Bootstrap ratio profile across voxels. The horizontal lines mark the |BSR| = 2 threshold. Voxels 1-80 and 81-140 show the planted signal blocks.", fig.height = 3}
+plot(as.numeric(lv1_bsr), type = "h", col = "steelblue",
+     xlab = "Voxel", ylab = "Bootstrap Ratio (LV1)",
+     main = NULL, las = 1)
+abline(h = c(-2, 2), lty = 2, col = "grey50")
+```
+
+You can also threshold directly to get a cleaned vector:
+
+```{r task-bsr-threshold}
+lv1_bsr_clean <- bsr(result, lv = 1, threshold = 2)
+sum(lv1_bsr_clean != 0)
+```
+
+## When should you use the builder workflow?
+
+Use the builder API when you want condition labels, group names, or
+non-default method settings to travel with the analysis. The pipe chain
+makes the full specification explicit and readable:
+
+```{r run-builder-workflow}
+builder_result <- pls_spec() |>
+  add_subjects(
+    list(group_young, group_older),
+    groups = c(n_subj, n_subj)
+  ) |>
+  add_conditions(n_cond, labels = c("encoding", "retrieval", "rest")) |>
+  add_group_labels(c("young", "older")) |>
+  configure(method = "task", nperm = 200, nboot = 200) |>
+  run(progress = FALSE)
+```
+
+The numerical result is identical to `quick_pls()`, but now plots carry
+meaningful labels:
+
+```{r plot-builder-scores, fig.cap = "Design scores with condition and group labels from the builder workflow."}
+plot_scores(builder_result, lv = 1, type = "design", plot_type = "bar")
+```
+
+The builder API also supports behavior data (`add_behavior()`), design
+contrasts (`add_design()`), and non-rotated methods — see
+`vignette("behavior-pls")` for the behavior workflow.
+
+## What about the interactive GUI?
+
+For exploratory work, `plsrri` ships a Shiny application that wraps the
+full setup-analyze-explore workflow in a point-and-click interface:
+```r
+launch_pls_gui()
+```
+The GUI supports loading data from BIDS directories, attaching to
+CLI pipeline outputs, and interactive brain visualization with volume and
+surface views.
+
+## Where to go next
+
+If you want to move from interactive examples to reproducible scripted analysis, go next to `vignette("scripted-workflows")`, which shows the public non-GUI contract built around saved first-level artifacts, staged CLI runs, and Quarto reporting.
+
+| Goal | Resource |
+|:-----|:---------|
+| Scripted R API, CLI, and report workflow | `vignette("scripted-workflows")` |
+| Behavior PLS with continuous measures | `vignette("behavior-pls")` |
+| Multiblock and seed connectivity PLS | `vignette("multiblock-and-seed")` |
+| Full engine parameters | `?pls_analysis` |
+| Builder verbs | `?pls_spec`, `?configure`, `?run` |
+| Plotting functions | `?plot_scores`, `?plot_loadings`, `?plot_singular_values` |
+| Bootstrap and permutation details | `?bsr`, `?significance`, `?confidence` |

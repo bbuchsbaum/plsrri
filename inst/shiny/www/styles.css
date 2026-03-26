@@ -317,6 +317,14 @@
 /* Advanced Options */
 /* ============================================= */
 
+.pls-advanced-toggle::marker {
+  content: "";
+}
+
+.pls-advanced-toggle::-webkit-details-marker {
+  display: none;
+}
+
 .pls-advanced {
   margin-top: var(--pls-space-md);
 }
@@ -324,6 +332,14 @@
 .pls-advanced details {
   border: 1px solid var(--pls-border);
   border-radius: 6px;
+}
+
+.pls-advanced-toggle .pls-advanced-chevron {
+  transition: transform 0.15s ease;
+}
+
+.pls-advanced details[open] .pls-advanced-toggle .pls-advanced-chevron {
+  transform: rotate(90deg);
 }
 
 .pls-advanced-toggle {
@@ -345,6 +361,37 @@
   padding: var(--pls-space-md);
   border-top: 1px solid var(--pls-border);
   background: #FAFAFA;
+}
+
+/* ============================================= */
+/* Help Popovers */
+/* ============================================= */
+
+.pls-help-icon {
+  color: var(--pls-muted);
+  line-height: 1;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+
+.pls-help-icon:hover,
+.pls-help-icon:focus {
+  color: var(--pls-accent);
+  text-decoration: none;
+  outline: none;
+}
+
+.pls-help-popover {
+  max-width: 380px;
+}
+
+.pls-help-popover .popover-header {
+  font-weight: 600;
+}
+
+.pls-help-popover .popover-body {
+  font-size: 0.875rem;
+  color: #374151;
 }
 
 /* ============================================= */
@@ -387,6 +434,10 @@
   justify-content: center;
   padding: var(--pls-space-xl);
   color: var(--pls-muted);
+}
+
+.pls-loading.hidden {
+  display: none;
 }
 
 /* ============================================= */

@@ -1,0 +1,64 @@
+Package: plsrri
+Title: Partial Least Squares for Neuroimaging
+Version: 0.1.0
+Authors@R: c(
+    person("Brad", "Buchsbaum", email = "brad.buchsbaum@gmail.com", role = c("aut", "cre")),
+    person("McIntosh Lab", role = "cph", comment = "Original MATLAB implementation"))
+Author: Brad Buchsbaum [aut, cre], McIntosh Lab [cph] (Original MATLAB
+    implementation)
+Maintainer: Brad Buchsbaum <brad.buchsbaum@gmail.com>
+Description: A modern R implementation of the McIntosh Lab PLS package for
+    neuroimaging analysis. Supports task PLS, behavior PLS, and multiblock PLS
+    methods with permutation testing, bootstrap confidence intervals, and
+    split-half validation. Integrates with neuroim2 for brain imaging data
+    structures and bidser for BIDS directory access.
+URL: https://bbuchsbaum.github.io/plsrri
+License: GPL-3
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Depends:
+    R (>= 4.1.0)
+Imports:
+    assertthat,
+    Matrix,
+    cli,
+    ggplot2,
+    methods,
+    R6,
+    Rcpp,
+    stats,
+    utils
+Suggests:
+    neuroim2,
+    bidser,
+    fmridataset,
+    fmridesign,
+    fmrireg,
+    quarto,
+    testthat (>= 3.0.0),
+    future,
+    furrr,
+    bench,
+    neurosurf,
+    R.matlab,
+    R.utils,
+    patchwork,
+    scales,
+    yaml,
+    shiny (>= 1.8.0),
+    bslib (>= 0.6.0),
+    bsicons,
+    shinyjs,
+    shinyFiles,
+    promises,
+    RNifti,
+    mockery,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+LinkingTo:
+    Rcpp,
+    RcppArmadillo
+Config/testthat/edition: 3
+Config/Needs/website: albersdown

@@ -26,6 +26,7 @@ test_module_path <- function() {
 module_path <- test_module_path()
 source(file.path(module_path, "ui_components.R"), local = FALSE)
 source(file.path(module_path, "state.R"), local = FALSE)
+source(file.path(module_path, "fct_prepared_analysis.R"), local = FALSE)
 source(file.path(module_path, "mod_analyze.R"), local = FALSE)
 
 # Helper to create minimal state_rv for testing
@@ -35,7 +36,10 @@ make_test_state_rv <- function(step = 1L, spec = NULL, analysis_status = "ready"
     max_step = step,
     spec = spec,
     result = NULL,
-    analysis_status = analysis_status
+    analysis_status = analysis_status,
+    analysis_source = "direct",
+    prepared_analysis = NULL,
+    analyze_mode = "pls_only"
   )
 }
 
@@ -73,6 +77,73 @@ describe("analyze_server initialization", {
   it("initializes with null error_message", {
     shiny::testServer(analyze_server, args = list(state_rv = make_test_state_rv()), {
       expect_null(local_rv$error_message)
+    })
+  })
+})
+
+describe("analyze_server prepared-analysis review", {
+  it("can summarize a prepared analysis without a prebuilt pls_spec", {
+    state_rv <- make_test_state_rv(step = 2L, spec = NULL)
+    state_rv$analysis_source <- "bids_in_app"
+    state_rv$prepared_analysis <- new_prepared_analysis(
+      analysis_source = "bids_in_app",
+      analyze_mode = "end_to_end",
+      pipeline_spec = list(dummy = TRUE),
+      pipeline_root = "/tmp/plsrri-out",
+      pls_options = list(method = "task", nperm = 10L, nboot = 5L),
+      pls_input = list(type = "estimates", statistic = "estimate"),
+      summary = list(
+        n_groups = 2L,
+        n_observations = 24L,
+        n_conditions = 3L,
+        n_features = 200L,
+        method_label = "Mean-Centering Task PLS",
+        nperm = 10L,
+        nboot = 5L
+      )
+    )
+
+    shiny::testServer(analyze_server, args = list(state_rv = state_rv), {
+      summary <- prepared_analysis_review_summary(state_rv$prepared_analysis)
+      expect_equal(summary$mode_label, "First-level + PLS")
+      expect_equal(summary$source_label, "BIDS workstation pipeline")
+      expect_equal(summary$n_observations, 24L)
+    })
+  })
+
+  it("can summarize attach-mode prepared analysis with a runnable spec", {
+    spec <- pls_spec() |>
+      add_subjects(list(matrix(rnorm(12), nrow = 4)), groups = 2) |>
+      add_conditions(2) |>
+      configure(method = "task", nperm = 25, nboot = 10)
+
+    state_rv <- make_test_state_rv(step = 2L, spec = spec)
+    state_rv$analysis_source <- "attach"
+    state_rv$prepared_analysis <- new_prepared_analysis(
+      analysis_source = "attach",
+      analyze_mode = "pls_only",
+      spec = spec,
+      pipeline_root = "/tmp/plsrri-attach",
+      analysis_plan = list(input_type = "estimates", statistic = "estimate"),
+      pls_input = list(type = "estimates", statistic = "estimate"),
+      summary = list(
+        n_groups = 1L,
+        n_subjects = 2L,
+        n_observations = 4L,
+        n_conditions = 2L,
+        n_features = 3L,
+        method_label = "Mean-Centering Task PLS",
+        nperm = 25L,
+        nboot = 10L
+      )
+    )
+
+    shiny::testServer(analyze_server, args = list(state_rv = state_rv), {
+      summary <- prepared_analysis_review_summary(state_rv$prepared_analysis)
+      expect_equal(summary$mode_label, "PLS only")
+      expect_equal(summary$source_label, "Attached first-level outputs")
+      expect_equal(summary$nperm, 25L)
+      expect_equal(summary$nboot, 10L)
     })
   })
 })

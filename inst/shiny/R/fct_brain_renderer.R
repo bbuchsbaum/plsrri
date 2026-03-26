@@ -1,6 +1,19 @@
 # Brain Renderer Abstraction
 # R6 classes for pluggable brain visualization backends
 
+# In some environments (notably headless CI), `rgl` can hard-crash R on load unless
+# configured to use a NULL device. `neurosurf` imports `rgl`, so any attempt to
+# `requireNamespace("neurosurf")` can also crash without this guard.
+ensure_rgl_use_null <- function() {
+  if (Sys.getenv("RGL_USE_NULL") == "") {
+    Sys.setenv(RGL_USE_NULL = "TRUE")
+  }
+  if (is.null(getOption("rgl.useNULL"))) {
+    options(rgl.useNULL = TRUE)
+  }
+  invisible(NULL)
+}
+
 #' BrainRenderer (Abstract)
 #'
 #' @description
@@ -174,8 +187,15 @@ SurfwidgetRenderer <- R6::R6Class(
     #' @param ... Additional arguments
     #' @return surfwidget htmlwidget object
     render = function(result, lv, what, threshold, view, ...) {
+      ensure_rgl_use_null()
       if (!requireNamespace("neurosurf", quietly = TRUE)) {
         stop("neurosurf package required for surface rendering", call. = FALSE)
+      }
+
+      dots <- list(...)
+      hemisphere <- dots$hemisphere %||% "lh"
+      if (!hemisphere %in% c("lh", "rh")) {
+        stop("hemisphere must be 'lh' or 'rh'", call. = FALSE)
       }
 
       # Lazy-load surfaces
@@ -202,10 +222,9 @@ SurfwidgetRenderer <- R6::R6Class(
         samplers = samplers
       )
 
-      # Create surfwidget with threshold
-      # TODO: Enhance with both hemispheres side-by-side
+      # Create surfwidget with threshold for requested hemisphere
       neurosurf::surfwidget(
-        mapped$lh,
+        mapped[[hemisphere]],
         thresh = c(-threshold, threshold),
         colorbar = TRUE,
         colorbar_label = if (what == "bsr") "BSR" else "Salience"
@@ -219,7 +238,8 @@ SurfwidgetRenderer <- R6::R6Class(
       if (geometry != self$geometry) {
         self$geometry <- geometry
         self$surfaces <- NULL
-        # Don't clear samplers - they depend on mask, not geometry
+        # Samplers depend on surface geometry; clear to force recompute.
+        self$samplers <- list()
       }
       invisible(self)
     },
@@ -396,6 +416,7 @@ RendererRegistry <- R6::R6Class(
     #' Check if surfwidget rendering is available (neurosurf installed)
     #' @return Logical, TRUE if neurosurf is available
     has_surfwidget = function() {
+      ensure_rgl_use_null()
       requireNamespace("neurosurf", quietly = TRUE)
     },
 

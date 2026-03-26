@@ -16,77 +16,8 @@ analyze_ui <- function(id) {
     div(
       class = "pls-progress-container",
 
-      # Progress card
-      panel_card(
-        class = "pls-progress-card",
-
-        # Title and stage
-        div(
-          `data-test` = "analyze-stage",
-          uiOutput(ns("progress_header"))
-        ),
-
-        # Progress bar
-        div(
-          class = "pls-progress-bar-container",
-          `data-test` = "analyze-progress",
-          div(
-            class = "progress",
-            style = "height: 8px;",
-            div(
-              id = ns("progress_bar"),
-              class = "progress-bar",
-              role = "progressbar",
-              style = "width: 0%;",
-              `aria-valuenow` = "0",
-              `aria-valuemin` = "0",
-              `aria-valuemax` = "100"
-            )
-          ),
-          div(
-            class = "text-center mt-2",
-            `data-test` = "analyze-progress-percent",
-            textOutput(ns("progress_percent"), inline = TRUE)
-          )
-        ),
-
-        # Time stats
-        div(
-          class = "pls-progress-stats",
-          span(`data-test` = "analyze-elapsed", textOutput(ns("elapsed_time"), inline = TRUE)),
-          span(textOutput(ns("remaining_time"), inline = TRUE))
-        ),
-
-        # Action buttons
-        div(
-          class = "pls-progress-actions",
-          actionButton(
-            ns("btn_cancel"),
-            "Cancel",
-            class = "btn-outline-secondary",
-            `data-test` = "analyze-cancel-btn"
-          ),
-          actionButton(
-            ns("btn_back"),
-            "Back to Setup",
-            icon = icon("arrow-left"),
-            class = "btn-outline-primary",
-            `data-test` = "analyze-back-btn"
-          )
-        )
-      ),
-
-      # Error display (hidden by default)
-      div(
-        `data-test` = "analyze-error",
-        uiOutput(ns("error_display"))
-      ),
-
-      # Completion display (hidden by default)
-      div(
-        `data-test` = "analyze-complete",
-        uiOutput(ns("completion_display"))
-      )
+      # Main content — switches between review card and progress/completion/error
+      uiOutput(ns("main_content"))
     )
   )
 }
@@ -100,6 +31,9 @@ analyze_ui <- function(id) {
 analyze_server <- function(id, state_rv) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
+
+    can_async <- requireNamespace("future", quietly = TRUE) &&
+      requireNamespace("promises", quietly = TRUE)
 
     # Local reactive values
     local_rv <- reactiveValues(
@@ -128,70 +62,84 @@ analyze_server <- function(id, state_rv) {
     )
 
     # =========================================================================
-    # Auto-start analysis when entering this step
-    # =========================================================================
-
-    observe({
-      # Only run when we're on step 2 and haven't started
-      if (state_rv$step == 2 && local_rv$status == "ready") {
-        spec <- state_rv$spec
-
-        if (!is.null(spec)) {
-          # Start analysis
-          start_analysis(spec)
-        }
-      }
-    })
-
-    # =========================================================================
     # Start Analysis
     # =========================================================================
 
-    start_analysis <- function(spec) {
+    start_analysis <- function(prepared) {
       local_rv$status <- "running"
       local_rv$progress <- 0
-      local_rv$stage <- stages[1]
+      local_rv$stage <- prepared_analysis_review_summary(prepared)$mode_label %||% stages[1]
       local_rv$stage_num <- 1
       local_rv$start_time <- Sys.time()
       local_rv$error_message <- NULL
+      local_rv$analysis_future <- NULL
 
       # Update state
       state_rv$analysis_status <- "running"
 
-      # Progress callback
-      progress_callback <- function(stage, progress, message = NULL) {
-        local_rv$stage <- stage
-        local_rv$progress <- progress
+      if (can_async) {
+        fut <- future::future({
+          run_prepared_analysis(prepared)
+        })
+        local_rv$analysis_future <- fut
+        local_rv$stage <- prepared_analysis_review_summary(prepared)$mode_label %||% "Running"
 
-        # Map stage to number
-        stage_idx <- match(stage, stages)
-        if (!is.na(stage_idx)) {
-          local_rv$stage_num <- stage_idx
-        }
-      }
+        promises::then(
+          promises::as.promise(fut),
+          onFulfilled = function(out) {
+            if (!identical(local_rv$status, "running")) return(invisible(NULL))
 
-      # Run analysis (synchronous for now, could use future for async)
-      tryCatch({
-        # Simulate progress for validation
-        progress_callback("Validating", 5)
+            local_rv$progress <- 100
+            local_rv$stage <- "Complete"
+            local_rv$status <- "complete"
+            local_rv$result <- out$result
+            state_rv$prepared_analysis <- out$prepared_analysis
+            if (!is.null(out$spec)) state_rv$spec <- out$spec
+            state_rv$analysis_status <- "complete"
+            local_rv$analysis_future <- NULL
 
-        # Run the actual analysis
-        result <- plsrri::run(
-          spec,
-          progress = TRUE
+            if (!is.null(out$result)) {
+              shinyjs::delay(500, {
+                complete_trigger(complete_trigger() + 1)
+              })
+            }
+
+            invisible(NULL)
+          },
+          onRejected = function(e) {
+            local_rv$analysis_future <- NULL
+            if (identical(local_rv$status, "cancelled")) return(invisible(NULL))
+
+            local_rv$status <- "error"
+            local_rv$error_message <- conditionMessage(e)
+            state_rv$analysis_status <- "error"
+            invisible(NULL)
+          }
         )
 
-        # Complete
+        return(invisible(NULL))
+      }
+
+      # Synchronous fallback when async deps aren't available
+      tryCatch({
+        local_rv$stage <- prepared_analysis_review_summary(prepared)$mode_label %||% "Running"
+        local_rv$progress <- 0
+
+        out <- run_prepared_analysis(prepared)
+
         local_rv$progress <- 100
         local_rv$stage <- "Complete"
         local_rv$status <- "complete"
-        local_rv$result <- result
+        local_rv$result <- out$result
+        state_rv$prepared_analysis <- out$prepared_analysis
+        if (!is.null(out$spec)) state_rv$spec <- out$spec
         state_rv$analysis_status <- "complete"
 
-        # Trigger completion after short delay for UI update
-        shinyjs::delay(500, {
-          complete_trigger(complete_trigger() + 1)
-        })
+        if (!is.null(out$result)) {
+          shinyjs::delay(500, {
+            complete_trigger(complete_trigger() + 1)
+          })
+        }
 
       }, error = function(e) {
         local_rv$status <- "error"
@@ -199,6 +147,205 @@ analyze_server <- function(id, state_rv) {
         state_rv$analysis_status <- "error"
       })
     }
+
+    # =========================================================================
+    # Main Content — review card or progress/completion/error
+    # =========================================================================
+
+    output$main_content <- renderUI({
+      status <- local_rv$status
+
+      if (status == "ready") {
+        # Review card
+        tagList(
+          panel_card(
+            class = "pls-progress-card",
+
+            div(
+              class = "mb-3",
+              h4(class = "pls-progress-title", "Analysis Review"),
+              p(class = "text-muted", "Review the analysis configuration below, then click Run PLS to start.")
+            ),
+
+            uiOutput(ns("review_summary")),
+
+            div(
+              class = "pls-progress-actions mt-4",
+              actionButton(
+                ns("btn_run_pls"),
+                "Run PLS",
+                icon = icon("play"),
+                class = "btn-primary btn-lg",
+                `data-test` = "analyze-run-btn"
+              ),
+              actionButton(
+                ns("btn_back_review"),
+                "Back to Setup",
+                icon = icon("arrow-left"),
+                class = "btn-link",
+                `data-test` = "analyze-back-review-btn"
+              )
+            )
+          )
+        )
+      } else {
+        # Progress / completion / error card
+        tagList(
+          panel_card(
+            class = "pls-progress-card",
+
+            # Title and stage
+            div(
+              `data-test` = "analyze-stage",
+              uiOutput(ns("progress_header"))
+            ),
+
+            # Progress bar
+            div(
+              class = "pls-progress-bar-container",
+              `data-test` = "analyze-progress",
+              div(
+                class = "progress",
+                style = "height: 8px;",
+                div(
+                  id = ns("progress_bar"),
+                  class = "progress-bar",
+                  role = "progressbar",
+                  style = "width: 0%;",
+                  `aria-valuenow` = "0",
+                  `aria-valuemin` = "0",
+                  `aria-valuemax` = "100"
+                )
+              ),
+              div(
+                class = "text-center mt-2",
+                `data-test` = "analyze-progress-percent",
+                textOutput(ns("progress_percent"), inline = TRUE)
+              )
+            ),
+
+            # Time stats
+            div(
+              class = "pls-progress-stats",
+              span(`data-test` = "analyze-elapsed", textOutput(ns("elapsed_time"), inline = TRUE)),
+              span(textOutput(ns("remaining_time"), inline = TRUE))
+            ),
+
+            # Action buttons
+            div(
+              class = "pls-progress-actions",
+              actionButton(
+                ns("btn_cancel"),
+                "Cancel",
+                class = "btn-outline-secondary",
+                `data-test` = "analyze-cancel-btn"
+              ),
+              actionButton(
+                ns("btn_back"),
+                "Back to Setup",
+                icon = icon("arrow-left"),
+                class = "btn-outline-primary",
+                `data-test` = "analyze-back-btn"
+              )
+            )
+          ),
+
+          # Error display (hidden by default)
+          div(
+            `data-test` = "analyze-error",
+            uiOutput(ns("error_display"))
+          ),
+
+          # Completion display (hidden by default)
+          div(
+            `data-test` = "analyze-complete",
+            uiOutput(ns("completion_display"))
+          )
+        )
+      }
+    })
+
+    # =========================================================================
+    # Review Summary
+    # =========================================================================
+
+    output$review_summary <- renderUI({
+      prepared <- state_rv$prepared_analysis
+      if (is.null(prepared)) {
+        spec <- state_rv$spec
+        if (is.null(spec)) return(p(class = "text-muted", "No analysis prepared"))
+        prepared <- build_prepared_analysis_from_spec(spec, source = state_rv$analysis_source %||% "direct")
+      }
+      summary <- prepared_analysis_review_summary(prepared)
+
+      div(
+        class = "pls-review-grid",
+        div(class = "row mb-3",
+          div(class = "col-6",
+            div(class = "mb-2",
+              tags$label(class = "text-muted small d-block", "Source"),
+              tags$span(class = "fw-bold", summary$source_label %||% "--")
+            ),
+            div(class = "mb-2",
+              tags$label(class = "text-muted small d-block", "Method"),
+              tags$span(class = "fw-bold", summary$method_label %||% "--")
+            )
+          ),
+          div(class = "col-6",
+            div(class = "mb-2",
+              tags$label(class = "text-muted small d-block", "Groups"),
+              tags$span(class = "fw-bold", summary$n_groups %||% "--")
+            ),
+            div(class = "mb-2",
+              tags$label(class = "text-muted small d-block", "Conditions"),
+              tags$span(class = "fw-bold", if (is.na(summary$n_conditions %||% NA_integer_)) "--" else summary$n_conditions)
+            )
+          )
+        ),
+        div(class = "row mb-3",
+          div(class = "col-6",
+            div(class = "mb-2",
+              tags$label(class = "text-muted small d-block", "Observations"),
+              tags$span(class = "fw-bold", format(summary$n_observations %||% NA_integer_, big.mark = ","))
+            )
+          ),
+          div(class = "col-6",
+            div(class = "mb-2",
+              tags$label(class = "text-muted small d-block", "Features"),
+              tags$span(class = "fw-bold", if (is.na(summary$n_features %||% NA_integer_)) "--" else format(summary$n_features, big.mark = ","))
+            )
+          )
+        ),
+        div(class = "row",
+          div(class = "col-6",
+            div(class = "mb-2",
+              tags$label(class = "text-muted small d-block", "Mode"),
+              tags$span(class = "fw-bold", summary$mode_label %||% "--")
+            )
+          ),
+          div(class = "col-6",
+            div(class = "mb-2",
+              tags$label(class = "text-muted small d-block", "Output Root"),
+              tags$span(class = "fw-bold", prepared$pipeline_root %||% "In-memory")
+            )
+          )
+        ),
+        div(class = "row",
+          div(class = "col-6",
+            div(class = "mb-2",
+              tags$label(class = "text-muted small d-block", "Permutations"),
+              tags$span(class = "fw-bold", if (is.na(summary$nperm %||% NA_integer_)) "--" else format(summary$nperm, big.mark = ","))
+            )
+          ),
+          div(class = "col-6",
+            div(class = "mb-2",
+              tags$label(class = "text-muted small d-block", "Bootstrap Samples"),
+              tags$span(class = "fw-bold", if (is.na(summary$nboot %||% NA_integer_)) "--" else format(summary$nboot, big.mark = ","))
+            )
+          )
+        )
+      )
+    })
 
     # =========================================================================
     # Progress Display
@@ -232,27 +379,30 @@ analyze_server <- function(id, state_rv) {
     })
 
     output$progress_percent <- renderText({
+      if (local_rv$status == "running") return("Running...")
       sprintf("%d%%", as.integer(local_rv$progress))
     })
 
     # Update progress bar via JS
     observe({
+      status <- local_rv$status
       progress <- local_rv$progress
+      bar_width <- if (status == "running") 100 else progress
 
       shinyjs::runjs(sprintf(
         "document.getElementById('%s').style.width = '%d%%';
          document.getElementById('%s').setAttribute('aria-valuenow', '%d');",
-        ns("progress_bar"), progress,
-        ns("progress_bar"), progress
+        ns("progress_bar"), bar_width,
+        ns("progress_bar"), bar_width
       ))
 
       # Change color based on status
-      status <- local_rv$status
       bar_class <- switch(
         status,
         complete = "progress-bar bg-success",
         error = "progress-bar bg-danger",
         cancelled = "progress-bar bg-warning",
+        running = "progress-bar bg-primary progress-bar-striped progress-bar-animated",
         "progress-bar bg-primary"
       )
 
@@ -323,7 +473,29 @@ analyze_server <- function(id, state_rv) {
       if (local_rv$status != "complete") return(NULL)
 
       result <- local_rv$result
-      if (is.null(result)) return(NULL)
+      if (is.null(result)) {
+        prepared <- state_rv$prepared_analysis
+        return(
+          div(
+            class = "mt-4",
+            panel_card(
+              title = "First-Level Outputs Ready",
+              status = "complete",
+              p("First-level preparation completed successfully."),
+              p(class = "small text-muted mb-3", prepared$pipeline_root %||% ""),
+              div(
+                class = "text-center",
+                actionButton(
+                  ns("btn_back_prepared"),
+                  "Back to Setup",
+                  icon = icon("arrow-left"),
+                  class = "btn-outline-primary"
+                )
+              )
+            )
+          )
+        )
+      }
 
       # Summary info
       n_lv <- length(result$s)
@@ -415,15 +587,42 @@ analyze_server <- function(id, state_rv) {
     # Button Handlers
     # =========================================================================
 
+    observeEvent(input$btn_run_pls, {
+      prepared <- state_rv$prepared_analysis
+      if (is.null(prepared) && !is.null(state_rv$spec)) {
+        prepared <- build_prepared_analysis_from_spec(
+          state_rv$spec,
+          source = state_rv$analysis_source %||% "direct"
+        )
+      }
+      if (!is.null(prepared)) {
+        start_analysis(prepared)
+      }
+    })
+
+    observeEvent(input$btn_back_review, {
+      state_rv$step <- 1L
+    })
+
     observeEvent(input$btn_cancel, {
       if (local_rv$status == "running") {
+        if (can_async && !is.null(local_rv$analysis_future)) {
+          try(future::cancel(local_rv$analysis_future), silent = TRUE)
+          local_rv$analysis_future <- NULL
+        }
         local_rv$status <- "cancelled"
+        local_rv$stage <- "Cancelled"
+        local_rv$progress <- 0
         state_rv$analysis_status <- "ready"
       }
     })
 
     observeEvent(input$btn_back, {
       # Reset and go back
+      if (can_async && !is.null(local_rv$analysis_future)) {
+        try(future::cancel(local_rv$analysis_future), silent = TRUE)
+        local_rv$analysis_future <- NULL
+      }
       local_rv$status <- "ready"
       local_rv$progress <- 0
       state_rv$analysis_status <- "ready"
@@ -438,15 +637,36 @@ analyze_server <- function(id, state_rv) {
     })
 
     observeEvent(input$btn_retry, {
-      spec <- state_rv$spec
-      if (!is.null(spec)) {
-        local_rv$status <- "ready"
-        # Will auto-start via observer
+      prepared <- state_rv$prepared_analysis
+      if (is.null(prepared) && !is.null(state_rv$spec)) {
+        prepared <- build_prepared_analysis_from_spec(
+          state_rv$spec,
+          source = state_rv$analysis_source %||% "direct"
+        )
       }
+      if (!is.null(prepared)) {
+        start_analysis(prepared)
+      }
+    })
+
+    observeEvent(input$btn_back_prepared, {
+      local_rv$status <- "ready"
+      local_rv$progress <- 0
+      state_rv$analysis_status <- "ready"
+      state_rv$step <- 1L
     })
 
     observeEvent(input$btn_explore, {
       complete_trigger(complete_trigger() + 1)
+    })
+
+    session$onSessionEnded(function() {
+      shiny::isolate({
+        if (can_async && !is.null(local_rv$analysis_future)) {
+          try(future::cancel(local_rv$analysis_future), silent = TRUE)
+          local_rv$analysis_future <- NULL
+        }
+      })
     })
 
     # =========================================================================

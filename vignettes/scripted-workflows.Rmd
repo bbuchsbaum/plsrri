@@ -1,0 +1,286 @@
+---
+title: "Scripted End-to-End Workflows"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Scripted End-to-End Workflows}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 6,
+  fig.height = 4
+)
+
+needed <- c("RNifti", "neuroim2", "yaml", "quarto")
+missing_pkgs <- needed[!vapply(needed, requireNamespace, quietly = TRUE, FUN.VALUE = logical(1))]
+if (length(missing_pkgs) > 0) {
+  knitr::knit_exit()
+}
+
+pkg_root <- if (file.exists("DESCRIPTION")) "." else ".."
+if (requireNamespace("plsrri", quietly = TRUE) &&
+    !"prepare_pls" %in% getNamespaceExports("plsrri") &&
+    requireNamespace("devtools", quietly = TRUE) &&
+    file.exists(file.path(pkg_root, "DESCRIPTION"))) {
+  devtools::load_all(pkg_root, quiet = TRUE)
+}
+```
+
+```{r load-package}
+library(plsrri)
+```
+
+You want one analysis contract that works in three places: ordinary R code, a staged CLI workflow, and later the Shiny app. In `plsrri`, that contract is a saved artifact directory containing first-level manifests, a planned PLS manifest, a saved `pls_result`, and optional reports.
+
+This vignette starts from a tiny synthetic artifact root so the core workflow stays runnable under `R CMD check`. It then shows how the same workflow extends to `prepare_firstlevel()` and `plscli` on a real BIDS dataset.
+
+## What does the saved-artifact workflow look like?
+
+The smallest stable path is:
+
+1. point `prepare_pls()` at a saved artifact root or pipeline YAML
+2. run the returned `pls_spec`
+3. render a Quarto report from the same saved artifacts
+
+```{r build-synthetic-artifacts, include = FALSE}
+set.seed(2026)
+
+tmp <- tempfile("plsrri-scripted-")
+dir.create(tmp, recursive = TRUE)
+bids_dir <- file.path(tmp, "bids")
+out_root <- file.path(tmp, "out")
+dir.create(bids_dir, recursive = TRUE)
+
+mask_arr <- array(0, dim = c(2, 2, 2))
+mask_arr[1, 1, 1] <- 1
+mask_arr[2, 1, 1] <- 1
+mask_file <- file.path(tmp, "mask.nii.gz")
+RNifti::writeNifti(mask_arr, mask_file)
+
+subjects <- c("01", "02")
+scans <- file.path(bids_dir, paste0("sub-", subjects, "_task-toy_bold.nii.gz"))
+events <- file.path(bids_dir, paste0("sub-", subjects, "_task-toy_events.tsv"))
+invisible(file.create(scans))
+for (event_file in events) {
+  writeLines(c("onset\tduration\tcondition", "0\t1\tface", "2\t1\tscene"), event_file)
+}
+
+dir.create(file.path(out_root, "firstlevel", "work"), recursive = TRUE)
+
+work_ids <- sprintf("w%04d", seq_along(subjects))
+work_plan <- data.frame(
+  subject = subjects,
+  group = "all",
+  task = "toy",
+  work_id = work_ids,
+  scan_count = 1L,
+  work_dir = file.path("firstlevel", "work", work_ids),
+  fit_file = file.path("firstlevel", "work", work_ids, "fit.rds"),
+  manifest_file = file.path("firstlevel", "work", work_ids, "maps.tsv"),
+  stringsAsFactors = FALSE
+)
+utils::write.table(
+  work_plan,
+  file.path(out_root, "firstlevel", "work_plan.tsv"),
+  sep = "\t",
+  quote = FALSE,
+  row.names = FALSE
+)
+
+values <- list(
+  "01" = c(face = 2.4, scene = -2.3),
+  "02" = c(face = 2.0, scene = -1.9)
+)
+
+for (i in seq_along(subjects)) {
+  work_dir_abs <- file.path(out_root, "firstlevel", "work", work_ids[[i]])
+  dir.create(work_dir_abs, recursive = TRUE, showWarnings = FALSE)
+
+  manifest_rows <- lapply(names(values[[subjects[[i]]]]), function(label) {
+    arr <- array(0, dim = c(2, 2, 2))
+    arr[1, 1, 1] <- values[[subjects[[i]]]][[label]]
+    arr[2, 1, 1] <- values[[subjects[[i]]]][[label]] + 0.5
+    out_file <- file.path(work_dir_abs, paste0(label, ".nii.gz"))
+    RNifti::writeNifti(arr, out_file)
+
+    data.frame(
+      work_id = work_ids[[i]],
+      subject = subjects[[i]],
+      group = "all",
+      task = "toy",
+      type = "estimates",
+      label = label,
+      statistic = "estimate",
+      file = file.path("firstlevel", "work", work_ids[[i]], paste0(label, ".nii.gz")),
+      mask_file = mask_file,
+      condition = label,
+      basis_label = NA_character_,
+      basis_index = NA_integer_,
+      stringsAsFactors = FALSE
+    )
+  })
+
+  utils::write.table(
+    do.call(rbind, manifest_rows),
+    file.path(work_dir_abs, "maps.tsv"),
+    sep = "\t",
+    quote = FALSE,
+    row.names = FALSE
+  )
+}
+
+spec_path <- file.path(tmp, "pipeline.yml")
+yaml::write_yaml(
+  list(
+    dataset = list(
+      bids_dir = bids_dir,
+      task = "toy",
+      mask = mask_file
+    ),
+    design = list(
+      formula = "onset ~ hrf(condition, basis = 'spmg1')"
+    ),
+    first_level = list(
+      output = list(
+        type = "estimates",
+        statistics = "estimate"
+      )
+    ),
+    pls = list(
+      method = "task",
+      nperm = 0L,
+      nboot = 0L,
+      nsplit = 0L
+    ),
+    outputs = list(
+      root = out_root
+    )
+  ),
+  spec_path
+)
+```
+
+```{r prepare-pls-from-artifacts}
+pspec <- prepare_pls(out_root, pls_options = list(method = "task", nperm = 0L, nboot = 0L))
+
+stopifnot(
+  inherits(pspec, "pls_spec"),
+  pspec$num_cond == 2L,
+  length(pspec$datamat_lst) == 1L
+)
+
+pspec
+```
+
+Once you have a prepared spec, `run_pls()` and `render_pls_report()` are thin, deterministic wrappers.
+
+```{r run-and-report}
+result <- run_pls(spec_path)
+report_file <- file.path(tmp, "plsrri-scripted-report.html")
+rendered <- render_pls_report(spec_path, output_file = report_file, include_brain = FALSE)
+
+stopifnot(
+  inherits(result, "pls_result"),
+  all(is.finite(result$s)),
+  file.exists(file.path(out_root, "pls", "pls_result.rds")),
+  file.exists(rendered),
+  file.info(rendered)$size > 0
+)
+
+c(
+  latent_variables = n_lv(result),
+  features = n_features(result)
+)
+```
+
+The saved result and the rendered report are part of the same artifact contract, so you can reopen them later without reconstructing the analysis state.
+
+```{r inspect-saved-artifacts}
+summary_file <- file.path(out_root, "pls", "pls_summary.tsv")
+saved_summary <- utils::read.delim(summary_file, sep = "\t", stringsAsFactors = FALSE)
+
+stopifnot(
+  nrow(saved_summary) >= 1L,
+  all(is.finite(saved_summary$singular_value))
+)
+
+saved_summary
+```
+
+## When do you call `prepare_firstlevel()`?
+
+Use `prepare_firstlevel()` when you want the same R session to own BIDS discovery, first-level planning, and first-level execution before moving into PLS.
+
+That live path depends on the external first-level stack (`bidser`, `fmridataset`, `fmridesign`, `fmrireg`), so it is shown here as an execution pattern rather than as a vignette-evaluated chunk:
+
+```r
+prep <- prepare_firstlevel("study.yml")
+result <- run_pls(prep)
+render_pls_report(prep$spec)
+```
+
+For workstation use, that is often the cleanest end-to-end R workflow. For HPC use, the same YAML spec can be split into explicit stages.
+
+## How does the same workflow look from the CLI?
+
+The CLI mirrors the same contract and the same stage boundaries.
+
+```bash
+plscli validate --spec study.yml
+plscli discover --spec study.yml
+plscli firstlevel-plan --spec study.yml
+plscli firstlevel-run --spec study.yml --work-id w0007
+plscli pls-plan --spec study.yml
+plscli pls-run --spec study.yml
+plscli report --input study.yml --format html
+```
+
+For array jobs, the only thing that changes is how you schedule `firstlevel-run`.
+
+```bash
+plscli firstlevel-plan --spec study.yml
+plscli firstlevel-run --spec study.yml --work-id "${SLURM_ARRAY_TASK_ID}"
+plscli pls-plan --spec study.yml
+plscli pls-run --spec study.yml
+plscli report --input /path/to/artifact-root --format pdf
+```
+
+The important design point is that `plscli report` reads the same artifacts that `render_pls_report()` reads in R, and `prepare_pls()` reads the same first-level manifests that the CLI writes.
+
+## What should you treat as the public contract?
+
+For scripted analysis, the stable surfaces are:
+
+- `prepare_firstlevel()`
+- `prepare_pls()`
+- `run_pls()`
+- `render_pls_report()`
+
+The stable on-disk contract is the artifact root containing:
+
+- `firstlevel/work_plan.tsv`
+- `firstlevel/work/*/maps.tsv`
+- `pls/pls_manifest.tsv`
+- `pls/pls_result.rds`
+- `pls/pls_summary.tsv`
+- `reports/`
+
+That is the contract the Shiny app is also expected to consume when it attaches to existing first-level outputs.
+
+## Where should you go next?
+
+Use `vignette("plsrri")` for the main task-PLS workflow, `vignette("behavior-pls")` for behavior PLS, and `vignette("multiblock-and-seed")` for multiblock and seed analyses.
+
+The most relevant help pages after this vignette are:
+
+- `?prepare_firstlevel`
+- `?prepare_pls`
+- `?run_pls`
+- `?render_pls_report`
+- `?plscli_main`

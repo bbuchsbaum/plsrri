@@ -30,6 +30,9 @@ get_fsaverage_surfaces <- function(geometry = "inflated") {
   }
 
   # Load surfaces via neurosurf
+  if (exists("ensure_rgl_use_null", mode = "function")) {
+    ensure_rgl_use_null()
+  }
   if (!requireNamespace("neurosurf", quietly = TRUE)) {
     stop("neurosurf package required for surface mapping", call. = FALSE)
   }
@@ -67,6 +70,9 @@ create_surface_sampler <- function(surfaces, mask, hemisphere = "lh",
     stop("hemisphere must be 'lh' or 'rh'", call. = FALSE)
   }
 
+  if (exists("ensure_rgl_use_null", mode = "function")) {
+    ensure_rgl_use_null()
+  }
   if (!requireNamespace("neurosurf", quietly = TRUE)) {
     stop("neurosurf package required for surface mapping", call. = FALSE)
   }
@@ -105,6 +111,9 @@ map_volume_to_surface <- function(sampler, volume, fun = "avg", fill = 0) {
     stop("volume is required", call. = FALSE)
   }
 
+  if (exists("ensure_rgl_use_null", mode = "function")) {
+    ensure_rgl_use_null()
+  }
   if (!requireNamespace("neurosurf", quietly = TRUE)) {
     stop("neurosurf package required for surface mapping", call. = FALSE)
   }

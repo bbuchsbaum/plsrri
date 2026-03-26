@@ -63,6 +63,7 @@
 # =============================================================================
 #   inspector-lv-details    - LV details section
 #   inspector-scores-plot   - Design scores plot
+#   inspector-resampling-diagnostics - Bootstrap/resampling diagnostics panel
 #   inspector-export-nifti  - Export NIfTI button
 #   inspector-export-csv    - Export CSV button
 #   inspector-export-pdf    - Export PDF button
@@ -121,6 +122,7 @@ SELECTORS <- list(
   inspector = list(
     lv_details = "inspector-lv-details",
     scores_plot = "inspector-scores-plot",
+    resampling_diagnostics = "inspector-resampling-diagnostics",
     export_nifti = "inspector-export-nifti",
     export_csv = "inspector-export-csv",
     export_pdf = "inspector-export-pdf",

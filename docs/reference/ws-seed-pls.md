@@ -1,0 +1,26 @@
+# Within-Subject Seed PLS (ws-fcMRI)
+
+Functions for within-subject seed-based PLS analysis, implementing the
+ws-seed PLS method described in Roberts et al. (2016). Unlike standard
+seed PLS (as-fcMRI), which correlates seed and voxel activity *across*
+subjects, ws-seed PLS correlates seed and voxel trial-level beta
+estimates *within* each subject, then submits the resulting connectivity
+maps to task PLS.
+
+## Details
+
+The approach requires trial-level activation estimates (e.g., from
+[`fmrilss::lss()`](https://bbuchsbaum.github.io/fmrilss/reference/lss.html))
+rather than condition means. For each subject and condition, Pearson
+correlations are computed between the seed region's trial-by-trial betas
+and every voxel's trial-by-trial betas. The resulting within-subject
+correlation maps (optionally Fisher-z transformed) are stacked into a
+data matrix and analyzed with task PLS.
+
+## References
+
+Roberts, R. P., Hach, S., Tippett, L. J., & Addis, D. R. (2016). The
+Simpson's paradox and fMRI: Similarities and differences between
+functional connectivity measures derived from within-subject and
+across-subject correlations. *NeuroImage*.
+[doi:10.1016/j.neuroimage.2016.04.028](https://doi.org/10.1016/j.neuroimage.2016.04.028)

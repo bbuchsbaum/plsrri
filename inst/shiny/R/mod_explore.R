@@ -184,7 +184,7 @@ explore_server <- function(id, state_rv) {
       # Also update filter bar
       updateSelectInput(
         session,
-        ns("filters-lv"),
+        "filters-lv",
         selected = as.character(input$select_lv)
       )
     })

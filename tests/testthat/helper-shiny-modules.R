@@ -28,28 +28,9 @@ if (shiny_r_path == "") {
 }
 
 # Source Shiny module files
-# fct_* files must be sourced before modules that depend on them
-shiny_files <- c(
-  "state.R",
-  "theme.R",
-  "ui_components.R",
-  "fct_brain_viewer.R",
-  "fct_data_validation.R",
-  "fct_seed_data.R",
-  "fct_brain_renderer.R",
-  "fct_surface_mapper.R",
-  "mod_filter_bar.R",
-  "mod_brain_viewer.R",
-  "mod_surface_viewer.R",
-  "mod_inspector.R",
-  "mod_explore.R",
-  "mod_analyze.R",
-  "mod_setup.R"
-)
-
-for (f in shiny_files) {
-  file_path <- file.path(shiny_r_path, f)
-  if (file.exists(file_path)) {
-    source(file_path, local = FALSE)
-  }
+manifest_path <- file.path(shiny_r_path, "shiny_sources.R")
+if (!file.exists(manifest_path)) {
+  stop(sprintf("Missing Shiny sources manifest: %s", manifest_path), call. = FALSE)
 }
+source(manifest_path, local = TRUE)
+plsrri_source_shiny_files(shiny_r_path, local = FALSE)

@@ -8,6 +8,11 @@ library(bsicons)
 library(shinyjs)
 library(R6)
 
+# Enable async futures when available (keeps UI responsive during long runs)
+if (requireNamespace("future", quietly = TRUE) && requireNamespace("promises", quietly = TRUE)) {
+  future::plan(future::multisession, workers = 1)
+}
+
 # Source R modules
 app_dir <- system.file("shiny", package = "plsrri")
 if (app_dir == "") {
@@ -15,21 +20,9 @@ if (app_dir == "") {
   app_dir <- "."
 }
 
-source(file.path(app_dir, "R", "theme.R"))
-source(file.path(app_dir, "R", "state.R"))
-source(file.path(app_dir, "R", "ui_components.R"))
-source(file.path(app_dir, "R", "fct_brain_viewer.R"))  # Pure functions first
-source(file.path(app_dir, "R", "fct_data_validation.R"))  # Data validation functions
-source(file.path(app_dir, "R", "fct_seed_data.R"))  # Seed PLS helpers
-source(file.path(app_dir, "R", "fct_brain_renderer.R"))  # Brain renderer abstraction
-source(file.path(app_dir, "R", "fct_surface_mapper.R"))  # Surface mapping functions
-source(file.path(app_dir, "R", "mod_setup.R"))
-source(file.path(app_dir, "R", "mod_analyze.R"))
-source(file.path(app_dir, "R", "mod_explore.R"))
-source(file.path(app_dir, "R", "mod_brain_viewer.R"))
-source(file.path(app_dir, "R", "mod_surface_viewer.R"))
-source(file.path(app_dir, "R", "mod_filter_bar.R"))
-source(file.path(app_dir, "R", "mod_inspector.R"))
+shiny_r_path <- file.path(app_dir, "R")
+source(file.path(shiny_r_path, "shiny_sources.R"))
+plsrri_source_shiny_files(shiny_r_path, local = FALSE)
 
 # ============================================================================
 # UI
@@ -44,7 +37,8 @@ ui <- bslib::page_fluid(
 
   # Custom CSS
   tags$head(
-    tags$link(rel = "stylesheet", type = "text/css", href = "styles.css")
+    tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"),
+    tags$script(src = "surfwidget-dispose.js")
   ),
 
   # Main app container
@@ -112,8 +106,12 @@ server <- function(input, output, session) {
   observeEvent(setup_result$continue(), {
     # Update state with spec from setup
     spec <- setup_result$spec()
-    if (!is.null(spec)) {
+    prepared_analysis <- setup_result$prepared_analysis()
+    if (!is.null(spec) || !is.null(prepared_analysis)) {
       app_state$state$spec <- spec
+      app_state$state$analysis_source <- setup_result$analysis_source()
+      app_state$state$prepared_analysis <- prepared_analysis
+      app_state$state$analyze_mode <- if (!is.null(prepared_analysis)) prepared_analysis$analyze_mode else "pls_only"
       app_state$state$max_step <- 2L
       app_state$state$step <- 2L
       app_state$sync_to_rv()

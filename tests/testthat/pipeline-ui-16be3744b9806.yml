@@ -1,0 +1,52 @@
+dataset:
+  bids_dir: /private/var/folders/9h/nkjq6vss7mqdl4ck7q1hd8ph0000gp/T/RtmphX63Hl
+  task: stroop
+  space: MNI152NLin2009cAsym
+  group_column: ~
+  subjects: ~
+design:
+  formula: onset ~ hrf(condition, basis = 'fir')
+  block: ~ run
+first_level:
+  strategy: runwise
+  nchunks: 1
+  progress: no
+  save_fit: no
+  output:
+    type: estimates
+    statistics: estimate
+    basis_pattern: ^(.*)_t([0-9]+)$
+    condition_group: 1
+    basis_group: 2
+    basis_order:
+    - '0'
+    - '1'
+    - '2'
+pls:
+  method: multiblock_nonrotated
+  input:
+    type: estimates
+    statistic: estimate
+    basis_pattern: ^(.*)_t([0-9]+)$
+    condition_group: 1
+    basis_group: 2
+    basis_order:
+    - '0'
+    - '1'
+    - '2'
+  nperm: 25
+  nboot: 10
+  nsplit: 3
+  clim: 90.0
+  meancentering: 1
+  cormode: 2
+  boot_type: nonstrat
+  is_struct: ~
+outputs:
+  root: /var/folders/9h/nkjq6vss7mqdl4ck7q1hd8ph0000gp/T//RtmphX63Hl/plsrri-yaml-out
+ui:
+  analyze_mode: firstlevel_only
+execution:
+  mode: local
+  parallelism: 1
+

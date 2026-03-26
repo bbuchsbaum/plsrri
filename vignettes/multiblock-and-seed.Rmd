@@ -1,0 +1,253 @@
+---
+title: "Multiblock and Seed PLS Workflows"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Multiblock and Seed PLS Workflows}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 6,
+  fig.height = 4
+)
+```
+
+```{r load-package}
+library(plsrri)
+```
+
+Sometimes task structure and behavior are both interesting — you want a
+single decomposition that captures how brain patterns relate to *both*
+condition differences and continuous measures. That is Multiblock PLS.
+When the "behavior" block is really a seed-region signal and you want
+connectivity-style latent variables, Seed PLS is the simpler option.
+
+## How does Multiblock PLS differ from Behavior PLS?
+
+In Behavior PLS, the cross-block matrix captures brain-behavior covariance.
+In Multiblock PLS, the cross-block matrix is built from *two* stacked
+blocks:
+
+- A **task block** covering all conditions (like Task PLS)
+- A **behavior block** covering a selected subset of conditions
+
+The key decision is `block_conditions`: which conditions should contribute
+behavior data. Typically you choose the conditions where behavior is
+meaningful (e.g., encoding and retrieval, but not rest).
+
+## What does a multiblock analysis look like?
+
+```{r simulate-multiblock-data, include = FALSE}
+set.seed(321)
+
+n_subj_mb <- 14
+n_cond_mb <- 3
+n_feat_mb <- 140
+total_mb <- n_subj_mb * n_cond_mb
+
+cond_pattern <- rep(c(1, 0, -1), each = n_subj_mb)
+beh_signal <- scale(rep(c(0.8, -0.2, 1.1), each = n_subj_mb) + rnorm(total_mb, sd = 0.3))
+
+brain_mb <- matrix(rnorm(total_mb * n_feat_mb, sd = 0.8), nrow = total_mb, ncol = n_feat_mb)
+brain_mb[, 1:40] <- brain_mb[, 1:40] + cond_pattern %o% rep(1.0, 40)
+brain_mb[, 41:80] <- brain_mb[, 41:80] + as.numeric(beh_signal) %o% rep(0.9, 40)
+brain_mb[, 81:100] <- brain_mb[, 81:100] + (cond_pattern * as.numeric(beh_signal)) %o% rep(0.6, 20)
+
+behav_mb <- cbind(
+  rt = as.numeric(scale(1.3 * beh_signal + rnorm(total_mb, sd = 0.35))),
+  acc = as.numeric(scale(-1.0 * beh_signal + 0.4 * cond_pattern + rnorm(total_mb, sd = 0.35)))
+)
+```
+
+This example has `r n_subj_mb` subjects, `r n_cond_mb` conditions
+(encoding, retrieval, rest), `r n_feat_mb` voxels, and two behavioral
+measures. The synthetic data has condition-driven signal (voxels 1-40),
+behavior-driven signal (voxels 41-80), and an interaction block (81-100).
+
+The builder API is the natural way to express a multiblock analysis because
+it lets you name conditions and choose behavior-block conditions explicitly:
+
+```{r run-multiblock}
+multiblock_result <- pls_spec() |>
+  add_subjects(list(brain_mb), groups = n_subj_mb) |>
+  add_conditions(3, labels = c("encoding", "retrieval", "rest")) |>
+  add_behavior(behav_mb, block_conditions = c("encoding", "retrieval")) |>
+  configure(method = "multiblock", nperm = 200, nboot = 200) |>
+  run(progress = FALSE)
+```
+
+The result has class `pls_multiblock`, indicating the joint decomposition:
+
+```{r multiblock-significance}
+cbind(
+  pvalue = round(significance(multiblock_result), 3),
+  variance = round(singular_values(multiblock_result, normalize = TRUE), 1)
+)
+```
+
+## What does the joint signal look like?
+
+The scree plot shows whether the combined task-plus-behavior signal is
+concentrated in one or two latent variables:
+
+```{r plot-multiblock-scree, fig.cap = "Singular values for the multiblock example. The joint decomposition concentrates signal in the first few LVs."}
+plot_singular_values(multiblock_result)
+```
+
+## How do behaviors load onto the joint latent variable?
+
+Because the behavior block uses two conditions and two measures, the loading
+matrix has four rows (encoding-RT, encoding-accuracy, retrieval-RT,
+retrieval-accuracy):
+
+```{r multiblock-loadings}
+round(loadings(multiblock_result, type = "behavior", lv = 1), 2)
+```
+
+RT and accuracy load in opposite directions, and the pattern differs between
+encoding and retrieval — exactly the kind of joint structure that motivates
+multiblock over separate task and behavior analyses.
+
+```{r plot-multiblock-loadings, fig.cap = "Behavior-block loadings for LV1. Each bar is one condition-measure combination."}
+plot_loadings(multiblock_result, lv = 1, type = "behavior", plot_type = "dot")
+```
+
+## Are the voxel contributions reliable?
+
+```{r multiblock-bsr}
+mb_bsr <- bsr(multiblock_result, lv = 1)
+reliable <- sum(abs(mb_bsr) > 2)
+```
+
+`r reliable` of `r n_features(multiblock_result)` voxels pass the
+$|BSR| > 2$ threshold:
+
+```{r plot-multiblock-bsr, echo = FALSE, fig.cap = "Bootstrap ratio profile for the multiblock result. Three planted signal regions are visible.", fig.height = 3}
+plot(as.numeric(mb_bsr), type = "h", col = "steelblue",
+     xlab = "Voxel", ylab = "Bootstrap Ratio (LV1)",
+     main = NULL, las = 1)
+abline(h = c(-2, 2), lty = 2, col = "grey50")
+```
+
+The correlation confidence intervals confirm the behavior-block relationships
+are stable:
+
+```{r multiblock-correlation-ci}
+mb_ci <- confidence(multiblock_result, what = "correlation", lv = 1)
+round(cbind(lower = mb_ci$lower[, 1], upper = mb_ci$upper[, 1]), 2)
+```
+
+---
+
+## When is Seed PLS the simpler option?
+
+Seed PLS is the right choice when your secondary block is already a
+seed-region signal — mean activity in a ROI, or a seed time series from a
+connectivity analysis. Internally it runs Behavior PLS (method 3) with the
+seed data as the behavior matrix, but the `seed_pls()` wrapper makes the
+intent clear.
+
+```{r simulate-seed-data, include = FALSE}
+set.seed(777)
+
+n_subj_seed <- 16
+n_cond_seed <- 2
+n_feat_seed <- 120
+total_seed <- n_subj_seed * n_cond_seed
+
+seed_latent <- scale(rnorm(total_seed))
+cond_shift <- rep(c(-0.5, 0.7), each = n_subj_seed)
+
+seed_data <- cbind(
+  pcc = as.numeric(scale(1.5 * seed_latent + 0.3 * cond_shift + rnorm(total_seed, sd = 0.25)))
+)
+
+brain_seed <- matrix(rnorm(total_seed * n_feat_seed, sd = 0.75), nrow = total_seed, ncol = n_feat_seed)
+brain_seed[, 1:45] <- brain_seed[, 1:45] + seed_data[, 1] %o% rep(1.0, 45)
+brain_seed[, 46:80] <- brain_seed[, 46:80] + cond_shift %o% rep(0.5, 35)
+```
+
+This example uses one seed region (posterior cingulate cortex) with
+`r n_subj_seed` subjects and `r n_cond_seed` conditions. Voxels 1-45 are
+planted to correlate with the seed; voxels 46-80 respond to condition only.
+
+```{r run-seed-pls}
+seed_result <- seed_pls(
+  datamat_lst = list(brain_seed),
+  seed_data = seed_data,
+  num_subj_lst = n_subj_seed,
+  num_cond = n_cond_seed,
+  nperm = 200,
+  nboot = 200,
+  progress = FALSE
+)
+```
+
+```{r seed-significance}
+cbind(
+  pvalue = round(significance(seed_result), 3),
+  variance = round(singular_values(seed_result, normalize = TRUE), 1)
+)
+```
+
+## How does the seed relate to the brain pattern?
+
+The behavior loadings show the seed-brain correlation for each condition.
+With one seed and two conditions, there are two loading values:
+
+```{r seed-loadings}
+round(loadings(seed_result, type = "behavior", lv = 1), 2)
+```
+
+Both conditions show strong seed-brain correlations, confirming the planted
+connectivity pattern.
+
+```{r plot-seed-loadings, fig.cap = "Seed loadings for LV1. Both conditions show strong seed-brain correlations."}
+plot_loadings(seed_result, lv = 1, type = "behavior", plot_type = "dot")
+```
+
+The BSR profile shows which voxels are reliably connected to the seed:
+
+```{r seed-bsr}
+seed_bsr <- bsr(seed_result, lv = 1)
+reliable <- sum(abs(seed_bsr) > 2)
+```
+
+```{r plot-seed-bsr, echo = FALSE, fig.cap = "Bootstrap ratio profile for seed PLS. Voxels 1-45 show the planted seed correlation; voxels 46-80 show condition effects.", fig.height = 3}
+plot(as.numeric(seed_bsr), type = "h", col = "steelblue",
+     xlab = "Voxel", ylab = "Bootstrap Ratio (LV1)",
+     main = NULL, las = 1)
+abline(h = c(-2, 2), lty = 2, col = "grey50")
+```
+
+`r reliable` voxels pass the $|BSR| > 2$ threshold. The seed correlation
+confidence intervals confirm the relationship is stable under bootstrap
+resampling:
+
+```{r seed-correlation-ci}
+seed_ci <- confidence(seed_result, what = "correlation", lv = 1)
+round(cbind(lower = seed_ci$lower[, 1], upper = seed_ci$upper[, 1]), 2)
+```
+
+Both conditions show intervals well away from zero.
+
+```{r plot-seed-brain-scores, fig.cap = "Brain scores for LV1 in the seed PLS example."}
+plot_scores(seed_result, lv = 1, type = "brain", plot_type = "violin")
+```
+
+## Where to go next
+
+| Goal | Resource |
+|:-----|:---------|
+| Task PLS workflow | `vignette("plsrri")` |
+| Behavior PLS with continuous measures | `vignette("behavior-pls")` |
+| Seed PLS wrapper | `?seed_pls` |
+| Multiblock block conditions | `?add_behavior` |
+| Method switching | `?configure` |
+| Loadings and confidence intervals | `?plot_loadings`, `?confidence` |

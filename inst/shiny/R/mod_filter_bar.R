@@ -33,6 +33,9 @@ filter_bar_ui <- function(id) {
 
     div(class = "pls-filter-separator"),
 
+    # Lag selector (shown only for voxel×lag feature layouts)
+    uiOutput(ns("lag_ui"), inline = TRUE),
+
     # BSR threshold
     div(
       class = "pls-filter-item",
@@ -137,21 +140,70 @@ filter_bar_server <- function(id, result_rv, state_rv) {
       p_vals <- if (!is.null(result$perm_result)) result$perm_result$sprob else NULL
       choices <- build_lv_choices(n_lv, p_vals)
 
-      updateSelectInput(session, "lv", choices = choices, selected = "1")
+      current <- isolate(input$lv)
+      fallback <- if ("1" %in% unname(choices)) "1" else unname(choices)[[1]]
+      selected <- if (!is.null(current) && current %in% unname(choices)) current else fallback
+
+      updateSelectInput(session, "lv", choices = choices, selected = selected)
+    })
+
+    # Lag choices when result includes voxel×lag layout
+    output$lag_ui <- renderUI({
+      result <- result_rv()
+      if (is.null(result)) return(NULL)
+
+      layout <- result$feature_layout
+      if (!is.list(layout) || !identical(layout$kind, "voxel_lag")) return(NULL)
+      n_lags <- suppressWarnings(as.integer(layout$n_lags))
+      if (is.na(n_lags) || n_lags < 2) return(NULL)
+
+      lag_labels <- layout$lag_labels
+      if (is.null(lag_labels)) lag_labels <- seq_len(n_lags) - 1L
+      lag_labels <- as.integer(lag_labels)
+
+      choices <- as.character(lag_labels)
+      names(choices) <- paste0("Lag ", choices)
+
+      tagList(
+        div(
+          class = "pls-filter-item",
+          span(class = "pls-filter-label", "Lag:"),
+          div(
+            selectInput(
+              ns("lag"),
+              label = NULL,
+              choices = choices,
+              selected = choices[[1]],
+              width = "110px"
+            )
+          )
+        ),
+        div(class = "pls-filter-separator")
+      )
     })
 
     # Sync to state_rv
     observe({
-      state_rv$selected_lv <- if (input$lv == "all") 0L else as.integer(input$lv)
-      state_rv$bsr_threshold <- input$bsr_threshold
-      state_rv$p_threshold <- input$p_threshold
-      state_rv$view_mode <- input$view_mode
+      if (!shiny::isTruthy(input$lv)) return()
+
+      state_rv$selected_lv <- if (identical(input$lv, "all")) 0L else as.integer(input$lv)
+      if (shiny::isTruthy(input$lag)) state_rv$selected_lag <- as.integer(input$lag)
+      if (shiny::isTruthy(input$bsr_threshold)) state_rv$bsr_threshold <- input$bsr_threshold
+      if (shiny::isTruthy(input$p_threshold)) state_rv$p_threshold <- input$p_threshold
+      if (shiny::isTruthy(input$view_mode)) state_rv$view_mode <- input$view_mode
     })
 
     # Return reactive filter values
     list(
       lv = reactive({
-        if (input$lv == "all") NULL else as.integer(input$lv)
+        if (!shiny::isTruthy(input$lv) || identical(input$lv, "all")) {
+          return(NULL)
+        }
+        as.integer(input$lv)
+      }),
+      lag = reactive({
+        if (!shiny::isTruthy(input$lag)) return(NULL)
+        as.integer(input$lag)
       }),
       bsr_threshold = reactive({ input$bsr_threshold }),
       p_threshold = reactive({ input$p_threshold }),

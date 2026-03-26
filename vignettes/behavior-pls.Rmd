@@ -1,0 +1,178 @@
+---
+title: "Behavior PLS Workflow"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Behavior PLS Workflow}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 6,
+  fig.height = 4
+)
+```
+
+```{r load-package}
+library(plsrri)
+```
+
+Behavior PLS finds latent variables that maximally capture the covariance
+between brain features and continuous behavioral measures — reaction time,
+accuracy, symptom scores, or any per-subject-condition variable. Where Task
+PLS asks "which brain patterns separate conditions?", Behavior PLS asks
+"which brain patterns track individual differences in behavior?"
+
+## What data shape does Behavior PLS expect?
+
+You need two matrices with the same stacked row structure (subjects within
+conditions, then groups):
+
+- **Brain matrix** — rows = observations, columns = voxels/features
+- **Behavior matrix** — rows = observations, columns = behavioral measures
+
+```{r simulate-behavior-data, include = FALSE}
+set.seed(123)
+
+n_subj <- 18
+n_cond <- 2
+n_feat <- 120
+total_rows <- n_subj * n_cond
+
+latent <- as.numeric(scale(rnorm(total_rows)))
+condition_shift <- rep(c(-1, 1), each = n_subj)
+
+behav_data <- cbind(
+  rt = as.numeric(scale(1.4 * latent + 0.5 * condition_shift + rnorm(total_rows, sd = 0.35))),
+  acc = as.numeric(scale(-1.1 * latent + 0.3 * condition_shift + rnorm(total_rows, sd = 0.35)))
+)
+
+brain_data <- matrix(rnorm(total_rows * n_feat, sd = 0.7), nrow = total_rows, ncol = n_feat)
+brain_data[, 1:35] <- brain_data[, 1:35] + latent %o% rep(1.2, 35)
+brain_data[, 36:70] <- brain_data[, 36:70] + latent %o% rep(-0.9, 35)
+brain_data[, 71:90] <- brain_data[, 71:90] + condition_shift %o% rep(0.6, 20)
+colnames(behav_data) <- c("rt", "acc")
+```
+
+This example has `r n_subj` subjects, `r n_cond` conditions, `r n_feat`
+voxels, and two behavioral measures. The synthetic data has a single latent
+factor driving both RT and accuracy in opposite directions, plus a
+condition-specific voxel block:
+
+```{r inspect-behavior-data}
+head(round(behav_data, 2))
+```
+
+## How do you run a behavior analysis?
+
+`behav_pls()` is the convenience wrapper. It runs Behavior PLS (method 3)
+with the behavior matrix as the second block:
+
+```{r run-behavior-pls}
+behav_result <- behav_pls(
+  datamat_lst = list(brain_data),
+  behav_data = behav_data,
+  num_subj_lst = n_subj,
+  num_cond = n_cond,
+  nperm = 200,
+  nboot = 200,
+  progress = FALSE
+)
+```
+
+Check which latent variables are significant and how much variance each
+explains:
+
+```{r behavior-significance}
+cbind(
+  pvalue = round(significance(behav_result), 3),
+  variance = round(singular_values(behav_result, normalize = TRUE), 1)
+)
+```
+
+LV1 captures the dominant brain-behavior relationship. The scree plot
+makes the structure clear:
+
+```{r plot-behavior-scree, fig.cap = "Singular value scree for the behavior PLS example. LV1 dominates."}
+plot_singular_values(behav_result)
+```
+
+## Which behaviors define the first latent variable?
+
+In Behavior PLS, `loadings(..., type = "behavior")` returns the
+correlation-style weights linking each behavior-by-condition cell to the
+latent variable. Each row is one condition-measure combination.
+
+```{r behavior-loadings}
+round(loadings(behav_result, type = "behavior", lv = 1), 2)
+```
+
+RT and accuracy load with opposite signs, consistent with the planted
+relationship — subjects who are faster also tend to be more accurate on the
+latent dimension captured by LV1.
+
+```{r plot-behavior-loadings, fig.cap = "Behavior loadings for LV1. RT and accuracy load in opposite directions, reflecting the shared latent factor."}
+plot_loadings(behav_result, lv = 1, type = "behavior", plot_type = "dot")
+```
+
+## How strongly do subjects express that pattern?
+
+Brain scores show how each observation projects onto the latent variable.
+In a real analysis, you would check whether the pattern varies across
+conditions or groups:
+
+```{r plot-behavior-brain-scores, fig.cap = "Brain scores for LV1. The spread reflects individual differences in the brain-behavior relationship."}
+plot_scores(behav_result, lv = 1, type = "brain", plot_type = "violin")
+```
+
+## Are the behavior correlations stable?
+
+For behavior methods, `confidence(..., what = "correlation")` returns
+bootstrap confidence intervals on the brain-behavior correlations. Intervals
+that exclude zero indicate a reliable relationship:
+
+```{r behavior-correlation-ci}
+corr_ci <- confidence(behav_result, what = "correlation", lv = 1)
+round(cbind(lower = corr_ci$lower[, 1], upper = corr_ci$upper[, 1]), 2)
+```
+
+Both measures show intervals that are clearly away from zero, confirming
+the stability of the brain-behavior association under resampling.
+
+## Which voxels contribute reliably?
+
+Bootstrap ratios work the same way as in Task PLS — they indicate which
+voxels participate reliably in the latent pattern:
+
+```{r behavior-bsr}
+behav_bsr <- bsr(behav_result, lv = 1)
+reliable <- sum(abs(behav_bsr) > 2)
+```
+
+`r reliable` of `r n_features(behav_result)` voxels have $|BSR| > 2$.
+
+```{r plot-behavior-bsr, echo = FALSE, fig.cap = "Bootstrap ratio profile. Voxels 1-35 and 36-70 show the planted latent factor; voxels 71-90 show the condition-specific signal.", fig.height = 3}
+plot(as.numeric(behav_bsr), type = "h", col = "steelblue",
+     xlab = "Voxel", ylab = "Bootstrap Ratio (LV1)",
+     main = NULL, las = 1)
+abline(h = c(-2, 2), lty = 2, col = "grey50")
+```
+
+The two voxel blocks (1-35 positive, 36-70 negative) mirror the planted
+latent structure, while the condition block (71-90) contributes more weakly.
+
+## Where to go next
+
+| Goal | Resource |
+|:-----|:---------|
+| Task PLS workflow | `vignette("plsrri")` |
+| Multiblock and seed PLS | `vignette("multiblock-and-seed")` |
+| Behavior wrapper | `?behav_pls` |
+| Full engine with all options | `?pls_analysis` |
+| Loadings interpretation | `?plot_loadings` |
+| Bootstrap confidence intervals | `?confidence` |

@@ -9,12 +9,21 @@
 #' @param data_source Character. One of "manual", "bids", or "load".
 #' @param data_loaded Logical. Whether data has been loaded.
 #' @param bids_dir BIDS directory selection. Integer if not selected, otherwise parsed path.
+#' @param manifest_path Character. Path to manifest file when data_source = "manifest".
+#' @param mask_loaded Logical. Whether a brain mask has been loaded (required for manifest).
 #' @param groups List of lists with name and n_subj fields.
 #' @param num_conditions Integer. Number of conditions.
 #' @param num_boot Integer. Number of bootstrap samples.
 #' @return Character vector of error messages. Empty if valid.
 #' @keywords internal
-validate_setup_config <- function(data_source, data_loaded, bids_dir, groups, num_conditions, num_boot) {
+validate_setup_config <- function(data_source,
+                                  data_loaded,
+                                  bids_dir,
+                                  manifest_path = NULL,
+                                  mask_loaded = FALSE,
+                                  groups,
+                                  num_conditions,
+                                  num_boot) {
   errors <- character(0)
 
   data_source <- as.character(data_source)[1]
@@ -23,7 +32,13 @@ validate_setup_config <- function(data_source, data_loaded, bids_dir, groups, nu
   num_boot <- suppressWarnings(as.integer(num_boot)[1])
 
   # Validate data source
-  data_errors <- validate_data_source(data_source, data_loaded, bids_dir)
+  data_errors <- validate_data_source(
+    data_source = data_source,
+    data_loaded = data_loaded,
+    bids_dir = bids_dir,
+    manifest_path = manifest_path,
+    mask_loaded = mask_loaded
+  )
   errors <- c(errors, data_errors)
 
   # Validate groups
@@ -37,7 +52,12 @@ validate_setup_config <- function(data_source, data_loaded, bids_dir, groups, nu
 
   # Validate bootstrap requirements
   if (!is.na(num_boot) && num_boot > 0) {
-    if (length(groups) > 0 && any(sapply(groups, function(g) g$n_subj < 3))) {
+    subj_counts <- vapply(
+      groups,
+      function(g) suppressWarnings(as.integer(g$n_subj)[1]),
+      integer(1)
+    )
+    if (length(subj_counts) > 0 && any(is.na(subj_counts) | subj_counts < 3)) {
       errors <- c(errors, "Bootstrap requires at least 3 subjects per group")
     }
   }
@@ -79,9 +99,15 @@ validate_groups <- function(groups) {
 #' @param data_source Character. One of "manual", "bids", or "load".
 #' @param data_loaded Logical. Whether data has been loaded.
 #' @param bids_dir BIDS directory selection. Integer if not selected.
+#' @param manifest_path Character. Path to manifest file when data_source = "manifest".
+#' @param mask_loaded Logical. Whether a brain mask has been loaded (required for manifest).
 #' @return Character vector of error messages. Empty if valid.
 #' @keywords internal
-validate_data_source <- function(data_source, data_loaded, bids_dir) {
+validate_data_source <- function(data_source,
+                                 data_loaded,
+                                 bids_dir,
+                                 manifest_path = NULL,
+                                 mask_loaded = FALSE) {
   errors <- character(0)
 
   data_source <- as.character(data_source)[1]
@@ -92,8 +118,22 @@ validate_data_source <- function(data_source, data_loaded, bids_dir) {
 
   if (identical(data_source, "bids")) {
     # Integer means no directory selected (shinyFiles convention)
-    if (is.null(bids_dir) || (is.atomic(bids_dir) && length(bids_dir) == 0) || is.integer(bids_dir)) {
+    if (
+      is.null(bids_dir) ||
+        (is.atomic(bids_dir) && length(bids_dir) == 0) ||
+        is.integer(bids_dir) ||
+        (is.numeric(bids_dir) && length(bids_dir) == 1 && bids_dir == as.integer(bids_dir))
+    ) {
       errors <- c(errors, "No BIDS directory selected")
+    }
+  }
+
+  if (identical(data_source, "manifest")) {
+    if (is.null(manifest_path) || !is.character(manifest_path) || length(manifest_path) != 1L || !nzchar(manifest_path)) {
+      errors <- c(errors, "No manifest file selected")
+    }
+    if (!isTRUE(mask_loaded)) {
+      errors <- c(errors, "Brain mask is required for manifest inputs")
     }
   }
 
@@ -104,7 +144,7 @@ validate_data_source <- function(data_source, data_loaded, bids_dir) {
 #'
 #' Converts method name to integer code used by PLS analysis.
 #'
-#' @param method Character. One of "task", "behavior", "multiblock".
+#' @param method Character. One of "task", "behavior", "seed", "multiblock".
 #' @return Integer. 1L for task, 3L for behavior, 4L for multiblock, 1L default.
 #' @keywords internal
 map_method_to_int <- function(method) {
@@ -112,6 +152,7 @@ map_method_to_int <- function(method) {
     method,
     task = 1L,
     behavior = 3L,
+    seed = 3L,
     multiblock = 4L,
     1L  # default to task
   )
@@ -126,11 +167,20 @@ map_method_to_int <- function(method) {
 #' @return Matrix if successful, NULL otherwise.
 #' @keywords internal
 parse_uploaded_file <- function(file_path, file_name) {
+  file_path <- as.character(file_path)[1]
+  file_name <- as.character(file_name)[1]
+  if (is.na(file_path) || !nzchar(file_path) || !file.exists(file_path)) {
+    return(NULL)
+  }
+  if (is.na(file_name) || !nzchar(file_name)) {
+    return(NULL)
+  }
+
   mat <- NULL
 
   tryCatch({
     if (grepl("\\.csv$", file_name, ignore.case = TRUE)) {
-      mat <- as.matrix(read.csv(file_path, row.names = 1))
+      mat <- as.matrix(suppressWarnings(read.csv(file_path, row.names = 1)))
     } else if (grepl("\\.rds$", file_name, ignore.case = TRUE)) {
       mat <- readRDS(file_path)
     } else if (grepl("\\.rda$", file_name, ignore.case = TRUE)) {

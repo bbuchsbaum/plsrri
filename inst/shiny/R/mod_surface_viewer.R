@@ -107,6 +107,9 @@ surface_viewer_server <- function(id, result_rv, filters, renderer = NULL) {
     ns <- session$ns
 
     # Check if neurosurf is available for surface rendering
+    if (exists("ensure_rgl_use_null", mode = "function")) {
+      ensure_rgl_use_null()
+    }
     neurosurf_available <- requireNamespace("neurosurf", quietly = TRUE)
 
     # Create per-session registry if no renderer injected
@@ -217,6 +220,12 @@ surface_viewer_server <- function(id, result_rv, filters, renderer = NULL) {
         req(active_renderer)
         req(active_renderer$is_widget())
 
+        # Depend on geometry selector and update renderer geometry
+        geometry <- local_rv$geometry
+        if ("set_geometry" %in% names(active_renderer)) {
+          active_renderer$set_geometry(geometry)
+        }
+
         result <- result_rv()
         req(result)
         req(result$mask)
@@ -267,6 +276,12 @@ surface_viewer_server <- function(id, result_rv, filters, renderer = NULL) {
         req(active_renderer)
         req(active_renderer$is_widget())
 
+        # Depend on geometry selector and update renderer geometry
+        geometry <- local_rv$geometry
+        if ("set_geometry" %in% names(active_renderer)) {
+          active_renderer$set_geometry(geometry)
+        }
+
         result <- result_rv()
         req(result)
         req(result$mask)
@@ -310,6 +325,11 @@ surface_viewer_server <- function(id, result_rv, filters, renderer = NULL) {
       req(active_renderer)
       req(!active_renderer$is_widget())
 
+      geometry <- local_rv$geometry
+      if ("set_geometry" %in% names(active_renderer)) {
+        active_renderer$set_geometry(geometry)
+      }
+
       result <- result_rv()
       if (is.null(result) || is.null(result$mask)) {
         plot.new()
@@ -347,6 +367,11 @@ surface_viewer_server <- function(id, result_rv, filters, renderer = NULL) {
     output$surface_rh_plot <- renderPlot({
       req(active_renderer)
       req(!active_renderer$is_widget())
+
+      geometry <- local_rv$geometry
+      if ("set_geometry" %in% names(active_renderer)) {
+        active_renderer$set_geometry(geometry)
+      }
 
       result <- result_rv()
       if (is.null(result) || is.null(result$mask)) {

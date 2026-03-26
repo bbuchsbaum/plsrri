@@ -3,9 +3,12 @@
 # These tests run WITHOUT Shiny context - plain testthat.
 # Unit tests for business logic extracted from brain viewer modules.
 
-# Source the functions directly - use test_path to find relative to test file
-# test_path goes from tests/testthat/ so ../../inst/shiny/R/ reaches the file
-source(testthat::test_path("../../inst/shiny/R/fct_brain_viewer.R"))
+# Source the functions directly (works both installed + dev mode)
+module_file <- system.file("shiny/R/fct_brain_viewer.R", package = "plsrri")
+if (module_file == "") {
+  module_file <- testthat::test_path("../../inst/shiny/R/fct_brain_viewer.R")
+}
+source(module_file, local = FALSE)
 
 describe("get_filter_defaults()", {
 

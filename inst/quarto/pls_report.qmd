@@ -1,0 +1,549 @@
+---
+title: "`r params$title`"
+subtitle: "Partial Least Squares Analysis"
+author: "`r params$author`"
+date: "`r Sys.Date()`"
+format:
+  html:
+    theme:
+      light: [flatly, custom.scss]
+      dark: [darkly, custom.scss]
+    toc: true
+    toc-location: left
+    toc-depth: 3
+    toc-title: "Contents"
+    code-fold: true
+    code-tools: true
+    self-contained: true
+    fig-width: 10
+    fig-height: 6
+    fig-dpi: 150
+    smooth-scroll: true
+    anchor-sections: true
+    fontsize: 1rem
+    linestretch: 1.5
+    mainfont: "Inter, system-ui, sans-serif"
+    max-width: 860px
+include-in-header:
+  text: |
+    <style>
+    .callout { margin: 24px 0; }
+    .quarto-title { margin-bottom: 8px; }
+    .quarto-title .subtitle { font-weight: 400; color: var(--bs-secondary-color); }
+    h1, h2, h3 { font-weight: 600; letter-spacing: -0.02em; }
+    .panel-tabset .nav-link { font-size: 14px; }
+    table { font-size: 14px; }
+    .stat-card { background: var(--bs-tertiary-bg); border-radius: 8px; padding: 24px 16px; text-align: center; border: 0.5px solid var(--bs-border-color); }
+    .stat-value { font-size: 1.75rem; font-weight: 700; line-height: 1.2; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+    .stat-label { font-size: 13px; color: var(--bs-secondary-color); font-weight: 500; }
+    .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; }
+    .status-dot.success { background: #22c55e; }
+    .status-dot.neutral { background: var(--bs-secondary-color); }
+    </style>
+params:
+  result_file: ""
+  context_file: ""
+  title: "PLS Analysis Report"
+  author: ""
+  include_brain: true
+  bsr_threshold: 3
+  p_threshold: 0.05
+  method: 1
+  n_lv: 5
+  has_perm: true
+  has_boot: true
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+library(plsrri)
+library(ggplot2)
+
+# Load result
+result <- readRDS(params$result_file)
+context <- if (nzchar(params$context_file) && file.exists(params$context_file)) {
+  readRDS(params$context_file)
+} else {
+  list()
+}
+
+or_else <- function(x, y) {
+  if (is.null(x) || (is.character(x) && length(x) == 1L && !nzchar(x))) y else x
+}
+
+group_subject_counts <- function(x) {
+  if (is.null(x) || !length(x)) return(integer(0))
+  vapply(x, function(group_counts) {
+    if (length(group_counts) == 1L && !is.list(group_counts)) {
+      return(as.integer(group_counts))
+    }
+    vals <- as.integer(unlist(group_counts, recursive = TRUE, use.names = FALSE))
+    if (!length(vals)) return(0L)
+    max(vals, na.rm = TRUE)
+  }, integer(1))
+}
+
+subject_counts <- group_subject_counts(result$num_subj_lst)
+subject_total <- sum(subject_counts)
+group_count_text <- if (length(subject_counts)) {
+  paste(subject_counts, collapse = " + ")
+} else {
+  "—"
+}
+feature_count <- nrow(result$u)
+
+emit_plot <- function(expr, note) {
+  plot_obj <- tryCatch(
+    eval.parent(substitute(expr)),
+    error = function(e) e
+  )
+
+  if (inherits(plot_obj, "error")) {
+    cat("::: {.callout-note appearance='simple'}\n")
+    cat(note, "\n\n")
+    cat("Reason: `", conditionMessage(plot_obj), "`\n", sep = "")
+    cat(":::\n\n")
+    return(invisible(NULL))
+  }
+
+  rendered <- tryCatch(
+    {
+      print(plot_obj)
+      NULL
+    },
+    error = function(e) e
+  )
+
+  if (inherits(rendered, "error")) {
+    cat("::: {.callout-note appearance='simple'}\n")
+    cat(note, "\n\n")
+    cat("Reason: `", conditionMessage(rendered), "`\n", sep = "")
+    cat(":::\n\n")
+    return(invisible(NULL))
+  }
+
+  cat("\n\n")
+  invisible(plot_obj)
+}
+
+# Helper for method names
+method_name <- plsrri:::PLS_METHOD_NAMES[result$method]
+
+# Count significant LVs
+if (params$has_perm) {
+  n_sig <- sum(result$perm_result$sprob < params$p_threshold)
+  sig_lvs <- which(result$perm_result$sprob < params$p_threshold)
+} else {
+  n_sig <- NA
+  sig_lvs <- seq_len(min(3, length(result$s)))
+}
+```
+
+## Overview {.unnumbered}
+
+::: {.grid}
+
+::: {.g-col-12 .g-col-md-3}
+::: {.stat-card}
+::: {.stat-value}
+`r method_name`
+:::
+::: {.stat-label}
+Method
+:::
+:::
+:::
+
+::: {.g-col-6 .g-col-md-3}
+::: {.stat-card}
+::: {.stat-value}
+`r length(result$s)`
+:::
+::: {.stat-label}
+Latent variables
+:::
+:::
+:::
+
+::: {.g-col-6 .g-col-md-3}
+::: {.stat-card}
+::: {.stat-value}
+`r if(!is.na(n_sig)) n_sig else "—"`
+:::
+::: {.stat-label}
+Significant (p < `r params$p_threshold`)
+:::
+:::
+:::
+
+::: {.g-col-6 .g-col-md-3}
+::: {.stat-card}
+::: {.stat-value}
+`r subject_total`
+:::
+::: {.stat-label}
+Subjects
+:::
+:::
+:::
+
+:::
+
+---
+
+## Parameters
+
+| Parameter | Value |
+|:----------|:------|
+| Groups | `r length(subject_counts)` (`r group_count_text` subjects) |
+| Conditions | `r result$num_cond` |
+| Features | `r format(feature_count, big.mark = ",")` |
+| Permutations | `r if(params$has_perm) format(result$perm_result$num_perm, big.mark = ",") else "—"` |
+| Bootstrap samples | `r if(params$has_boot) format(result$boot_result$num_boot, big.mark = ",") else "—"` |
+
+## Provenance
+
+```{r}
+#| label: provenance
+#| output: asis
+
+meta <- or_else(context$metadata, list())
+pipeline_summary <- context$pipeline_summary
+
+if (!length(meta) && is.null(pipeline_summary)) {
+  cat("::: {.callout-note appearance='simple'}\n")
+  cat("This report was rendered from an in-memory or standalone result object. Pipeline provenance was not available.\n")
+  cat(":::\n")
+} else {
+  artifact_root <- or_else(meta$artifact_root, "—")
+  spec_path <- or_else(meta$spec_path, "—")
+  generated_at <- or_else(meta$generated_at, "—")
+  input_kind <- or_else(meta$input_kind, "—")
+  package_version <- or_else(meta$package_version, as.character(packageVersion("plsrri")))
+
+  cat("| Field | Value |\n")
+  cat("|:------|:------|\n")
+  cat("| Input type | ", input_kind, " |\n", sep = "")
+  cat("| Artifact root | `", artifact_root, "` |\n", sep = "")
+  cat("| Pipeline spec | `", spec_path, "` |\n", sep = "")
+  cat("| Generated at | ", generated_at, " |\n", sep = "")
+  cat("| plsrri version | ", package_version, " |\n", sep = "")
+}
+```
+
+```{r}
+#| label: pipeline-summary
+
+if (!is.null(context$pipeline_summary)) {
+  print(knitr::kable(context$pipeline_summary, align = rep("l", ncol(context$pipeline_summary))))
+}
+```
+
+## Input Inventory
+
+```{r}
+#| label: input-inventory
+#| output: asis
+
+discovery <- context$discovery
+pls_manifest <- context$pls_manifest
+
+if (is.null(discovery) && is.null(pls_manifest)) {
+  cat("::: {.callout-note appearance='simple'}\n")
+  cat("No discovery or planned-input inventory was saved with this result.\n")
+  cat(":::\n")
+} else {
+  if (!is.null(discovery)) {
+    cat("### Discovery Manifest\n\n")
+    preview <- utils::head(discovery, 10)
+    print(knitr::kable(preview, align = rep("l", ncol(preview))))
+    cat("\n\n")
+  }
+
+  if (!is.null(pls_manifest)) {
+    cat("### PLS Manifest\n\n")
+    preview <- utils::head(pls_manifest, 12)
+    print(knitr::kable(preview, align = rep("l", ncol(preview))))
+    cat("\n\n")
+  }
+}
+```
+
+## Singular Values
+
+Singular values quantify the strength of each latent variable. Larger values indicate patterns that explain more cross-block covariance.
+
+```{r}
+#| label: sv-plot
+#| fig-height: 4.5
+
+emit_plot(
+  plot_singular_values(result, alpha = params$p_threshold) + labs(title = NULL),
+  "Singular value visualization was not available for this saved result."
+)
+```
+
+```{r}
+#| label: sv-table
+
+df <- data.frame(
+  LV = seq_along(result$s),
+  `Singular Value` = round(result$s, 4),
+  `Variance (%)` = round((result$s^2) / sum(result$s^2) * 100, 1),
+  `Cumulative (%)` = round(cumsum((result$s^2) / sum(result$s^2) * 100), 1),
+  check.names = FALSE
+)
+
+if (params$has_perm) {
+  df$`P-value` <- format(round(result$perm_result$sprob, 4), nsmall = 4)
+  # Status dot pattern: green dot for significant
+  df$Status <- ifelse(
+    result$perm_result$sprob < params$p_threshold,
+    '<span class="status-dot success"></span>Significant',
+    ""
+  )
+}
+
+knitr::kable(df, align = c("c", "r", "r", "r", "r", "l"), escape = FALSE)
+```
+
+## Latent Variables
+
+```{r}
+#| label: sig-status
+#| output: asis
+
+if (params$has_perm) {
+  if (length(sig_lvs) == 0) {
+    cat("::: {.callout-warning}\n")
+    cat("No latent variables reached significance at p <", params$p_threshold, ".\n")
+    cat("Showing top 3 LVs for exploratory purposes.\n")
+    cat(":::\n\n")
+    sig_lvs <- seq_len(min(3, length(result$s)))
+  } else {
+    cat("::: {.callout-tip appearance='simple'}\n")
+    cat('<span class="status-dot success"></span>')
+    cat(length(sig_lvs), "latent variable(s) reached significance: LV",
+        paste(sig_lvs, collapse = ", LV"), "\n")
+    cat(":::\n\n")
+  }
+}
+```
+
+::: {.panel-tabset}
+
+```{r}
+#| label: lv-tabs
+#| output: asis
+#| fig-height: 5
+
+for (lv in sig_lvs[seq_len(min(params$n_lv, length(sig_lvs)))]) {
+
+  # Tab header - dot indicates significance
+  var_exp <- round((result$s[lv]^2) / sum(result$s^2) * 100, 1)
+  is_sig <- params$has_perm && result$perm_result$sprob[lv] < params$p_threshold
+
+  cat("\n\n### LV", lv, "\n\n")
+
+  # Stats summary - flat grid, no decoration
+  cat("::: {.grid}\n\n")
+
+  cat("::: {.g-col-4}\n")
+  cat("**Variance**\n\n")
+  cat(var_exp, "%\n")
+  cat(":::\n\n")
+
+  if (params$has_perm) {
+    p_val <- result$perm_result$sprob[lv]
+    cat("::: {.g-col-4}\n")
+    cat("**P-value**\n\n")
+    if (is_sig) {
+      cat('<span class="status-dot success"></span>')
+    }
+    cat(format(round(p_val, 4), nsmall = 4), "\n")
+    cat(":::\n\n")
+  }
+
+  if (params$has_boot) {
+    bsr_vals <- bsr(result, lv = lv)
+    n_reliable <- sum(abs(bsr_vals) > params$bsr_threshold)
+    cat("::: {.g-col-4}\n")
+    cat("**Reliable voxels**\n\n")
+    cat(format(n_reliable, big.mark = ","), " (|BSR| > ", params$bsr_threshold, ")\n", sep = "")
+    cat(":::\n\n")
+  }
+
+  cat(":::\n\n")
+
+  # Design scores
+  cat("#### Design Scores\n\n")
+  cat("Design scores show how strongly each condition-group expresses this brain pattern.\n\n")
+  emit_plot(
+    plot_scores(result, lv = lv, type = "design", plot_type = "bar") +
+      theme(plot.title = element_blank()),
+    "Design score plotting was not available for this latent variable."
+  )
+
+  # Loadings
+  cat("#### Loadings\n\n")
+  emit_plot(
+    plot_loadings(result, lv = lv, type = "design") +
+      theme(plot.title = element_blank()),
+    "Loading visualization was not available for this latent variable."
+  )
+
+  # Brain scores
+  cat("#### Brain Scores\n\n")
+  cat("Individual brain scores. Higher values indicate stronger expression of the pattern.\n\n")
+  emit_plot(
+    plot_scores(result, lv = lv, type = "brain", plot_type = "violin") +
+      theme(plot.title = element_blank()),
+    "Brain score plotting was not available for this latent variable."
+  )
+}
+```
+
+:::
+
+## Bootstrap Reliability
+
+```{r}
+#| label: bootstrap-section
+#| output: asis
+
+if (params$has_boot) {
+  cat("Bootstrap resampling (n = ", format(result$boot_result$num_boot, big.mark = ","),
+      ") assesses the reliability of voxel contributions.\n\n", sep = "")
+  cat("**Bootstrap Ratio (BSR)** = salience / standard error\n\n")
+  cat("Voxels with |BSR| > ", params$bsr_threshold,
+      " are considered reliably contributing to the pattern.\n\n", sep = "")
+} else {
+  cat("::: {.callout-note appearance='simple'}\n")
+  cat("Bootstrap analysis was not performed. Run with `nboot > 0` to assess voxel reliability.\n")
+  cat(":::\n")
+}
+```
+
+```{r}
+#| label: bootstrap-summary
+#| eval: !expr params$has_boot
+
+boot_summary <- data.frame(
+  LV = sig_lvs[seq_len(min(5, length(sig_lvs)))],
+  stringsAsFactors = FALSE
+)
+
+boot_summary$`Reliable Voxels` <- sapply(boot_summary$LV, function(lv) {
+  bsr_vals <- bsr(result, lv = lv)
+  sum(abs(bsr_vals) > params$bsr_threshold)
+})
+
+boot_summary$`% of Total` <- round(boot_summary$`Reliable Voxels` / feature_count * 100, 2)
+
+boot_summary$`Max +BSR` <- sapply(boot_summary$LV, function(lv) {
+  round(max(bsr(result, lv = lv)), 2)
+})
+
+boot_summary$`Max -BSR` <- sapply(boot_summary$LV, function(lv) {
+  round(min(bsr(result, lv = lv)), 2)
+})
+
+knitr::kable(boot_summary, align = c("c", "r", "r", "r", "r"))
+```
+
+## Artifact Notes
+
+```{r}
+#| label: artifact-notes
+#| output: asis
+
+validation <- context$validation
+pls_summary <- context$pls_summary
+
+if (!is.null(validation) && nrow(validation) > 0) {
+  cat("### Validation\n\n")
+  print(knitr::kable(validation, align = rep("l", ncol(validation))))
+  cat("\n\n")
+}
+
+if (!is.null(pls_summary) && nrow(pls_summary) > 0) {
+  cat("### Saved Summary\n\n")
+  print(knitr::kable(pls_summary, align = rep("l", ncol(pls_summary))))
+  cat("\n\n")
+}
+```
+
+## Methods
+
+::: {.callout-note appearance="minimal" collapse="true"}
+## Methodological details
+
+### Analysis Type
+
+**`r method_name`**
+
+```{r}
+#| output: asis
+
+method_desc <- switch(as.character(result$method),
+  "1" = "Mean-centering Task PLS identifies distributed brain patterns that optimally differentiate experimental conditions. Data are mean-centered within groups, and singular value decomposition extracts orthogonal latent variables that maximize the covariance between conditions and brain activity.",
+  "2" = "Non-rotated Task PLS tests specific a priori hypotheses about condition differences using predefined design contrasts. Unlike rotated PLS, the solution is constrained to the contrast space.",
+  "3" = "Behavior PLS identifies brain patterns that maximally correlate with behavioral measures. The analysis extracts latent variables that capture the strongest brain-behavior relationships across conditions.",
+  "4" = "Multiblock PLS combines task effects and behavior-brain correlations in a unified analysis, partitioning variance into task-related and behavior-related components.",
+  "5" = "Non-rotated Behavior PLS tests specific hypotheses about brain-behavior relationships using predefined contrasts on the behavioral variables.",
+  "6" = "Non-rotated Multiblock PLS tests combined hypotheses about both task effects and behavior-brain relationships using design contrasts."
+)
+
+cat(method_desc)
+```
+
+### Statistical Inference
+
+```{r}
+#| output: asis
+
+if (params$has_perm) {
+  cat("**Permutation Testing:** ", format(result$perm_result$num_perm, big.mark = ","),
+      " permutations were used to generate a null distribution of singular values. ",
+      "P-values represent the proportion of permuted singular values exceeding the observed value.\n\n", sep = "")
+}
+
+if (params$has_boot) {
+  cat("**Bootstrap Resampling:** ", format(result$boot_result$num_boot, big.mark = ","),
+      " bootstrap samples were drawn (with replacement, stratified by group) to estimate ",
+      "standard errors of voxel saliences. Bootstrap ratios (BSR = salience/SE) approximate ",
+      "z-scores under the assumption of normally distributed saliences.\n\n", sep = "")
+}
+```
+
+### References
+
+- McIntosh, A. R., & Lobaugh, N. J. (2004). Partial least squares analysis of neuroimaging data: Applications and advances. *NeuroImage*, 23, S250-S263.
+- Krishnan, A., Williams, L. J., McIntosh, A. R., & Hervé, A. (2011). Partial Least Squares (PLS) methods for neuroimaging. *NeuroImage*, 56(2), 455-475.
+
+:::
+
+## Session
+
+::: {.callout-note appearance="minimal" collapse="true"}
+## Technical details
+
+```{r}
+#| code-fold: false
+
+sessionInfo()
+```
+
+:::
+
+---
+
+::: {style="text-align: center; font-size: 13px; color: var(--bs-secondary-color); margin-top: 32px;"}
+Generated with [plsrri](https://github.com/bbuchsbaum/plsrri) v`r packageVersion("plsrri")` on `r format(Sys.time(), "%B %d, %Y")`
+:::

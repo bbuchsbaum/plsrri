@@ -14,29 +14,10 @@ library(shinyFiles)
 library(bslib)
 library(R6)
 
-# Helper to get module file path
-test_module_path <- function() {
-  # Handle both installed package and dev mode
-  pkg_path <- system.file("shiny/R", package = "plsrri")
-  if (pkg_path == "") {
-    # Check if we're running from package root or tests dir
-    if (file.exists("inst/shiny/R")) {
-      pkg_path <- "inst/shiny/R"
-    } else if (file.exists("../../inst/shiny/R")) {
-      pkg_path <- "../../inst/shiny/R"
-    } else {
-      pkg_path <- file.path(getwd(), "inst/shiny/R")
-    }
-  }
-  pkg_path
-}
-
-# Source module files and dependencies for testing
-# Note: Must source to parent frame (test environment), not local
-module_path <- test_module_path()
-source(file.path(module_path, "ui_components.R"), local = FALSE)
-source(file.path(module_path, "state.R"), local = FALSE)
-source(file.path(module_path, "mod_setup.R"), local = FALSE)
+# Shiny module files are sourced globally by helper-shiny-modules.R
+# (with local = FALSE) so that testServer() can find them.
+# Do NOT re-source here with local = TRUE — that creates local copies
+# invisible to testServer() evaluation contexts.
 
 # Helper to create minimal state_rv for testing
 make_test_state_rv <- function() {
@@ -55,7 +36,7 @@ describe("setup_server initialization", {
       # Module should return a list
       result <- session$returned
       expect_type(result, "list")
-      expect_named(result, c("continue", "spec"))
+      expect_named(result, c("continue", "spec", "analysis_source", "prepared_analysis"))
 
       # Both should be reactive
       expect_true(shiny::is.reactive(result$continue) || shiny::is.reactivevalues(result$continue) || is.function(result$continue))
@@ -154,9 +135,92 @@ describe("setup_server validation", {
       expect_length(errors, 0)
     })
   })
+
+  it("accepts structurally valid attach-mode prepared analysis", {
+    shiny::testServer(setup_server, args = list(state_rv = make_test_state_rv()), {
+      session$setInputs(
+        analysis_source = "attach",
+        method = "task",
+        num_conditions = 2
+      )
+
+      local_rv$prepared_analysis <- new_prepared_analysis(
+        analysis_source = "attach",
+        analyze_mode = "pls_only",
+        pipeline_root = tempfile("attach-root-"),
+        analysis_plan = list(input_type = "estimates", statistic = "estimate"),
+        pls_input = list(type = "estimates", statistic = "estimate"),
+        summary = list(n_subjects = 2L)
+      )
+      session$flushReact()
+
+      errors <- validate_setup()
+      expect_false("Attach a valid first-level output root" %in% errors)
+      expect_true(local_rv$data_loaded)
+    })
+  })
 })
 
 describe("setup_server spec building", {
+  it("attach-mode continue builds a runnable spec from prepared outputs", {
+    # Mock pipeline_build_pls_spec_from_ui at the it() scope so cleanup
+    # fires even if testServer() errors. local_mocked_bindings inside
+    # testServer(.package=) does not reliably restore the namespace binding.
+    ns <- asNamespace("plsrri")
+    orig_fn <- ns$pipeline_build_pls_spec_from_ui
+    mock_spec <- pls_spec() |>
+      add_subjects(list(matrix(rnorm(12), nrow = 4)), groups = 2) |>
+      add_conditions(2) |>
+      configure(method = "task", nperm = 25, nboot = 10)
+    plan <- list(input_type = "estimates", statistic = "estimate")
+
+    unlockBinding("pipeline_build_pls_spec_from_ui", ns)
+    assign("pipeline_build_pls_spec_from_ui", function(plan_obj, pls_options) {
+      expect_identical(plan_obj, plan)
+      expect_equal(pls_options$method, "task")
+      mock_spec
+    }, envir = ns)
+    on.exit({
+      assign("pipeline_build_pls_spec_from_ui", orig_fn, envir = ns)
+      lockBinding("pipeline_build_pls_spec_from_ui", ns)
+    }, add = TRUE)
+
+    shiny::testServer(setup_server, args = list(state_rv = make_test_state_rv()), {
+      session$setInputs(
+        analysis_source = "attach",
+        method = "task",
+        num_conditions = 2,
+        num_perm = 25,
+        num_boot = 10,
+        confidence = 95,
+        boot_type = "strat",
+        num_split = 0,
+        meancentering = "0"
+      )
+      local_rv$analysis_source <- "attach"
+
+      local_rv$prepared_analysis <- new_prepared_analysis(
+        analysis_source = "attach",
+        analyze_mode = "pls_only",
+        pipeline_root = tempfile("attach-root-"),
+        analysis_plan = plan,
+        pls_input = list(type = "estimates", statistic = "estimate"),
+        summary = list(n_subjects = 2L),
+        firstlevel_plan = data.frame(work_id = "w0001", stringsAsFactors = FALSE),
+        firstlevel_manifest = data.frame(subject = "01", condition = "face", stringsAsFactors = FALSE)
+      )
+
+      session$setInputs(btn_continue = 1)
+
+      expect_equal(local_rv$spec, mock_spec)
+      expect_s3_class(local_rv$prepared_analysis, "prepared_analysis")
+      expect_equal(local_rv$prepared_analysis$analysis_source, "attach")
+      expect_equal(local_rv$prepared_analysis$analyze_mode, "pls_only")
+      expect_equal(local_rv$prepared_analysis$spec, mock_spec)
+      expect_equal(continue_trigger(), 1)
+    })
+  })
+
   it("method selection maps to correct integer", {
     shiny::testServer(setup_server, args = list(state_rv = make_test_state_rv()), {
       # Setup valid data
@@ -189,6 +253,8 @@ describe("setup_server spec building", {
       local_rv$groups <- list(list(name = "Group 1", n_subj = 10))
       local_rv$data_loaded <- TRUE
       local_rv$data_matrices <- list(matrix(1, nrow = 30, ncol = 100))
+      local_rv$behav_loaded <- TRUE
+      local_rv$behav_data <- matrix(rnorm(30), nrow = 30, ncol = 1)
 
       session$setInputs(
         data_source = "manual",
@@ -199,7 +265,8 @@ describe("setup_server spec building", {
         confidence = 95,
         boot_type = "strat",
         num_split = 0,
-        meancentering = "0"
+        meancentering = "0",
+        cormode = "0"
       )
       session$setInputs(btn_continue = 1)
 
@@ -214,6 +281,8 @@ describe("setup_server spec building", {
       local_rv$groups <- list(list(name = "Group 1", n_subj = 10))
       local_rv$data_loaded <- TRUE
       local_rv$data_matrices <- list(matrix(1, nrow = 30, ncol = 100))
+      local_rv$behav_loaded <- TRUE
+      local_rv$behav_data <- matrix(rnorm(30), nrow = 30, ncol = 1)
 
       session$setInputs(
         data_source = "manual",
@@ -224,7 +293,8 @@ describe("setup_server spec building", {
         confidence = 95,
         boot_type = "strat",
         num_split = 0,
-        meancentering = "0"
+        meancentering = "0",
+        cormode = "0"
       )
       session$setInputs(btn_continue = 1)
 

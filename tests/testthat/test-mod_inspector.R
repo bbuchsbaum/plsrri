@@ -405,6 +405,37 @@ describe("inspector_server export buttons", {
 
 })
 
+describe("inspector exports use downloadHandler()", {
+
+  it("defines download handlers + download buttons (no do_export* writes)", {
+    mod_path <- system.file("shiny", "R", "mod_inspector.R", package = "plsrri")
+    if (mod_path == "") {
+      candidates <- c(
+        file.path(getwd(), "inst", "shiny", "R", "mod_inspector.R"),
+        file.path(getwd(), "..", "..", "inst", "shiny", "R", "mod_inspector.R")
+      )
+      mod_path <- candidates[file.exists(candidates)][1]
+    }
+
+    testthat::skip_if(is.na(mod_path) || !file.exists(mod_path), "mod_inspector.R not found")
+
+    txt <- paste(readLines(mod_path, warn = FALSE), collapse = "\n")
+
+    expect_match(txt, "output\\$download_nifti\\s*<-\\s*downloadHandler\\(")
+    expect_match(txt, "output\\$download_csv\\s*<-\\s*downloadHandler\\(")
+    expect_match(txt, "output\\$download_pdf\\s*<-\\s*downloadHandler\\(")
+    expect_match(txt, "output\\$download_report\\s*<-\\s*downloadHandler\\(")
+
+    expect_match(txt, "downloadButton\\(ns\\(\"download_nifti\"\\)")
+    expect_match(txt, "downloadButton\\(ns\\(\"download_csv\"\\)")
+    expect_match(txt, "downloadButton\\(ns\\(\"download_pdf\"\\)")
+    expect_match(txt, "downloadButton\\(ns\\(\"download_report\"\\)")
+
+    expect_false(grepl("do_export_", txt, fixed = TRUE))
+  })
+
+})
+
 describe("inspector_server scores display", {
 
   it("scores can be extracted for valid result", {

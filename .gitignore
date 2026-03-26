@@ -1,0 +1,6 @@
+PLS/
+..Rcheck/
+*.tar.gz
+.covr_result.rds
+.omc/
+.albersdown.bak/

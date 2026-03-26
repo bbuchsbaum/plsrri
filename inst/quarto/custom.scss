@@ -1,0 +1,162 @@
+/*-- scss:defaults --*/
+
+// Typography - neutral grotesk, high x-height
+$font-family-sans-serif: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+$headings-font-weight: 600;
+
+// Spacing - strict 4px grid
+$spacer: 1rem;  // 16px base
+
+/*-- scss:rules --*/
+
+// Clean header styling
+.quarto-title-block {
+  margin-bottom: 32px;  // 4px × 8
+  border-bottom: 1px solid var(--bs-border-color);
+  padding-bottom: 24px;  // 4px × 6
+}
+
+.quarto-title .title {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+// Stat cards - group with space, minimal decoration
+.stat-card {
+  background: var(--bs-tertiary-bg);
+  border-radius: 8px;  // 4px × 2
+  padding: 24px 16px;  // 4px × 6, 4px × 4
+  text-align: center;
+  border: 0.5px solid var(--bs-border-color);
+  // No hover effects - technical UI, not marketing
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--bs-body-color);  // No decorative color - color is state
+  line-height: 1.2;
+  margin-bottom: 4px;  // 4px × 1
+  font-variant-numeric: tabular-nums;  // Align numbers
+}
+
+.stat-label {
+  font-size: 13px;  // Per typography spec
+  letter-spacing: 0;  // No uppercase styling
+  color: var(--bs-secondary-color);
+  font-weight: 500;
+}
+
+// Tables - quiet precision
+.table {
+  font-size: 14px;
+}
+
+.table thead th {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--bs-secondary-color);
+  border-bottom-width: 2px;
+  // No uppercase - hierarchy via size + weight only
+}
+
+// Numeric columns
+.table td:nth-child(n+2) {
+  font-variant-numeric: tabular-nums;
+}
+
+// Callouts - semantic color only
+.callout {
+  border-radius: 8px;
+  margin: 24px 0;  // 4px × 6
+}
+
+.callout-note {
+  border-left-color: var(--bs-secondary-color);  // Neutral for info
+}
+
+.callout-tip {
+  border-left-color: #22c55e;  // Green = success/significant
+}
+
+.callout-warning {
+  border-left-color: #f59e0b;  // Amber = attention
+}
+
+// Tabs - clean underline pattern
+.panel-tabset .nav-tabs {
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.panel-tabset .nav-link {
+  font-size: 14px;
+  font-weight: 500;
+  padding: 12px 16px;  // 4px × 3, 4px × 4
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: border-color 0.15s ease;  // 150ms for micro-interactions
+}
+
+.panel-tabset .nav-link:hover {
+  border-bottom-color: var(--bs-secondary-color);
+}
+
+.panel-tabset .nav-link.active {
+  border-bottom-color: var(--bs-body-color);
+  color: var(--bs-body-color);
+  background: transparent;
+}
+
+// Figures
+.quarto-figure {
+  margin: 24px 0;
+}
+
+// Code blocks
+pre {
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+// TOC styling
+.sidebar nav[role="doc-toc"] ul {
+  font-size: 14px;
+}
+
+.sidebar nav[role="doc-toc"] ul > li > a.active {
+  font-weight: 600;
+}
+
+// Status indicators - dot pattern
+.status-sig {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;  // 4px × 1.5, close enough
+}
+
+.status-sig::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;  // Green = significant
+}
+
+// Grid improvements
+@media (max-width: 768px) {
+  .stat-card {
+    margin-bottom: 16px;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+}
+
+// Dark mode - same rules apply
+[data-bs-theme="dark"] {
+  .stat-card {
+    border-color: var(--bs-border-color);
+  }
+}
