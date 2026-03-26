@@ -38,7 +38,7 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck, any::knitr, any::rmarkdown, any::testthat
+          extra-packages: any::rcmdcheck, any::knitr, any::rmarkdown, any::testthat, any::shiny, any::bslib, any::shinyjs, any::shinyFiles, any::patchwork, any::scales, any::yaml, any::mockery, any::withr, any::bench, any::promises, any::RNifti, any::future, any::furrr, any::bsicons
           needs: check
           dependencies: '"hard"'
 
