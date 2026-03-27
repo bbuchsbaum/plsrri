@@ -122,7 +122,7 @@ analysis</li>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://yaml.r-lib.org/reference/as.yaml.html" class="external-link">as.yaml</a></span><span class="op">(</span><span class="va">minimal_spec</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; dataset:</span></span>
-<span><span class="co">#&gt;   bids_dir: /tmp/Rtmp5xEC5e/plsrri-yaml-28b1603fada0/bids</span></span>
+<span><span class="co">#&gt;   bids_dir: /tmp/Rtmpre2aTG/plsrri-yaml-28dd28f27c36/bids</span></span>
 <span><span class="co">#&gt;   task: stroop</span></span>
 <span><span class="co">#&gt; design:</span></span>
 <span><span class="co">#&gt;   formula: onset ~ hrf(condition, basis = 'spmg1')</span></span>
@@ -135,7 +135,7 @@ analysis</li>
 <span><span class="co">#&gt;   nperm: 0</span></span>
 <span><span class="co">#&gt;   nboot: 0</span></span>
 <span><span class="co">#&gt; outputs:</span></span>
-<span><span class="co">#&gt;   root: /tmp/Rtmp5xEC5e/plsrri-yaml-28b1603fada0/out</span></span></code></pre></div>
+<span><span class="co">#&gt;   root: /tmp/Rtmpre2aTG/plsrri-yaml-28dd28f27c36/out</span></span></code></pre></div>
 <p>That small object already validates and picks up defaults for
 <code>execution.mode</code>, <code>execution.parallelism</code>,
 <code>first_level.strategy</code>, and <code>pls.input</code>.</p>
@@ -259,7 +259,7 @@ manifest</li>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://yaml.r-lib.org/reference/as.yaml.html" class="external-link">as.yaml</a></span><span class="op">(</span><span class="va">basis_spec</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; dataset:</span></span>
-<span><span class="co">#&gt;   bids_dir: /tmp/Rtmp5xEC5e/plsrri-yaml-28b1603fada0/bids</span></span>
+<span><span class="co">#&gt;   bids_dir: /tmp/Rtmpre2aTG/plsrri-yaml-28dd28f27c36/bids</span></span>
 <span><span class="co">#&gt;   task: stroop</span></span>
 <span><span class="co">#&gt; design:</span></span>
 <span><span class="co">#&gt;   formula: onset ~ hrf(condition, basis = 'fir', K = 4)</span></span>
@@ -289,7 +289,7 @@ manifest</li>
 <span><span class="co">#&gt;   nperm: 0</span></span>
 <span><span class="co">#&gt;   nboot: 0</span></span>
 <span><span class="co">#&gt; outputs:</span></span>
-<span><span class="co">#&gt;   root: /tmp/Rtmp5xEC5e/plsrri-yaml-28b1603fada0/fir-out</span></span></code></pre></div>
+<span><span class="co">#&gt;   root: /tmp/Rtmpre2aTG/plsrri-yaml-28dd28f27c36/fir-out</span></span></code></pre></div>
 <p>The important point is that basis handling belongs in both
 places:</p>
 <ul>
