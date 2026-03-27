@@ -10,6 +10,8 @@ ws_seed_pls(
   condition_lst,
   num_subj_lst,
   groups = NULL,
+  seed_labels = NULL,
+  layout = c("seed_condition", "stacked_seed_features"),
   fisher_z = TRUE,
   min_trials = 3L,
   nonrotated = FALSE,

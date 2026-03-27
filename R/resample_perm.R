@@ -325,6 +325,8 @@ pls_perm_order <- function(num_subj_lst, num_cond, num_perm, not_in_cond = FALSE
 #' @param meancentering_type Mean-centering type
 #' @param cormode Correlation mode
 #' @param is_struct Structure PLS flag
+#' @param parallel_config Optional parallel execution config list with
+#'   `backend` and `workers`
 #' @param progress Show progress
 #'
 #' @return pls_perm_result object
@@ -345,6 +347,7 @@ pls_permutation_test <- function(stacked_datamat,
                                   meancentering_type = 0L,
                                   cormode = 0L,
                                   is_struct = FALSE,
+                                  parallel_config = NULL,
                                   permsamp = NULL,
                                   Tpermsamp = NULL,
                                   Bpermsamp = NULL,
@@ -410,23 +413,34 @@ pls_permutation_test <- function(stacked_datamat,
   permsamp <- normalize_perm_matrix(permsamp, "permsamp")
   Tpermsamp <- normalize_perm_matrix(Tpermsamp, "Tpermsamp")
   Bpermsamp <- normalize_perm_matrix(Bpermsamp, "Bpermsamp")
+  parallel_cfg <- .plsrri_normalize_parallel_config(parallel_config)
 
   # Exact compiled fast path for the common balanced task-PLS case.
-  if (.plsrri_fast_paths_enabled() &&
+  if (.plsrri_fast_paths_enabled("permutation") &&
       identical(as.integer(method), 1L) &&
       !is.list(num_subj_lst) &&
       identical(as.integer(meancentering_type), 0L) &&
       !any(!is.finite(stacked_datamat)) &&
       !is.null(permsamp)) {
-    sp <- perm_test_task_cpp(
-      stacked_datamat = stacked_datamat,
-      permsamp = permsamp,
-      observed_s = as.numeric(observed_s),
-      num_groups = as.integer(num_groups),
-      num_subj_lst = as.integer(num_subj_lst),
-      num_cond = as.integer(num_cond),
-      meancentering_type = as.integer(meancentering_type)
-    )
+    perm_chunk_counts <- function(cols) {
+      perm_test_task_cpp(
+        stacked_datamat = stacked_datamat,
+        permsamp = permsamp[, cols, drop = FALSE],
+        observed_s = as.numeric(observed_s),
+        num_groups = as.integer(num_groups),
+        num_subj_lst = as.integer(num_subj_lst),
+        num_cond = as.integer(num_cond),
+        meancentering_type = as.integer(meancentering_type)
+      )
+    }
+
+    if (parallel_cfg$enabled) {
+      chunks <- .plsrri_split_indices(num_perm, parallel_cfg$workers)
+      sp_parts <- .plsrri_parallel_lapply(chunks, perm_chunk_counts, parallel_cfg)
+      sp <- Reduce(`+`, lapply(sp_parts, as.integer))
+    } else {
+      sp <- as.integer(perm_chunk_counts(seq_len(num_perm)))
+    }
 
     return(new_pls_perm_result(
       num_perm = num_perm,
@@ -438,111 +452,119 @@ pls_permutation_test <- function(stacked_datamat,
     ))
   }
 
-  # Count how many permuted singular values >= observed
-  sp <- rep(0L, n_lv)
+  perm_chunk_counts <- function(cols) {
+    sp_chunk <- rep(0L, n_lv)
 
-  if (progress) {
-    pb <- cli::cli_progress_bar("Permutation test", total = num_perm)
-  }
-
-  for (p in seq_len(num_perm)) {
-    # Determine reorder indices per method
-    datamat_reorder <- seq_len(total_rows)
-    behavdata_reorder <- NULL
-    datamat_reorder_4beh <- NULL
-
-    if (method %in% c(4L, 6L)) {
-      datamat_reorder <- Tpermsamp[, p]
-      behavdata_reorder <- Bpermsamp[, p]
-      datamat_reorder_4beh <- seq_len(total_rows)
-    } else if (method %in% c(3L, 5L)) {
+    for (p in cols) {
       datamat_reorder <- seq_len(total_rows)
-      behavdata_reorder <- Bpermsamp[, p]
-    } else {
-      datamat_reorder <- permsamp[, p]
-    }
+      behavdata_reorder <- NULL
+      datamat_reorder_4beh <- NULL
+      observed_s_local <- observed_s
 
-    covcor <- pls_get_covcor(
-      method = method,
-      stacked_datamat = stacked_datamat,
-      stacked_behavdata = stacked_behavdata,
-      num_groups = num_groups,
-      num_subj_lst = num_subj_lst,
-      num_cond = num_cond,
-      bscan = bscan,
-      meancentering_type = meancentering_type,
-      cormode = cormode,
-      datamat_reorder = datamat_reorder,
-      behavdata_reorder = behavdata_reorder,
-      datamat_reorder_4beh = datamat_reorder_4beh
-    )
-
-    datamatsvd_perm <- covcor$datamatsvd
-    datamatsvd_unnorm_perm <- covcor$datamatsvd_unnorm
-
-    # Compute singular values for permuted data
-    if (method %in% c(2L, 5L, 6L)) {
-      crossblock <- crossprod(stacked_designdata, datamatsvd_perm)
-      s_perm <- sqrt(rowSums(crossblock^2))
-    } else {
-      if (is.null(observed_v)) {
-        stop("observed_v is required for rotated (SVD-based) permutation tests")
-      }
-
-      # SVD then Procrustes-align pv to observed_v (MATLAB rri_bootprocrust)
-      r <- nrow(datamatsvd_perm)
-      c <- ncol(datamatsvd_perm)
-      n_keep <- min(n_lv, min(r, c))
-
-      if (r <= c) {
-        svd_result <- svd(t(datamatsvd_perm), nu = n_keep, nv = n_keep)
-        pv <- svd_result$v
-        d <- svd_result$d
+      if (method %in% c(4L, 6L)) {
+        datamat_reorder <- Tpermsamp[, p]
+        behavdata_reorder <- Bpermsamp[, p]
+        datamat_reorder_4beh <- seq_len(total_rows)
+      } else if (method %in% c(3L, 5L)) {
+        datamat_reorder <- seq_len(total_rows)
+        behavdata_reorder <- Bpermsamp[, p]
       } else {
-        svd_result <- svd(datamatsvd_perm, nu = n_keep, nv = n_keep)
-        pv <- svd_result$u
-        d <- svd_result$d
+        datamat_reorder <- permsamp[, p]
       }
 
-      pv <- pv[, seq_len(n_keep), drop = FALSE]
-      d <- d[seq_len(n_keep)]
+      covcor <- pls_get_covcor(
+        method = method,
+        stacked_datamat = stacked_datamat,
+        stacked_behavdata = stacked_behavdata,
+        num_groups = num_groups,
+        num_subj_lst = num_subj_lst,
+        num_cond = num_cond,
+        bscan = bscan,
+        meancentering_type = meancentering_type,
+        cormode = cormode,
+        datamat_reorder = datamat_reorder,
+        behavdata_reorder = behavdata_reorder,
+        datamat_reorder_4beh = datamat_reorder_4beh
+      )
 
-      rotatemat <- pls_bootprocrust(observed_v[, seq_len(n_keep), drop = FALSE], pv)
-      pv_scaled <- pv %*% diag(d, nrow = n_keep) %*% rotatemat
+      datamatsvd_perm <- covcor$datamatsvd
+      datamatsvd_unnorm_perm <- covcor$datamatsvd_unnorm
 
-      s_perm <- sqrt(colSums(pv_scaled^2))
-
-      # Multiblock SSQ adjustment uses unnormalized cross-block SSQ
-      if (method == 4L) {
-        if (is.null(org_s)) {
-          stop("org_s is required for multiblock permutation test")
+      if (method %in% c(2L, 5L, 6L)) {
+        crossblock <- crossprod(stacked_designdata, datamatsvd_perm)
+        s_perm <- sqrt(rowSums(crossblock^2))
+      } else {
+        if (is.null(observed_v)) {
+          stop("observed_v is required for rotated (SVD-based) permutation tests")
         }
 
-        ptotal_s <- sum(datamatsvd_unnorm_perm^2)
-        per <- s_perm^2 / sum(s_perm^2)
-        s_perm <- sqrt(per * ptotal_s)
+        r <- nrow(datamatsvd_perm)
+        c <- ncol(datamatsvd_perm)
+        n_keep <- min(n_lv, min(r, c))
 
-        # compare against adjusted observed singular values
-        observed_s <- org_s
+        if (r <= c) {
+          svd_result <- svd(t(datamatsvd_perm), nu = n_keep, nv = n_keep)
+          pv <- svd_result$v
+          d <- svd_result$d
+        } else {
+          svd_result <- svd(datamatsvd_perm, nu = n_keep, nv = n_keep)
+          pv <- svd_result$u
+          d <- svd_result$d
+        }
+
+        pv <- pv[, seq_len(n_keep), drop = FALSE]
+        d <- d[seq_len(n_keep)]
+
+        rotatemat <- pls_bootprocrust(observed_v[, seq_len(n_keep), drop = FALSE], pv)
+        pv_scaled <- pv %*% diag(d, nrow = n_keep) %*% rotatemat
+
+        s_perm <- sqrt(colSums(pv_scaled^2))
+
+        if (method == 4L) {
+          if (is.null(org_s)) {
+            stop("org_s is required for multiblock permutation test")
+          }
+
+          ptotal_s <- sum(datamatsvd_unnorm_perm^2)
+          per <- s_perm^2 / sum(s_perm^2)
+          s_perm <- sqrt(per * ptotal_s)
+          observed_s_local <- org_s
+        }
+      }
+
+      s_perm <- s_perm[seq_len(min(length(s_perm), n_lv))]
+      if (length(s_perm) < n_lv) {
+        s_perm <- c(s_perm, rep(0, n_lv - length(s_perm)))
+      }
+
+      sp_chunk <- sp_chunk + as.integer(s_perm >= observed_s_local)
+    }
+
+    sp_chunk
+  }
+
+  if (parallel_cfg$enabled) {
+    chunks <- .plsrri_split_indices(num_perm, parallel_cfg$workers)
+    sp_parts <- .plsrri_parallel_lapply(chunks, perm_chunk_counts, parallel_cfg)
+    sp <- Reduce(`+`, lapply(sp_parts, as.integer))
+  } else {
+    sp <- rep(0L, n_lv)
+
+    if (progress) {
+      pb <- cli::cli_progress_bar("Permutation test", total = num_perm)
+    }
+
+    for (p in seq_len(num_perm)) {
+      sp <- sp + perm_chunk_counts(p)
+
+      if (progress) {
+        cli::cli_progress_update(id = pb)
       }
     }
 
-    # Truncate to same number of LVs
-    s_perm <- s_perm[seq_len(min(length(s_perm), n_lv))]
-    if (length(s_perm) < n_lv) {
-      s_perm <- c(s_perm, rep(0, n_lv - length(s_perm)))
-    }
-
-    # Count
-    sp <- sp + as.integer(s_perm >= observed_s)
-
     if (progress) {
-      cli::cli_progress_update(id = pb)
+      cli::cli_progress_done(id = pb)
     }
-  }
-
-  if (progress) {
-    cli::cli_progress_done(id = pb)
   }
 
   # Compute probabilities

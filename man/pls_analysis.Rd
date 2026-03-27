@@ -25,6 +25,7 @@ pls_analysis(
   Bpermsamp = NULL,
   bootsamp = NULL,
   bootsamp_4beh = NULL,
+  parallel_config = NULL,
   progress = TRUE
 )
 }
@@ -96,6 +97,10 @@ for multiblock/behavior methods.}
 
 \item{bootsamp_4beh}{Optional behavior bootstrap matrix (\verb{total_rows x num_boot})
 for behavior/multiblock methods.}
+
+\item{parallel_config}{Optional parallel execution config list with
+\code{backend} (\code{"future"} or \code{"sequential"}) and \code{workers}. This affects
+permutation testing and task-only bootstrap execution.}
 
 \item{progress}{Logical, show progress messages.}
 }

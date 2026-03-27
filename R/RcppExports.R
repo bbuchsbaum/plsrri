@@ -50,6 +50,29 @@ compute_bsr_cpp <- function(u_sum, u_sq_sum, observed_u, num_boot) {
     .Call(`_plsrri_compute_bsr_cpp`, u_sum, u_sq_sum, observed_u, num_boot)
 }
 
+#' Fast Reduced-Space Bootstrap Test for Task PLS
+#'
+#' Runs the reduced-space inner bootstrap loop for balanced task methods 1/2.
+#' Returns accumulated saliences and per-bootstrap task score distributions.
+#'
+#' @param task_scores Reduced row-space scores (`U D`)
+#' @param task_loadings Right singular vectors used to lift back to features
+#' @param stacked_datamat Original stacked data matrix
+#' @param bootsamp Bootstrap sample matrix (total_rows x num_boot)
+#' @param observed_v Observed design-side saliences/contrasts
+#' @param stacked_designdata Normalized design matrix for method 2, or 0-col matrix for method 1
+#' @param num_groups Number of groups
+#' @param num_subj_lst Subjects per group
+#' @param num_cond Number of conditions
+#' @param method Task method (1 or 2)
+#'
+#' @return List with `u_sum`, `u_sq`, and `usc_distrib_boot`
+#'
+#' @keywords internal
+boot_test_task_reduced_cpp <- function(task_scores, task_loadings, stacked_datamat, bootsamp, observed_v, stacked_designdata, num_groups, num_subj_lst, num_cond, method) {
+    .Call(`_plsrri_boot_test_task_reduced_cpp`, task_scores, task_loadings, stacked_datamat, bootsamp, observed_v, stacked_designdata, num_groups, num_subj_lst, num_cond, method)
+}
+
 #' Fast Permutation Test for Task PLS
 #'
 #' Runs the inner loop of permutation testing for task PLS.

@@ -48,6 +48,25 @@ The smallest stable path is:
 2. run the returned `pls_spec`
 3. render a Quarto report from the same saved artifacts
 
+For performance-sensitive scripted runs, `plsrri` also exposes exact fast-path
+controls through the global option `plsrri.fast_paths`. The practical default is
+to enable the well-performing exact accelerations and leave the slower
+permutation branch off:
+
+```{r fast-path-options, eval = FALSE}
+options(plsrri.fast_paths = c("xcor", "bootstrap"))
+
+# Opt into the exact permutation fast path as well.
+options(plsrri.fast_paths = c("xcor", "bootstrap", "permutation"))
+
+# Disable exact fast paths entirely.
+options(plsrri.fast_paths = FALSE)
+```
+
+That split is deliberate: current benchmarks show exact reduced-space bootstrap
+is a substantial win, while the exact permutation fast path is still best treated
+as opt-in.
+
 ```{r build-synthetic-artifacts, include = FALSE}
 set.seed(2026)
 
@@ -279,6 +298,7 @@ Use `vignette("plsrri")` for the main task-PLS workflow, `vignette("behavior-pls
 
 The most relevant help pages after this vignette are:
 
+- `vignette("pipeline-yaml-spec")`
 - `?prepare_firstlevel`
 - `?prepare_pls`
 - `?run_pls`

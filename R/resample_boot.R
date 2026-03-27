@@ -537,154 +537,6 @@ pls_boot_order_nonstrat <- function(num_subj_lst, num_cond, num_boot) {
   boot_order
 }
 
-.pls_center_task_balanced <- function(X, num_subj_lst, num_cond) {
-  num_groups <- length(num_subj_lst)
-  n_features <- ncol(X)
-  k <- as.integer(num_cond)
-
-  datamatsvd <- NULL
-  centered_rows <- matrix(0, nrow = nrow(X), ncol = n_features)
-  offset <- 0L
-
-  for (g in seq_len(num_groups)) {
-    n <- as.integer(num_subj_lst[g])
-    span <- n * k
-    idx <- offset + seq_len(span)
-    group_data <- X[idx, , drop = FALSE]
-    group_mean <- colMeans(group_data)
-    centered_group <- sweep(group_data, 2, group_mean, "-")
-
-    centered_rows[idx, ] <- centered_group
-    datamatsvd <- rbind(datamatsvd, pls_task_mean(centered_group, n))
-    offset <- offset + span
-  }
-
-  list(datamatsvd = datamatsvd, centered = centered_rows)
-}
-
-.pls_task_condition_means_balanced <- function(X, num_subj_lst, num_cond) {
-  num_groups <- length(num_subj_lst)
-  out <- NULL
-  offset <- 0L
-
-  for (g in seq_len(num_groups)) {
-    n <- as.integer(num_subj_lst[g])
-    span <- n * as.integer(num_cond)
-    idx <- offset + seq_len(span)
-    out <- rbind(out, pls_task_mean(X[idx, , drop = FALSE], n))
-    offset <- offset + span
-  }
-
-  out
-}
-
-.pls_fast_bootstrap_task_exact <- function(stacked_datamat,
-                                           num_groups,
-                                           num_subj_lst,
-                                           num_cond,
-                                           bootsamp,
-                                           observed_u,
-                                           observed_v,
-                                           observed_s,
-                                           clim,
-                                           boot_type) {
-  total_rows <- nrow(stacked_datamat)
-  n_features <- nrow(observed_u)
-  n_lv <- ncol(observed_u)
-  actual_num_boot <- ncol(bootsamp)
-
-  x_svd <- pls_svd(stacked_datamat, handle_missing = FALSE)
-  x_scores <- x_svd$u %*% diag(x_svd$d, nrow = length(x_svd$d))
-  x_loadings <- x_svd$v
-  rank_x <- ncol(x_loadings)
-
-  observed_center <- .pls_center_task_balanced(stacked_datamat, num_subj_lst, num_cond)
-  observed_norm_u <- normalize_rows(observed_u, margin = 2L)
-  usc2 <- observed_center$centered %*% observed_norm_u
-  orig_usc <- .pls_task_condition_means_balanced(usc2, num_subj_lst, num_cond)
-
-  usc_distrib <- array(0, dim = c(nrow(orig_usc), ncol(orig_usc), actual_num_boot + 1L))
-  usc_distrib[, , 1] <- orig_usc
-
-  u_sum <- matrix(0, nrow = n_features, ncol = n_lv)
-  u_sq <- matrix(0, nrow = n_features, ncol = n_lv)
-
-  for (b in seq_len(actual_num_boot)) {
-    scores_boot <- x_scores[bootsamp[, b], , drop = FALSE]
-    centered_boot <- .pls_center_task_balanced(scores_boot, num_subj_lst, num_cond)
-    datamatsvd_boot <- centered_boot$datamatsvd
-
-    r <- nrow(datamatsvd_boot)
-    c <- ncol(datamatsvd_boot)
-    n_keep <- min(n_lv, min(r, c))
-
-    if (r <= c) {
-      svd_result <- svd(t(datamatsvd_boot), nu = n_keep, nv = n_keep)
-      v_small <- svd_result$u[, seq_len(n_keep), drop = FALSE]
-      u_small <- svd_result$v[, seq_len(n_keep), drop = FALSE]
-    } else {
-      svd_result <- svd(datamatsvd_boot, nu = n_keep, nv = n_keep)
-      u_small <- svd_result$u[, seq_len(n_keep), drop = FALSE]
-      v_small <- svd_result$v[, seq_len(n_keep), drop = FALSE]
-    }
-
-    d <- svd_result$d[seq_len(n_keep)]
-    rotatemat <- pls_bootprocrust(observed_v[, seq_len(n_keep), drop = FALSE], u_small)
-    reduced_scaled <- v_small %*% diag(d, nrow = n_keep) %*% rotatemat
-
-    u_boot_scaled <- matrix(0, nrow = n_features, ncol = n_lv)
-    u_boot_scaled[, seq_len(n_keep)] <- x_loadings %*% reduced_scaled
-
-    u_sum <- u_sum + u_boot_scaled
-    u_sq <- u_sq + u_boot_scaled^2
-
-    reduced_norms <- sqrt(colSums(reduced_scaled^2))
-    reduced_norms[reduced_norms == 0] <- 1
-    reduced_normalized <- sweep(reduced_scaled, 2, reduced_norms, "/")
-
-    tmp_usc2 <- centered_boot$centered %*% reduced_normalized
-    usc_distrib[, , b + 1L] <- .pls_task_condition_means_balanced(tmp_usc2, num_subj_lst, num_cond)
-  }
-
-  u_sum2 <- (u_sum^2) / actual_num_boot
-  u_se <- sqrt(abs(u_sq - u_sum2) / (actual_num_boot - 1L))
-
-  bad_se <- which(u_se <= 0 | !is.finite(u_se))
-  if (length(bad_se) > 0L) {
-    u_se[bad_se] <- 1
-  }
-
-  original_u <- observed_u %*% diag(observed_s, nrow = length(observed_s))
-  compare_u <- original_u / u_se
-  if (length(bad_se) > 0L) {
-    compare_u[bad_se] <- 0
-  }
-  compare_u[!is.finite(compare_u)] <- 0
-
-  ll <- 100 - clim
-  ul <- clim
-  climNi <- 0.5 * (1 - (clim * 0.01))
-  ci <- pls_distrib_ci(usc_distrib, ll = ll, ul = ul,
-                       num_boot = actual_num_boot, climNi = climNi, orig = orig_usc)
-
-  new_pls_boot_result(
-    num_boot = actual_num_boot,
-    boot_type = boot_type,
-    compare_u = compare_u,
-    u_se = u_se,
-    clim = clim,
-    bootsamp = bootsamp,
-    distrib = usc_distrib,
-    prop = ci$prop,
-    usc2 = usc2,
-    orig_usc = orig_usc,
-    ulusc = ci$ul,
-    llusc = ci$ll,
-    ulusc_adj = ci$ul_adj,
-    llusc_adj = ci$ll_adj
-  )
-}
-
 #' Run Bootstrap Test
 #'
 #' @description
@@ -705,6 +557,8 @@ pls_boot_order_nonstrat <- function(num_subj_lst, num_cond, num_boot) {
 #' @param cormode Correlation mode
 #' @param boot_type Bootstrap type
 #' @param clim Confidence level
+#' @param parallel_config Optional parallel execution config list with
+#'   `backend` and `workers`. This currently affects task-only bootstrap.
 #' @param progress Show progress
 #'
 #' @return pls_boot_result object
@@ -729,6 +583,7 @@ pls_bootstrap_test <- function(stacked_datamat,
                                 bootsamp = NULL,
                                 bootsamp_4beh = NULL,
                                 clim = 95,
+                                parallel_config = NULL,
                                 progress = TRUE) {
 
   total_rows <- nrow(stacked_datamat)
@@ -821,26 +676,7 @@ pls_bootstrap_test <- function(stacked_datamat,
     bootsamp_4beh <- bootsamp_4beh[, seq_len(actual_num_boot), drop = FALSE]
   }
   bootsamp <- bootsamp[, seq_len(actual_num_boot), drop = FALSE]
-
-  if (.plsrri_fast_paths_enabled() &&
-      identical(as.integer(method), 1L) &&
-      !is.list(num_subj_lst) &&
-      identical(as.integer(meancentering_type), 0L) &&
-      !isTRUE(nonrotated_boot) &&
-      !any(!is.finite(stacked_datamat))) {
-    return(.pls_fast_bootstrap_task_exact(
-      stacked_datamat = stacked_datamat,
-      num_groups = num_groups,
-      num_subj_lst = as.integer(num_subj_lst),
-      num_cond = num_cond,
-      bootsamp = bootsamp,
-      observed_u = observed_u,
-      observed_v = observed_v,
-      observed_s = observed_s,
-      clim = clim,
-      boot_type = boot_type
-    ))
-  }
+  parallel_cfg <- .plsrri_normalize_parallel_config(parallel_config)
 
   k <- as.integer(num_cond)
   kk <- length(bscan)
@@ -995,11 +831,315 @@ pls_bootstrap_test <- function(stacked_datamat,
     u_sq <- matrix(0, nrow = n_features, ncol = n_lv)
   }
 
-  if (progress) {
-    pb <- cli::cli_progress_bar("Bootstrap test", total = actual_num_boot)
+  task_boot_ci_summary <- function(u_boot_scaled, covcor_boot) {
+    if (isTRUE(nonrotated_boot) && method %in% c(1L, 2L)) {
+      stacked_smeanmat_boot <- covcor_boot$stacked_smeanmat
+      tmp_usc2 <- stacked_smeanmat_boot %*% normalize_rows(u_boot_scaled, margin = 2L)
+    } else if (method == 1L) {
+      stacked_smeanmat_boot <- covcor_boot$stacked_smeanmat
+      tmp_usc2 <- stacked_smeanmat_boot %*% normalize_rows(u_boot_scaled, margin = 2L)
+    } else {
+      tmp_usc2 <- stacked_datamat %*% normalize_rows(u_boot_scaled, margin = 2L)
+    }
+
+    tmp_orig_usc <- NULL
+    first <- 1L
+    last <- 0L
+    for (g in seq_len(num_groups)) {
+      n <- if (!is_ssb) as.integer(num_subj_lst[g]) else as.integer(num_subj_lst[[g]])
+      last <- last + group_n_rows[g]
+      tmp_orig_usc <- rbind(
+        tmp_orig_usc,
+        if (!is_ssb) {
+          pls_task_mean(tmp_usc2[first:last, , drop = FALSE], n)
+        } else {
+          pls_task_mean_ssb(tmp_usc2[first:last, , drop = FALSE], n)
+        }
+      )
+      first <- last + 1L
+    }
+
+    tmp_orig_usc
   }
 
-  for (b in seq_len(actual_num_boot)) {
+  task_boot_ci_from_scores <- function(tmp_usc2) {
+    tmp_orig_usc <- NULL
+    first <- 1L
+    last <- 0L
+    for (g in seq_len(num_groups)) {
+      n <- if (!is_ssb) as.integer(num_subj_lst[g]) else as.integer(num_subj_lst[[g]])
+      last <- last + group_n_rows[g]
+      tmp_orig_usc <- rbind(
+        tmp_orig_usc,
+        if (!is_ssb) {
+          pls_task_mean(tmp_usc2[first:last, , drop = FALSE], n)
+        } else {
+          pls_task_mean_ssb(tmp_usc2[first:last, , drop = FALSE], n)
+        }
+      )
+      first <- last + 1L
+    }
+
+    tmp_orig_usc
+  }
+
+  canonicalize_bootstrap_svd <- function(u_scaled, v_scaled, dvals) {
+    if (method != 1L || length(dvals) == 0L) {
+      return(list(
+        u_scaled = u_scaled,
+        v_scaled = v_scaled
+      ))
+    }
+
+    lead <- max(abs(dvals), na.rm = TRUE)
+    if (!is.finite(lead) || lead <= 0) {
+      u_scaled[,] <- 0
+      if (!is.null(v_scaled)) {
+        v_scaled[,] <- 0
+      }
+      return(list(
+        u_scaled = u_scaled,
+        v_scaled = v_scaled
+      ))
+    }
+
+    tol <- 1e-12 * lead
+    null_cols <- which(!is.finite(dvals) | abs(dvals) <= tol)
+    if (length(null_cols) > 0L) {
+      u_scaled[, null_cols] <- 0
+      if (!is.null(v_scaled)) {
+        v_scaled[, null_cols] <- 0
+      }
+    }
+
+    list(
+      u_scaled = u_scaled,
+      v_scaled = v_scaled
+    )
+  }
+
+  use_reduced_task_boot <- .plsrri_fast_paths_enabled("bootstrap") &&
+    as.integer(method) %in% c(1L, 2L) &&
+    !isTRUE(nonrotated_boot) &&
+    is.null(stacked_behavdata) &&
+    !is.list(num_subj_lst) &&
+    identical(as.integer(meancentering_type), 0L) &&
+    !any(!is.finite(stacked_datamat))
+
+  reduced_task_scores <- NULL
+  reduced_task_loadings <- NULL
+  reduced_boot_cpp <- NULL
+  if (use_reduced_task_boot) {
+    task_svd <- pls_svd(stacked_datamat, handle_missing = FALSE)
+    reduced_task_scores <- task_svd$u %*% diag(task_svd$d, nrow = length(task_svd$d))
+    reduced_task_loadings <- task_svd$v
+    reduced_boot_cpp <- get("boot_test_task_reduced_cpp", envir = asNamespace("plsrri"))
+  }
+
+  task_boot_sample <- function(b) {
+    datamat_reorder <- bootsamp[, b]
+    if (use_reduced_task_boot) {
+      covcor_reduced <- pls_get_covcor(
+        method = method,
+        stacked_datamat = reduced_task_scores,
+        stacked_behavdata = NULL,
+        num_groups = num_groups,
+        num_subj_lst = num_subj_lst,
+        num_cond = num_cond,
+        bscan = bscan,
+        meancentering_type = meancentering_type,
+        cormode = cormode,
+        datamat_reorder = datamat_reorder,
+        behavdata_reorder = NULL,
+        datamat_reorder_4beh = NULL,
+        compute_smeanmat = isTRUE(method == 1L)
+      )
+
+      if (method == 1L) {
+        datamatsvd_boot <- covcor_reduced$datamatsvd
+        r <- nrow(datamatsvd_boot)
+        c <- ncol(datamatsvd_boot)
+        n_keep <- min(n_lv, min(r, c))
+
+        if (r <= c) {
+          svd_result <- svd(t(datamatsvd_boot), nu = n_keep, nv = n_keep)
+          pu <- svd_result$u
+          pv <- svd_result$v
+        } else {
+          svd_result <- svd(datamatsvd_boot, nu = n_keep, nv = n_keep)
+          pv <- svd_result$u
+          pu <- svd_result$v
+        }
+
+        d <- svd_result$d[seq_len(n_keep)]
+        pv <- pv[, seq_len(n_keep), drop = FALSE]
+        pu <- pu[, seq_len(n_keep), drop = FALSE]
+
+        rotatemat <- pls_bootprocrust(observed_v[, seq_len(n_keep), drop = FALSE], pv)
+        u_reduced_scaled <- matrix(0, nrow = ncol(reduced_task_loadings), ncol = n_lv)
+        u_reduced_scaled[, seq_len(n_keep)] <- pu %*% diag(d, nrow = n_keep) %*% rotatemat
+        canon <- canonicalize_bootstrap_svd(u_reduced_scaled, NULL, d)
+        u_reduced_scaled <- canon$u_scaled
+
+        list(
+          u_boot_scaled = reduced_task_loadings %*% u_reduced_scaled,
+          tmp_orig_usc = task_boot_ci_from_scores(
+            covcor_reduced$stacked_smeanmat %*% normalize_rows(u_reduced_scaled, margin = 2L)
+          )
+        )
+      } else {
+        u_reduced_scaled <- t(crossprod(stacked_designdata, covcor_reduced$datamatsvd))
+        u_boot_scaled <- reduced_task_loadings %*% u_reduced_scaled
+        list(
+          u_boot_scaled = u_boot_scaled,
+          tmp_orig_usc = task_boot_ci_summary(u_boot_scaled, covcor_reduced)
+        )
+      }
+    } else {
+    covcor <- pls_get_covcor(
+      method = method,
+      stacked_datamat = stacked_datamat,
+      stacked_behavdata = stacked_behavdata,
+      num_groups = num_groups,
+      num_subj_lst = num_subj_lst,
+      num_cond = num_cond,
+      bscan = bscan,
+      meancentering_type = meancentering_type,
+      cormode = cormode,
+      datamat_reorder = datamat_reorder,
+      behavdata_reorder = NULL,
+      datamat_reorder_4beh = NULL,
+      compute_smeanmat = isTRUE(method == 1L || (nonrotated_boot && method == 2L))
+    )
+
+    datamatsvd_boot <- covcor$datamatsvd
+
+    if (isTRUE(nonrotated_boot)) {
+      u_boot_scaled <- crossprod(datamatsvd_boot, observed_v)
+    } else if (method == 2L) {
+      crossblock <- crossprod(stacked_designdata, datamatsvd_boot)
+      u_boot_scaled <- t(crossblock)
+    } else {
+      r <- nrow(datamatsvd_boot)
+      c <- ncol(datamatsvd_boot)
+      n_keep <- min(n_lv, min(r, c))
+
+      if (r <= c) {
+        svd_result <- svd(t(datamatsvd_boot), nu = n_keep, nv = n_keep)
+        pu <- svd_result$u
+        pv <- svd_result$v
+      } else {
+        svd_result <- svd(datamatsvd_boot, nu = n_keep, nv = n_keep)
+        pv <- svd_result$u
+        pu <- svd_result$v
+      }
+
+      d <- svd_result$d[seq_len(n_keep)]
+      pv <- pv[, seq_len(n_keep), drop = FALSE]
+      pu <- pu[, seq_len(n_keep), drop = FALSE]
+
+      rotatemat <- pls_bootprocrust(observed_v[, seq_len(n_keep), drop = FALSE], pv)
+      u_boot_scaled <- matrix(0, nrow = n_features, ncol = n_lv)
+      u_boot_scaled[, seq_len(n_keep)] <- pu %*% diag(d, nrow = n_keep) %*% rotatemat
+      canon <- canonicalize_bootstrap_svd(u_boot_scaled, NULL, d)
+      u_boot_scaled <- canon$u_scaled
+    }
+
+    list(
+      u_boot_scaled = u_boot_scaled,
+      tmp_orig_usc = task_boot_ci_summary(u_boot_scaled, covcor)
+    )
+    }
+  }
+
+  use_task_boot_helper <- method %in% c(1L, 2L) &&
+    is.null(stacked_behavdata) &&
+    !is.null(usc_distrib)
+
+  if (use_task_boot_helper) {
+    if (use_reduced_task_boot && !parallel_cfg$enabled) {
+      reduced_chunk_eval <- function(cols) {
+        reduced_boot_cpp(
+          task_scores = reduced_task_scores,
+          task_loadings = reduced_task_loadings,
+          stacked_datamat = stacked_datamat,
+          bootsamp = bootsamp[, cols, drop = FALSE],
+          observed_v = observed_v,
+          stacked_designdata = if (method == 2L) stacked_designdata else
+            matrix(0, nrow = num_groups * num_cond, ncol = 0L),
+          num_groups = as.integer(num_groups),
+          num_subj_lst = as.integer(num_subj_lst),
+          num_cond = as.integer(num_cond),
+          method = as.integer(method)
+        )
+      }
+
+      if (parallel_cfg$enabled) {
+        chunks <- .plsrri_split_indices(actual_num_boot, parallel_cfg$workers)
+        boot_parts <- .plsrri_parallel_lapply(chunks, reduced_chunk_eval, parallel_cfg)
+
+        sample_idx <- 1L
+        for (part in boot_parts) {
+          n_chunk <- dim(part$usc_distrib_boot)[3]
+          u_sum <- u_sum + part$u_sum
+          u_sq <- u_sq + part$u_sq
+          usc_distrib[, , sample_idx:(sample_idx + n_chunk - 1L) + 1L] <- part$usc_distrib_boot
+          sample_idx <- sample_idx + n_chunk
+        }
+      } else {
+        part <- reduced_chunk_eval(seq_len(actual_num_boot))
+        u_sum <- u_sum + part$u_sum
+        u_sq <- u_sq + part$u_sq
+        usc_distrib[, , seq_len(actual_num_boot) + 1L] <- part$usc_distrib_boot
+      }
+    } else {
+      if (parallel_cfg$enabled) {
+        chunks <- .plsrri_split_indices(actual_num_boot, parallel_cfg$workers)
+        boot_parts <- .plsrri_parallel_lapply(
+          chunks,
+          function(cols) lapply(cols, task_boot_sample),
+          parallel_cfg
+        )
+
+        sample_idx <- 1L
+        for (chunk in boot_parts) {
+          for (sample in chunk) {
+            u_boot_scaled <- sample$u_boot_scaled
+            u_sum <- u_sum + u_boot_scaled
+            u_sq <- u_sq + u_boot_scaled^2
+            usc_distrib[, , sample_idx + 1L] <- sample$tmp_orig_usc
+            sample_idx <- sample_idx + 1L
+          }
+        }
+      } else {
+        if (progress) {
+          pb <- cli::cli_progress_bar("Bootstrap test", total = actual_num_boot)
+        }
+
+        for (b in seq_len(actual_num_boot)) {
+          sample <- task_boot_sample(b)
+          u_boot_scaled <- sample$u_boot_scaled
+          u_sum <- u_sum + u_boot_scaled
+          u_sq <- u_sq + u_boot_scaled^2
+          usc_distrib[, , b + 1L] <- sample$tmp_orig_usc
+
+          if (progress) {
+            cli::cli_progress_update(id = pb)
+          }
+        }
+
+        if (progress) {
+          cli::cli_progress_done(id = pb)
+        }
+      }
+    }
+  } else {
+
+    if (progress) {
+      pb <- cli::cli_progress_bar("Bootstrap test", total = actual_num_boot)
+    }
+
+    for (b in seq_len(actual_num_boot)) {
     datamat_reorder <- bootsamp[, b]
     behavdata_reorder <- NULL
     datamat_reorder_4beh <- NULL
@@ -1131,6 +1271,9 @@ pls_bootstrap_test <- function(stacked_datamat,
       rotatemat <- pls_bootprocrust(observed_v[, seq_len(n_keep), drop = FALSE], pv)
       pu_scaled <- pu %*% diag(d, nrow = n_keep) %*% rotatemat
       pv_scaled <- pv %*% diag(d, nrow = n_keep) %*% rotatemat
+      canon <- canonicalize_bootstrap_svd(pu_scaled, pv_scaled, d)
+      pu_scaled <- canon$u_scaled
+      pv_scaled <- canon$v_scaled
 
       u_boot_scaled <- matrix(0, nrow = n_features, ncol = n_lv)
       u_boot_scaled[, seq_len(n_keep)] <- pu_scaled
@@ -1255,13 +1398,14 @@ pls_bootstrap_test <- function(stacked_datamat,
       corr_distrib[, , b + 1L] <- bcorr
     }
 
-    if (progress) {
-      cli::cli_progress_update(id = pb)
+      if (progress) {
+        cli::cli_progress_update(id = pb)
+      }
     }
-  }
 
-  if (progress) {
-    cli::cli_progress_done(id = pb)
+    if (progress) {
+      cli::cli_progress_done(id = pb)
+    }
   }
 
     # Compute standard error (MATLAB-style)

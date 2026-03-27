@@ -408,6 +408,118 @@
   padding: var(--pls-space-sm) var(--pls-space-lg);
 }
 
+.pls-setup-continue-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--pls-space-md);
+  flex-wrap: nowrap;
+}
+
+.pls-setup-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--pls-space-sm);
+  flex-wrap: nowrap;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pls-setup-actions .btn,
+.pls-setup-actions .shiny-download-link,
+.pls-setup-actions .form-control,
+.pls-setup-actions .selectize-input {
+  min-height: 44px;
+}
+
+.pls-setup-actions > .btn,
+.pls-setup-actions > .shiny-download-link,
+.pls-setup-actions > .shiny-html-output,
+.pls-setup-actions .pls-setup-recent > .btn {
+  min-width: 140px;
+}
+
+.pls-setup-actions > .shiny-html-output {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.pls-setup-actions .btn,
+.pls-setup-actions .shiny-download-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.pls-setup-actions .shiny-download-link.disabled {
+  pointer-events: none;
+}
+
+.pls-setup-recent {
+  display: flex;
+  align-items: center;
+  gap: var(--pls-space-sm);
+}
+
+.pls-setup-recent .shiny-input-container,
+.pls-setup-recent .form-group {
+  margin-bottom: 0;
+}
+
+.pls-setup-recent .form-control,
+.pls-setup-recent .selectize-input {
+  min-width: 260px;
+  border-radius: 12px;
+}
+
+.pls-setup-recent .selectize-input {
+  display: flex;
+  align-items: center;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.pls-setup-continue {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--pls-space-md);
+  flex: 0 0 auto;
+  min-width: fit-content;
+}
+
+.pls-setup-continue > .btn {
+  min-height: 44px;
+  min-width: 150px;
+}
+
+.pls-setup-validation-wrap {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.pls-setup-validation-wrap .pls-validation-message {
+  margin-top: 0;
+}
+
+@media (max-width: 1200px) {
+  .pls-setup-continue-row {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .pls-setup-actions {
+    flex-wrap: wrap;
+  }
+
+  .pls-setup-continue {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
 /* ============================================= */
 /* Validation Messages */
 /* ============================================= */

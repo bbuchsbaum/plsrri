@@ -25,6 +25,7 @@ pls_bootstrap_test(
   bootsamp = NULL,
   bootsamp_4beh = NULL,
   clim = 95,
+  parallel_config = NULL,
   progress = TRUE
 )
 }
@@ -58,6 +59,9 @@ pls_bootstrap_test(
 \item{boot_type}{Bootstrap type}
 
 \item{clim}{Confidence level}
+
+\item{parallel_config}{Optional parallel execution config list with
+\code{backend} and \code{workers}. This currently affects task-only bootstrap.}
 
 \item{progress}{Show progress}
 }

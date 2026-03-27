@@ -227,6 +227,8 @@ ws_seed_pls <- function(beta_lst,
                         condition_lst,
                         num_subj_lst,
                         groups = NULL,
+                        seed_labels = NULL,
+                        layout = c("seed_condition", "stacked_seed_features"),
                         fisher_z = TRUE,
                         min_trials = 3L,
                         nonrotated = FALSE,
@@ -240,12 +242,15 @@ ws_seed_pls <- function(beta_lst,
                         progress = TRUE,
                         stacked_designdata = NULL,
                         ...) {
+  layout <- match.arg(layout)
   spec <- pls_spec() |>
     add_trial_data(
       beta_lst = beta_lst,
       seed_lst = seed_lst,
       condition_lst = condition_lst,
       groups = groups,
+      seed_labels = seed_labels,
+      layout = layout,
       fisher_z = fisher_z,
       min_trials = min_trials
     ) |>
@@ -367,6 +372,39 @@ ws_seed_pls <- function(beta_lst,
     n_seeds = n_seeds,
     min_trials = min_trials
   )
+}
+
+.resolve_ws_seed_labels <- function(n_seeds, seed_labels = NULL) {
+  if (is.null(seed_labels)) {
+    return(paste0("seed_", seq_len(n_seeds)))
+  }
+
+  seed_labels <- as.character(seed_labels)
+  if (length(seed_labels) != n_seeds) {
+    stop(sprintf(
+      "seed_labels has length %d but expected %d",
+      length(seed_labels), n_seeds
+    ), call. = FALSE)
+  }
+  if (anyNA(seed_labels) || any(!nzchar(seed_labels))) {
+    stop("seed_labels must be non-empty strings", call. = FALSE)
+  }
+  if (length(unique(seed_labels)) != n_seeds) {
+    stop("seed_labels must be unique", call. = FALSE)
+  }
+
+  seed_labels
+}
+
+.expand_ws_seed_conditions <- function(seed_labels, cond_labels) {
+  seed_labels <- as.character(seed_labels)
+  cond_labels <- as.character(cond_labels)
+
+  if (length(seed_labels) <= 1L) {
+    return(cond_labels)
+  }
+
+  unlist(lapply(seed_labels, function(seed) paste(seed, cond_labels, sep = ":")), use.names = FALSE)
 }
 
 .normalize_ws_conditions <- function(condition_lst,

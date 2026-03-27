@@ -226,6 +226,7 @@ If you want to move from interactive examples to reproducible scripted analysis,
 |:-----|:---------|
 | Scripted R API, CLI, and report workflow | `vignette("scripted-workflows")` |
 | Behavior PLS with continuous measures | `vignette("behavior-pls")` |
+| Within-subject seed connectivity from trial-level data | `vignette("ws-seed-pls")` |
 | Multiblock and seed connectivity PLS | `vignette("multiblock-and-seed")` |
 | Full engine parameters | `?pls_analysis` |
 | Builder verbs | `?pls_spec`, `?configure`, `?run` |

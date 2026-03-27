@@ -15,8 +15,12 @@ navbar:
           href: articles/plsrri.html
         - text: Scripted Workflows
           href: articles/scripted-workflows.html
+        - text: Pipeline YAML Specification
+          href: articles/pipeline-yaml-spec.html
         - text: Behavior PLS
           href: articles/behavior-pls.html
+        - text: Within-Subject Seed PLS
+          href: articles/ws-seed-pls.html
         - text: Multiblock and Seed
           href: articles/multiblock-and-seed.html
 
@@ -26,5 +30,7 @@ articles:
     contents:
       - plsrri
       - scripted-workflows
+      - pipeline-yaml-spec
       - behavior-pls
+      - ws-seed-pls
       - multiblock-and-seed

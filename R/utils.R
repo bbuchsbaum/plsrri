@@ -103,10 +103,96 @@ count_observations <- function(num_subj_lst, num_cond) {
 
 #' Whether internal exact fast paths are enabled
 #'
+#' @param path Optional fast-path name. Supported values are `"xcor"`,
+#'   `"bootstrap"`, and `"permutation"`.
+#'
 #' @return Logical scalar.
 #' @keywords internal
-.plsrri_fast_paths_enabled <- function() {
-  isTRUE(getOption("plsrri.fast_paths", TRUE))
+.plsrri_fast_paths_enabled <- function(path = NULL) {
+  opt <- getOption("plsrri.fast_paths", c("xcor", "bootstrap"))
+
+  if (isTRUE(opt)) {
+    return(TRUE)
+  }
+  if (isFALSE(opt) || is.null(opt)) {
+    return(FALSE)
+  }
+  if (!is.character(opt)) {
+    stop(
+      "Option 'plsrri.fast_paths' must be TRUE, FALSE, or a character vector.",
+      call. = FALSE
+    )
+  }
+
+  opt <- unique(as.character(opt))
+  if (is.null(path)) {
+    return(length(opt) > 0L && !identical(opt, "none"))
+  }
+
+  "all" %in% opt || path %in% opt
+}
+
+#' @keywords internal
+.plsrri_normalize_parallel_config <- function(parallel_config = NULL) {
+  if (is.null(parallel_config)) {
+    return(list(enabled = FALSE, backend = "sequential", workers = 1L))
+  }
+
+  if (!is.list(parallel_config)) {
+    stop("parallel_config must be NULL or a list with backend/workers", call. = FALSE)
+  }
+
+  backend <- parallel_config$backend %||% "sequential"
+  workers <- as.integer(parallel_config$workers %||% 1L)
+
+  if (!backend %in% c("future", "sequential")) {
+    stop("parallel backend must be 'future' or 'sequential'", call. = FALSE)
+  }
+  if (!is.finite(workers) || workers < 1L) {
+    stop("parallel workers must be a positive integer", call. = FALSE)
+  }
+
+  list(
+    enabled = identical(backend, "future") && workers > 1L,
+    backend = backend,
+    workers = workers
+  )
+}
+
+#' @keywords internal
+.plsrri_split_indices <- function(n, workers) {
+  workers <- max(1L, min(as.integer(workers), as.integer(n)))
+  split(seq_len(n), cut(seq_len(n), breaks = workers, labels = FALSE))
+}
+
+#' @keywords internal
+.plsrri_parallel_lapply <- function(X, FUN, parallel_config = NULL) {
+  cfg <- .plsrri_normalize_parallel_config(parallel_config)
+  if (!cfg$enabled || length(X) <= 1L) {
+    return(lapply(X, FUN))
+  }
+
+  if (!requireNamespace("future", quietly = TRUE)) {
+    stop(
+      "Parallel execution requested, but package 'future' is not installed.",
+      call. = FALSE
+    )
+  }
+
+  old_plan <- future::plan()
+  on.exit(future::plan(old_plan), add = TRUE)
+
+  strategy <- if (.Platform$OS.type != "windows" &&
+                    future::supportsMulticore() &&
+                    !identical(Sys.info()[["sysname"]], "Darwin")) {
+    future::multicore
+  } else {
+    future::multisession
+  }
+  future::plan(strategy, workers = cfg$workers)
+
+  futures <- lapply(X, function(x) future::future(FUN(x), seed = TRUE))
+  lapply(futures, future::value)
 }
 
 #' Create Index Vector for Subject-Condition Structure

@@ -80,6 +80,7 @@ run.pls_spec <- function(spec, progress = TRUE, ...) {
     cormode = spec$cormode,
     boot_type = spec$boot_type,
     is_struct = spec$is_struct,
+    parallel_config = spec$.parallel,
     progress = progress,
     ...
   )
@@ -187,12 +188,20 @@ run.pls_spec <- function(spec, progress = TRUE, ...) {
     )
   }
 
+  expected_conditions <- spec$conditions %||% NULL
+  if (!is.null(expected_conditions)) {
+    first_levels <- unique(as.character(trial_data$condition_lst[[1]]))
+    if (length(expected_conditions) != length(first_levels)) {
+      expected_conditions <- NULL
+    }
+  }
+
   prep <- .prepare_ws_seed_inputs(
     beta_lst = trial_data$beta_lst,
     seed_lst = trial_data$seed_lst,
     condition_lst = trial_data$condition_lst,
     min_trials = trial_data$min_trials,
-    expected_conditions = spec$conditions %||% NULL,
+    expected_conditions = expected_conditions,
     allow_missing_conditions = TRUE
   )
   corr_rows <- .compute_ws_seed_subject_rows(prep, fisher_z = trial_data$fisher_z)
@@ -205,7 +214,10 @@ run.pls_spec <- function(spec, progress = TRUE, ...) {
       group_labels = spec$groups %||% NULL
     ),
     cond_labels = prep$cond_labels,
-    n_cols = prep$n_voxels * prep$n_seeds
+    n_voxels = prep$n_voxels,
+    n_seeds = prep$n_seeds,
+    seed_labels = trial_data$seed_labels %||% .resolve_ws_seed_labels(prep$n_seeds, NULL),
+    layout = trial_data$layout %||% "seed_condition"
   )
 
   n_na <- sum(vapply(grouped$datamat_lst, function(x) sum(is.na(x)), numeric(1)))
@@ -217,47 +229,71 @@ run.pls_spec <- function(spec, progress = TRUE, ...) {
     )
   }
 
-  if (!is.null(spec$num_cond) && !identical(as.integer(spec$num_cond), as.integer(prep$n_cond))) {
+  expected_num_cond <- grouped$num_cond
+  base_num_cond <- prep$n_cond
+
+  if (!is.null(spec$num_cond) && !as.integer(spec$num_cond) %in% c(as.integer(base_num_cond), as.integer(expected_num_cond))) {
     stop(sprintf(
-      "num_cond = %d but trial data implies %d conditions",
-      spec$num_cond, prep$n_cond
+      "num_cond = %d but trial data implies %d or %d conditions",
+      spec$num_cond, base_num_cond, expected_num_cond
     ), call. = FALSE)
   }
+  supplied_num_subj <- spec$num_subj_lst
+  if (identical(grouped$layout, "seed_condition") && is.list(supplied_num_subj)) {
+    supplied_num_subj <- lapply(supplied_num_subj, function(x) {
+      x <- as.integer(x)
+      if (length(x) == prep$n_cond) rep(x, prep$n_seeds) else x
+    })
+  }
+
   .validate_trial_num_subj_spec(
-    supplied = spec$num_subj_lst,
+    supplied = supplied_num_subj,
     derived = grouped$num_subj_lst
   )
 
   spec$datamat_lst <- grouped$datamat_lst
   spec$num_subj_lst <- grouped$num_subj_lst
-  spec$num_cond <- prep$n_cond
+  spec$num_cond <- grouped$num_cond
 
   if (is.null(spec$conditions)) {
-    spec$conditions <- prep$cond_labels
-  } else if (length(spec$conditions) != prep$n_cond) {
+    spec$conditions <- grouped$conditions
+  } else if (length(spec$conditions) == prep$n_cond && identical(grouped$layout, "seed_condition")) {
+    spec$conditions <- .expand_ws_seed_conditions(grouped$seed_labels, as.character(spec$conditions))
+  } else if (length(spec$conditions) != grouped$num_cond) {
     stop(sprintf(
-      "conditions has length %d but trial data implies %d conditions",
-      length(spec$conditions), prep$n_cond
+      "conditions has length %d but trial data implies %d or %d conditions",
+      length(spec$conditions), prep$n_cond, grouped$num_cond
     ), call. = FALSE)
   }
 
   if (is.null(spec$stacked_designdata) && identical(spec$method, 2L)) {
-    spec$stacked_designdata <- .default_nonrotated_task_design(prep$n_cond, length(grouped$datamat_lst))
+    spec$stacked_designdata <- .default_nonrotated_task_design(grouped$num_cond, length(grouped$datamat_lst))
   }
 
   spec$groups <- grouped$groups
 
-  spec$feature_layout <- if (prep$n_seeds == 1L) {
-    list(kind = "voxel_map", n_voxels = prep$n_voxels, source = "ws_seed")
+  spec$feature_layout <- if (identical(grouped$layout, "seed_condition")) {
+    list(
+      kind = "voxel_map",
+      n_voxels = prep$n_voxels,
+      source = "ws_seed",
+      layout = grouped$layout,
+      n_seeds = prep$n_seeds
+    )
+  } else if (prep$n_seeds == 1L) {
+    list(kind = "voxel_map", n_voxels = prep$n_voxels, source = "ws_seed", layout = grouped$layout)
   } else {
-    list(kind = "voxel_seed", n_voxels = prep$n_voxels, n_seeds = prep$n_seeds, source = "ws_seed")
+    list(kind = "voxel_seed", n_voxels = prep$n_voxels, n_seeds = prep$n_seeds, source = "ws_seed", layout = grouped$layout)
   }
   spec$ws_seed_info <- list(
     n_seeds = prep$n_seeds,
     n_voxels = prep$n_voxels,
+    seed_labels = grouped$seed_labels,
+    layout = grouped$layout,
     fisher_z = isTRUE(trial_data$fisher_z),
     min_trials = as.integer(trial_data$min_trials),
-    cond_labels = prep$cond_labels
+    cond_labels = prep$cond_labels,
+    expanded_conditions = grouped$conditions
   )
   spec$.trial_raw <- FALSE
 
@@ -319,31 +355,66 @@ run.pls_spec <- function(spec, progress = TRUE, ...) {
   rep(labels, counts)
 }
 
-.build_ws_seed_grouped_datamat <- function(corr_rows, subject_groups, cond_labels, n_cols) {
+.build_ws_seed_grouped_datamat <- function(corr_rows,
+                                          subject_groups,
+                                          cond_labels,
+                                          n_voxels,
+                                          n_seeds,
+                                          seed_labels,
+                                          layout = c("seed_condition", "stacked_seed_features")) {
+  layout <- match.arg(layout)
   groups <- unique(subject_groups)
   datamat_lst <- vector("list", length(groups))
   names(datamat_lst) <- groups
   counts_by_group <- vector("list", length(groups))
   names(counts_by_group) <- groups
 
+  expanded_conditions <- if (identical(layout, "seed_condition")) {
+    .expand_ws_seed_conditions(seed_labels, cond_labels)
+  } else {
+    cond_labels
+  }
+
   for (gi in seq_along(groups)) {
     g <- groups[[gi]]
     subj_idx <- which(subject_groups == g)
     row_blocks <- list()
-    count_vec <- integer(length(cond_labels))
+    count_vec <- integer(length(expanded_conditions))
 
-    for (ci in seq_along(cond_labels)) {
-      cond_label <- cond_labels[[ci]]
-      cond_rows <- lapply(subj_idx, function(si) corr_rows[[si]][[cond_label]])
-      cond_rows <- Filter(Negate(is.null), cond_rows)
-      count_vec[[ci]] <- length(cond_rows)
-      if (length(cond_rows) > 0L) {
-        row_blocks <- c(row_blocks, cond_rows)
+    if (identical(layout, "seed_condition")) {
+      for (si in seq_len(n_seeds)) {
+        col_start <- (si - 1L) * n_voxels + 1L
+        col_end <- si * n_voxels
+
+        for (ci in seq_along(cond_labels)) {
+          cond_label <- cond_labels[[ci]]
+          cond_rows <- lapply(subj_idx, function(subj) {
+            row <- corr_rows[[subj]][[cond_label]]
+            if (is.null(row)) return(NULL)
+            row[col_start:col_end]
+          })
+          cond_rows <- Filter(Negate(is.null), cond_rows)
+          out_idx <- (si - 1L) * length(cond_labels) + ci
+          count_vec[[out_idx]] <- length(cond_rows)
+          if (length(cond_rows) > 0L) {
+            row_blocks <- c(row_blocks, cond_rows)
+          }
+        }
+      }
+    } else {
+      for (ci in seq_along(cond_labels)) {
+        cond_label <- cond_labels[[ci]]
+        cond_rows <- lapply(subj_idx, function(si) corr_rows[[si]][[cond_label]])
+        cond_rows <- Filter(Negate(is.null), cond_rows)
+        count_vec[[ci]] <- length(cond_rows)
+        if (length(cond_rows) > 0L) {
+          row_blocks <- c(row_blocks, cond_rows)
+        }
       }
     }
 
     datamat_lst[[gi]] <- if (length(row_blocks) == 0L) {
-      matrix(numeric(0), nrow = 0L, ncol = n_cols)
+      matrix(numeric(0), nrow = 0L, ncol = if (identical(layout, "seed_condition")) n_voxels else n_voxels * n_seeds)
     } else {
       do.call(rbind, row_blocks)
     }
@@ -360,7 +431,11 @@ run.pls_spec <- function(spec, progress = TRUE, ...) {
   list(
     datamat_lst = datamat_lst,
     num_subj_lst = num_subj_lst,
-    groups = as.character(groups)
+    groups = as.character(groups),
+    num_cond = length(expanded_conditions),
+    conditions = expanded_conditions,
+    layout = layout,
+    seed_labels = seed_labels
   )
 }
 
@@ -881,8 +956,11 @@ behav_pls <- function(datamat_lst, behav_data, num_subj_lst, num_cond,
 #' }
 add_trial_data <- function(spec, beta_lst, seed_lst, condition_lst,
                            groups = NULL,
+                           seed_labels = NULL,
+                           layout = c("seed_condition", "stacked_seed_features"),
                            fisher_z = TRUE, min_trials = 3L) {
   assert_that(inherits(spec, "pls_spec"))
+  layout <- match.arg(layout)
 
   if (length(spec$datamat_lst) > 0 || isTRUE(spec$.bids_raw) || isTRUE(spec$.manifest_raw) || isTRUE(spec$.map_manifest_raw)) {
     stop("add_trial_data() cannot be combined with other subject-data inputs in the same pls_spec")
@@ -901,6 +979,8 @@ add_trial_data <- function(spec, beta_lst, seed_lst, condition_lst,
     stop("groups must have length equal to the number of subjects in trial_data")
   }
 
+  seed_labels <- .resolve_ws_seed_labels(prep$n_seeds, seed_labels)
+
   if (length(spec$num_subj_lst) > 0 && !is.list(spec$num_subj_lst) &&
       is.null(groups) &&
       sum(as.integer(spec$num_subj_lst)) != prep$n_subjects) {
@@ -909,17 +989,34 @@ add_trial_data <- function(spec, beta_lst, seed_lst, condition_lst,
       sum(as.integer(spec$num_subj_lst)), prep$n_subjects
     ))
   }
-  if (!is.null(spec$num_cond) && as.integer(spec$num_cond) != prep$n_cond) {
-    stop(sprintf(
-      "num_cond = %d but trial data implies %d conditions",
-      spec$num_cond, prep$n_cond
-    ))
+  expanded_cond_labels <- .expand_ws_seed_conditions(seed_labels, prep$cond_labels)
+  if (!is.null(spec$num_cond)) {
+    valid_num_cond <- if (identical(layout, "seed_condition")) {
+      c(as.integer(prep$n_cond), as.integer(length(expanded_cond_labels)))
+    } else {
+      as.integer(prep$n_cond)
+    }
+    if (!as.integer(spec$num_cond) %in% valid_num_cond) {
+      stop(sprintf(
+        "num_cond = %d but trial data implies %s conditions",
+        spec$num_cond,
+        paste(valid_num_cond, collapse = " or ")
+      ))
+    }
   }
-  if (!is.null(spec$conditions) && length(spec$conditions) != prep$n_cond) {
-    stop(sprintf(
-      "conditions has length %d but trial data implies %d conditions",
-      length(spec$conditions), prep$n_cond
-    ))
+  if (!is.null(spec$conditions)) {
+    valid_condition_lengths <- if (identical(layout, "seed_condition")) {
+      c(prep$n_cond, length(expanded_cond_labels))
+    } else {
+      prep$n_cond
+    }
+    if (!length(spec$conditions) %in% valid_condition_lengths) {
+      stop(sprintf(
+        "conditions has length %d but trial data implies %s conditions",
+        length(spec$conditions),
+        paste(valid_condition_lengths, collapse = " or ")
+      ))
+    }
   }
 
   spec$trial_data <- list(
@@ -928,6 +1025,8 @@ add_trial_data <- function(spec, beta_lst, seed_lst, condition_lst,
     seed_lst = prep$seed_lst,
     condition_lst = prep$condition_lst,
     groups = if (is.null(groups)) NULL else as.character(groups),
+    seed_labels = seed_labels,
+    layout = layout,
     fisher_z = fisher_z,
     min_trials = prep$min_trials
   )
@@ -935,6 +1034,8 @@ add_trial_data <- function(spec, beta_lst, seed_lst, condition_lst,
   spec$ws_seed_info <- list(
     n_seeds = prep$n_seeds,
     n_voxels = prep$n_voxels,
+    seed_labels = seed_labels,
+    layout = layout,
     fisher_z = isTRUE(fisher_z),
     min_trials = prep$min_trials,
     cond_labels = prep$cond_labels
@@ -944,10 +1045,14 @@ add_trial_data <- function(spec, beta_lst, seed_lst, condition_lst,
     spec$num_subj_lst <- prep$n_subjects
   }
   if (is.null(spec$num_cond) || spec$num_cond == 0L) {
-    spec$num_cond <- prep$n_cond
+    spec$num_cond <- if (identical(layout, "seed_condition")) prep$n_cond * prep$n_seeds else prep$n_cond
   }
   if (is.null(spec$conditions)) {
-    spec$conditions <- prep$cond_labels
+    spec$conditions <- if (identical(layout, "seed_condition")) {
+      expanded_cond_labels
+    } else {
+      prep$cond_labels
+    }
   }
 
   spec

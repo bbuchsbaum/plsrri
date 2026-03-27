@@ -242,15 +242,16 @@ test_that("split-half respects outer_reorder override", {
 test_that("split-half uses provided inner subject permutations", {
   set.seed(2)
 
-  n_subj <- 8L
+  n_subj <- 12L
   n_cond <- 2L
   total_rows <- n_subj * n_cond
 
-  dat <- matrix(rnorm(total_rows * 10L), nrow = total_rows, ncol = 10L)
+  dat <- matrix(rnorm(total_rows * 40L), nrow = total_rows, ncol = 40L)
   outer_reorder <- matrix(seq_len(total_rows), ncol = 1L)
 
-  perms_a <- list(list(list(c(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L))))
-  perms_b <- list(list(list(c(8L, 7L, 6L, 5L, 4L, 3L, 2L, 1L))))
+  # Permutations must shuffle subjects so different subjects land in each half
+  perms_a <- list(list(list(seq_len(n_subj))))
+  perms_b <- list(list(list(c(2L, 5L, 1L, 11L, 8L, 3L, 12L, 4L, 10L, 6L, 9L, 7L))))
 
   sh_a <- pls_splithalf_test(
     stacked_datamat = dat,
@@ -278,6 +279,8 @@ test_that("split-half uses provided inner subject permutations", {
     progress = FALSE
   )
 
+  # Different inner permutations assign different subjects to each half,
+  # producing different split-half correlations.
   expect_false(isTRUE(all.equal(sh_a$orig_ucorr, sh_b$orig_ucorr)))
 })
 

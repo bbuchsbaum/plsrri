@@ -48,7 +48,7 @@ pls_xcor <- function(design, datamat, cormode = 0L) {
     return(.pls_xcor_missnk(design, datamat, cormode))
   }
 
-  if (.plsrri_fast_paths_enabled()) {
+  if (.plsrri_fast_paths_enabled("xcor")) {
     return(pls_xcor_cpp(design, datamat, as.integer(cormode)))
   }
 

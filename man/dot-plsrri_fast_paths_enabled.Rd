@@ -4,7 +4,11 @@
 \alias{.plsrri_fast_paths_enabled}
 \title{Whether internal exact fast paths are enabled}
 \usage{
-.plsrri_fast_paths_enabled()
+.plsrri_fast_paths_enabled(path = NULL)
+}
+\arguments{
+\item{path}{Optional fast-path name. Supported values are \code{"xcor"},
+\code{"bootstrap"}, and \code{"permutation"}.}
 }
 \value{
 Logical scalar.

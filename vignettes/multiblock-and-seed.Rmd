@@ -247,6 +247,7 @@ plot_scores(seed_result, lv = 1, type = "brain", plot_type = "violin")
 |:-----|:---------|
 | Task PLS workflow | `vignette("plsrri")` |
 | Behavior PLS with continuous measures | `vignette("behavior-pls")` |
+| Within-subject seed connectivity with trial-level betas | `vignette("ws-seed-pls")` |
 | Seed PLS wrapper | `?seed_pls` |
 | Multiblock block conditions | `?add_behavior` |
 | Method switching | `?configure` |

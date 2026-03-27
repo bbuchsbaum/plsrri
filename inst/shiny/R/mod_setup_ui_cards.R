@@ -809,32 +809,33 @@ setup_ui_resampling_card <- function(ns) {
 
 setup_ui_continue_row <- function(ns) {
   div(
-    class = "d-flex justify-content-between align-items-start mt-4 gap-3",
+    class = "pls-setup-continue-row mt-4",
     div(
-      class = "d-flex gap-2",
+      class = "pls-setup-actions",
       shinyFiles::shinyFilesButton(
         ns("pipeline_yaml_file"),
         label = "Load YAML",
         title = "Select pipeline YAML",
         multiple = FALSE,
-        class = "btn btn-outline-secondary"
+        class = "btn btn-outline-secondary pls-btn-secondary"
       ),
       downloadButton(
         ns("download_yaml"),
         "Export YAML",
-        class = "btn btn-outline-secondary"
+        class = "btn btn-outline-secondary pls-btn-secondary"
       ),
       actionButton(
         ns("btn_show_cli"),
         "CLI Commands",
         icon = icon("terminal"),
-        class = "btn-outline-secondary"
+        class = "btn-outline-secondary pls-btn-secondary"
       ),
       uiOutput(ns("recent_pipeline_ui"))
     ),
     div(
-      class = "d-flex align-items-start gap-3",
+      class = "pls-setup-continue",
       div(
+        class = "pls-setup-validation-wrap",
         `data-test` = "setup-validation",
         uiOutput(ns("validation_messages"))
       ),

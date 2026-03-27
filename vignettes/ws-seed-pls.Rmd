@@ -1,0 +1,332 @@
+---
+title: "Within-Subject Seed PLS Workflow"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Within-Subject Seed PLS Workflow}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 6,
+  fig.height = 4
+)
+
+pkg_root <- if (file.exists("DESCRIPTION")) "." else ".."
+if (requireNamespace("plsrri", quietly = TRUE) &&
+    !"ws_seed_pls" %in% getNamespaceExports("plsrri") &&
+    requireNamespace("devtools", quietly = TRUE) &&
+    file.exists(file.path(pkg_root, "DESCRIPTION"))) {
+  devtools::load_all(pkg_root, quiet = TRUE)
+}
+```
+
+```{r load-package}
+library(plsrri)
+```
+
+Within-subject seed PLS is for a different question than ordinary `seed_pls()`.
+If you care about whether a seed and the rest of the brain *co-fluctuate across
+trials within each person*, you need trial-level data and a within-subject
+connectivity measure. `ws_seed_pls()` builds those seed-to-voxel connectivity
+maps first and only then runs task PLS on the resulting maps.
+
+## Why not just use ordinary Seed PLS?
+
+`seed_pls()` works on one seed value per subject-condition observation. It is
+useful when you want across-subject covariance between seed activity and the
+rest of the brain. `ws_seed_pls()` asks a different question: within a given
+subject and condition, do the seed and voxel betas rise and fall together from
+trial to trial?
+
+```{r simulate-ws-data, include = FALSE}
+set.seed(2026)
+
+n_subj <- 16
+n_trials <- 24
+n_cond <- 2
+n_vox <- 80
+trials_per_cond <- n_trials / n_cond
+
+condition_levels <- c("past", "future")
+
+beta_lst <- vector("list", n_subj)
+seed_lst <- vector("list", n_subj)
+condition_lst <- vector("list", n_subj)
+
+for (i in seq_len(n_subj)) {
+  latent <- rnorm(n_trials)
+  cond <- factor(rep(condition_levels, each = trials_per_cond), levels = condition_levels)
+
+  seed <- latent + rnorm(n_trials, sd = 0.35)
+  betas <- matrix(rnorm(n_trials * n_vox, sd = 0.7), nrow = n_trials, ncol = n_vox)
+
+  past_idx <- which(cond == "past")
+  future_idx <- which(cond == "future")
+
+  betas[past_idx, 1:15] <- betas[past_idx, 1:15] + seed[past_idx] %o% rep(1.3, 15)
+  betas[future_idx, 1:15] <- betas[future_idx, 1:15] - seed[future_idx] %o% rep(1.0, 15)
+  betas[, 16:30] <- betas[, 16:30] + rep(c(-0.6, 0.6), each = trials_per_cond) %o% rep(1, 15)
+
+  beta_lst[[i]] <- betas
+  seed_lst[[i]] <- seed
+  condition_lst[[i]] <- cond
+}
+
+ws_maps <- ws_seed_correlation(beta_lst, seed_lst, condition_lst, fisher_z = FALSE)
+
+past_rows <- seq(1, n_subj * n_cond, by = 2)
+future_rows <- seq(2, n_subj * n_cond, by = 2)
+
+signal_corr <- c(
+  past = mean(ws_maps$datamat[past_rows, 1:15], na.rm = TRUE),
+  future = mean(ws_maps$datamat[future_rows, 1:15], na.rm = TRUE)
+)
+
+seed_means <- do.call(rbind, lapply(seq_len(n_subj), function(i) {
+  data.frame(
+    subject = i,
+    condition = condition_levels,
+    seed_mean = c(
+      mean(seed_lst[[i]][condition_lst[[i]] == "past"]),
+      mean(seed_lst[[i]][condition_lst[[i]] == "future"])
+    )
+  )
+}))
+seed_cond_diff <- with(seed_means, mean(seed_mean[condition == "future"]) - mean(seed_mean[condition == "past"]))
+
+stopifnot(
+  nrow(ws_maps$datamat) == n_subj * n_cond,
+  ncol(ws_maps$datamat) == n_vox,
+  is.finite(signal_corr[["past"]]),
+  is.finite(signal_corr[["future"]]),
+  signal_corr[["past"]] > 0.4,
+  signal_corr[["future"]] < -0.3,
+  abs(seed_cond_diff) < 0.35
+)
+```
+
+This synthetic example was built so the seed has *similar mean activation* in the
+two conditions, but its trial-by-trial coupling with voxels 1-15 flips sign:
+
+```{r ws-rationale-check}
+data.frame(
+  quantity = c(
+    "mean within-subject r in signal voxels (past)",
+    "mean within-subject r in signal voxels (future)",
+    "future - past difference in mean seed activation"
+  ),
+  value = round(c(signal_corr[["past"]], signal_corr[["future"]], seed_cond_diff), 2)
+)
+```
+
+That is the raison d'etre of the ws-seed workflow: connectivity differences can
+be strong even when the seed's average activation is not.
+
+## What does the basic ws-seed workflow look like?
+
+The basic workflow is:
+
+1. compute one seed-to-voxel connectivity map per subject per condition
+2. submit those maps to task PLS
+3. inspect significance, design scores, and reliable voxels
+
+```{r run-ws-seed}
+ws_result <- ws_seed_pls(
+  beta_lst = beta_lst,
+  seed_lst = seed_lst,
+  condition_lst = condition_lst,
+  num_subj_lst = n_subj,
+  fisher_z = FALSE,
+  nperm = 200,
+  nboot = 200,
+  progress = FALSE
+)
+
+stopifnot(
+  inherits(ws_result, "pls_result"),
+  inherits(ws_result, "pls_task"),
+  length(significance(ws_result)) >= 1L,
+  all(is.finite(ws_result$s))
+)
+```
+
+```{r ws-significance}
+cbind(
+  pvalue = round(significance(ws_result), 3),
+  variance = round(singular_values(ws_result, normalize = TRUE), 1)
+)
+```
+
+If the planted connectivity reversal is strong, LV1 should dominate:
+
+```{r plot-ws-scree, fig.cap = "Singular values for the within-subject seed PLS example. LV1 captures the dominant condition-dependent connectivity pattern."}
+plot_singular_values(ws_result)
+```
+
+The design scores should show opposite contributions from `past` and `future`:
+
+```{r plot-ws-design-scores, fig.cap = "Design scores for LV1. The two conditions pull in opposite directions, reflecting the planted sign flip in within-subject connectivity."}
+plot_scores(ws_result, lv = 1, type = "design", plot_type = "bar")
+```
+
+## Which voxels contribute reliably?
+
+```{r ws-bsr}
+ws_bsr <- bsr(ws_result, lv = 1)
+reliable <- sum(abs(ws_bsr) > 2)
+
+stopifnot(
+  all(is.finite(ws_bsr)),
+  reliable > 10L
+)
+```
+
+`r reliable` of `r n_features(ws_result)` voxels pass the $|BSR| > 2$
+threshold:
+
+```{r plot-ws-bsr, echo = FALSE, fig.cap = "Bootstrap ratio profile for LV1. Voxels 1-15 carry the planted within-subject connectivity effect.", fig.height = 3}
+plot(as.numeric(ws_bsr), type = "h", col = "steelblue",
+     xlab = "Voxel", ylab = "Bootstrap Ratio (LV1)",
+     main = NULL, las = 1)
+abline(h = c(-2, 2), lty = 2, col = "grey50")
+```
+
+## How do multiple seeds work?
+
+The general multiseed layout is `seed_condition`:
+
+- rows = `subject × seed × condition`
+- columns = voxels
+
+That makes rotated and non-rotated ws-seed analyses use the same underlying
+representation.
+
+```{r simulate-multiseed, include = FALSE}
+set.seed(2027)
+
+multi_seed_lst <- vector("list", n_subj)
+multi_beta_lst <- vector("list", n_subj)
+multi_condition_lst <- vector("list", n_subj)
+
+for (i in seq_len(n_subj)) {
+  cond <- factor(rep(condition_levels, each = trials_per_cond), levels = condition_levels)
+  latent_a <- rnorm(n_trials)
+  latent_b <- rnorm(n_trials)
+
+  seeds <- cbind(
+    Precuneus = latent_a + rnorm(n_trials, sd = 0.35),
+    IPS = latent_b + rnorm(n_trials, sd = 0.35)
+  )
+
+  betas <- matrix(rnorm(n_trials * n_vox, sd = 0.75), nrow = n_trials, ncol = n_vox)
+  past_idx <- which(cond == "past")
+  future_idx <- which(cond == "future")
+
+  betas[past_idx, 1:12] <- betas[past_idx, 1:12] + seeds[past_idx, "Precuneus"] %o% rep(1.0, 12)
+  betas[future_idx, 1:12] <- betas[future_idx, 1:12] - seeds[future_idx, "Precuneus"] %o% rep(0.8, 12)
+  betas[past_idx, 13:24] <- betas[past_idx, 13:24] - seeds[past_idx, "IPS"] %o% rep(0.9, 12)
+  betas[future_idx, 13:24] <- betas[future_idx, 13:24] + seeds[future_idx, "IPS"] %o% rep(1.1, 12)
+
+  multi_seed_lst[[i]] <- seeds
+  multi_beta_lst[[i]] <- betas
+  multi_condition_lst[[i]] <- cond
+}
+
+multi_result <- ws_seed_pls(
+  beta_lst = multi_beta_lst,
+  seed_lst = multi_seed_lst,
+  condition_lst = multi_condition_lst,
+  num_subj_lst = n_subj,
+  seed_labels = c("Precuneus", "IPS"),
+  nonrotated = TRUE,
+  fisher_z = FALSE,
+  nperm = 0,
+  nboot = 0,
+  progress = FALSE
+)
+
+stopifnot(
+  multi_result$num_cond == 4L,
+  identical(multi_result$conditions, c("Precuneus:past", "Precuneus:future", "IPS:past", "IPS:future")),
+  identical(multi_result$ws_seed_info$layout, "seed_condition"),
+  identical(multi_result$feature_layout$kind, "voxel_map")
+)
+```
+
+```{r multiseed-layout-check}
+data.frame(
+  condition_cell = multi_result$conditions,
+  design_row = seq_along(multi_result$conditions)
+)
+```
+
+This row expansion is what makes a targeted non-rotated design meaningful: you
+can now test specific seed-by-condition hypotheses across explicit cells instead
+of hiding seeds in the feature dimension.
+
+## When would you use `stacked_seed_features` instead?
+
+`stacked_seed_features` keeps the original task-PLS row structure:
+
+- rows = `subject × condition`
+- columns = `voxel × seed`
+
+That can still be useful, but it answers a different question because the seed
+dimension is now part of the feature space rather than the condition space.
+
+```{r stacked-layout}
+stacked_result <- ws_seed_pls(
+  beta_lst = multi_beta_lst,
+  seed_lst = multi_seed_lst,
+  condition_lst = multi_condition_lst,
+  num_subj_lst = n_subj,
+  seed_labels = c("Precuneus", "IPS"),
+  layout = "stacked_seed_features",
+  fisher_z = FALSE,
+  nperm = 0,
+  nboot = 0,
+  progress = FALSE
+)
+
+stopifnot(
+  stacked_result$num_cond == 2L,
+  identical(stacked_result$ws_seed_info$layout, "stacked_seed_features"),
+  identical(stacked_result$feature_layout$kind, "voxel_seed"),
+  nrow(stacked_result$u) == n_vox * 2L
+)
+```
+
+```{r stacked-layout-check}
+data.frame(
+  property = c("num_cond", "feature layout", "features in u"),
+  value = c(
+    stacked_result$num_cond,
+    stacked_result$feature_layout$kind,
+    nrow(stacked_result$u)
+  )
+)
+```
+
+The general recommendation is:
+
+- use `seed_condition` when seed identity should behave like an experimental
+  cell
+- use `stacked_seed_features` only when you explicitly want the seed dimension
+  folded into the feature space
+
+## Where to go next
+
+| Goal | Resource |
+|:-----|:---------|
+| Task PLS workflow | `vignette("plsrri")` |
+| Across-subject seed workflow | `vignette("multiblock-and-seed")` |
+| Scripted API and CLI workflow | `vignette("scripted-workflows")` |
+| Core helper for trial maps | `?ws_seed_correlation` |
+| Main wrapper | `?ws_seed_pls` |
+| Trial-level builder entry point | `?add_trial_data` |

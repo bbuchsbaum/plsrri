@@ -159,3 +159,199 @@ arma::mat compute_bsr_cpp(const arma::mat& u_sum,
 
   return bsr;
 }
+
+static arma::mat normalize_cols_boot_cpp(const arma::mat& X) {
+  arma::mat out = X;
+  arma::rowvec norms = arma::sqrt(arma::sum(X % X, 0));
+  for (arma::uword j = 0; j < X.n_cols; j++) {
+    if (norms(j) > 0) {
+      out.col(j) /= norms(j);
+    }
+  }
+  return out;
+}
+
+static arma::mat task_means_boot_cpp(const arma::mat& datamat,
+                                     int num_groups,
+                                     const arma::ivec& num_subj_lst,
+                                     int num_cond,
+                                     bool center_within_group) {
+  arma::mat out;
+  int row_offset = 0;
+
+  for (int g = 0; g < num_groups; g++) {
+    int n_subj = num_subj_lst(g);
+    arma::mat group_data = datamat.rows(row_offset, row_offset + n_subj * num_cond - 1);
+    arma::mat task_mean(num_cond, datamat.n_cols);
+
+    for (int c = 0; c < num_cond; c++) {
+      int start_row = c * n_subj;
+      int end_row = (c + 1) * n_subj - 1;
+      task_mean.row(c) = arma::mean(group_data.rows(start_row, end_row), 0);
+    }
+
+    if (center_within_group) {
+      arma::rowvec group_mean = arma::mean(group_data, 0);
+      task_mean.each_row() -= group_mean;
+    }
+
+    out = arma::join_cols(out, task_mean);
+    row_offset += n_subj * num_cond;
+  }
+
+  return out;
+}
+
+static arma::mat subject_centered_boot_cpp(const arma::mat& datamat,
+                                           int num_groups,
+                                           const arma::ivec& num_subj_lst,
+                                           int num_cond) {
+  arma::mat out(datamat.n_rows, datamat.n_cols, arma::fill::zeros);
+  int row_offset = 0;
+
+  for (int g = 0; g < num_groups; g++) {
+    int n_subj = num_subj_lst(g);
+    int n_rows = n_subj * num_cond;
+    arma::mat group_data = datamat.rows(row_offset, row_offset + n_rows - 1);
+    arma::rowvec group_mean = arma::mean(group_data, 0);
+    out.rows(row_offset, row_offset + n_rows - 1) =
+      group_data.each_row() - group_mean;
+    row_offset += n_rows;
+  }
+
+  return out;
+}
+
+static arma::mat condition_means_boot_cpp(const arma::mat& datamat,
+                                          int num_groups,
+                                          const arma::ivec& num_subj_lst,
+                                          int num_cond) {
+  arma::mat out;
+  int row_offset = 0;
+
+  for (int g = 0; g < num_groups; g++) {
+    int n_subj = num_subj_lst(g);
+    for (int c = 0; c < num_cond; c++) {
+      int start_row = row_offset + c * n_subj;
+      int end_row = start_row + n_subj - 1;
+      out = arma::join_cols(out, arma::mean(datamat.rows(start_row, end_row), 0));
+    }
+    row_offset += n_subj * num_cond;
+  }
+
+  return out;
+}
+
+static arma::mat boot_procrustes_rot_cpp(const arma::mat& origlv,
+                                         const arma::mat& bootlv) {
+  arma::mat temp = origlv.t() * bootlv;
+  arma::mat U, V;
+  arma::vec s;
+  arma::svd(U, s, V, temp);
+  return V * U.t();
+}
+
+//' Fast Reduced-Space Bootstrap Test for Task PLS
+//'
+//' Runs the reduced-space inner bootstrap loop for balanced task methods 1/2.
+//' Returns accumulated saliences and per-bootstrap task score distributions.
+//'
+//' @param task_scores Reduced row-space scores (`U D`)
+//' @param task_loadings Right singular vectors used to lift back to features
+//' @param stacked_datamat Original stacked data matrix
+//' @param bootsamp Bootstrap sample matrix (total_rows x num_boot)
+//' @param observed_v Observed design-side saliences/contrasts
+//' @param stacked_designdata Normalized design matrix for method 2, or 0-col matrix for method 1
+//' @param num_groups Number of groups
+//' @param num_subj_lst Subjects per group
+//' @param num_cond Number of conditions
+//' @param method Task method (1 or 2)
+//'
+//' @return List with `u_sum`, `u_sq`, and `usc_distrib_boot`
+//'
+//' @keywords internal
+// [[Rcpp::export]]
+Rcpp::List boot_test_task_reduced_cpp(const arma::mat& task_scores,
+                                      const arma::mat& task_loadings,
+                                      const arma::mat& stacked_datamat,
+                                      const arma::imat& bootsamp,
+                                      const arma::mat& observed_v,
+                                      const arma::mat& stacked_designdata,
+                                      int num_groups,
+                                      const arma::ivec& num_subj_lst,
+                                      int num_cond,
+                                      int method) {
+  int num_boot = bootsamp.n_cols;
+  int n_features = task_loadings.n_rows;
+  int n_lv = observed_v.n_cols;
+  int n_usc_rows = num_groups * num_cond;
+
+  arma::mat u_sum = arma::zeros(n_features, n_lv);
+  arma::mat u_sq = arma::zeros(n_features, n_lv);
+  arma::cube usc_distrib_boot(n_usc_rows, n_lv, num_boot, arma::fill::zeros);
+
+  for (int b = 0; b < num_boot; b++) {
+    arma::uvec boot_idx = arma::conv_to<arma::uvec>::from(bootsamp.col(b) - 1);
+    arma::mat score_boot = task_scores.rows(boot_idx);
+
+    arma::mat u_reduced_scaled;
+    arma::mat u_boot_scaled;
+    arma::mat tmp_orig_usc;
+
+    if (method == 1) {
+      arma::mat datamatsvd_boot =
+        task_means_boot_cpp(score_boot, num_groups, num_subj_lst, num_cond, true);
+      arma::mat smeanmat_boot =
+        subject_centered_boot_cpp(score_boot, num_groups, num_subj_lst, num_cond);
+
+      arma::mat pu, pv;
+      arma::vec d;
+      int n_keep = std::min(n_lv, (int)std::min(datamatsvd_boot.n_rows, datamatsvd_boot.n_cols));
+
+      if (datamatsvd_boot.n_rows <= datamatsvd_boot.n_cols) {
+        arma::svd_econ(pu, d, pv, datamatsvd_boot.t());
+      } else {
+        arma::svd_econ(pv, d, pu, datamatsvd_boot);
+      }
+
+      pu = pu.cols(0, n_keep - 1);
+      pv = pv.cols(0, n_keep - 1);
+      d = d.subvec(0, n_keep - 1);
+
+      arma::mat rot = boot_procrustes_rot_cpp(observed_v.cols(0, n_keep - 1), pv);
+      u_reduced_scaled = arma::zeros(task_scores.n_cols, n_lv);
+      u_reduced_scaled.cols(0, n_keep - 1) =
+        pu * arma::diagmat(d) * rot;
+
+      double lead = arma::abs(d).max();
+      double tol = 1e-12 * lead;
+      for (int j = 0; j < n_keep; j++) {
+        if (!std::isfinite(d(j)) || std::abs(d(j)) <= tol) {
+          u_reduced_scaled.col(j).zeros();
+        }
+      }
+
+      u_boot_scaled = task_loadings * u_reduced_scaled;
+      arma::mat tmp_usc2 = smeanmat_boot * normalize_cols_boot_cpp(u_reduced_scaled);
+      tmp_orig_usc = condition_means_boot_cpp(tmp_usc2, num_groups, num_subj_lst, num_cond);
+    } else {
+      arma::mat datamatsvd_boot =
+        task_means_boot_cpp(score_boot, num_groups, num_subj_lst, num_cond, false);
+      u_reduced_scaled = (stacked_designdata.t() * datamatsvd_boot).t();
+      u_boot_scaled = task_loadings * u_reduced_scaled;
+      arma::mat tmp_usc =
+        stacked_datamat * normalize_cols_boot_cpp(u_boot_scaled);
+      tmp_orig_usc = condition_means_boot_cpp(tmp_usc, num_groups, num_subj_lst, num_cond);
+    }
+
+    u_sum += u_boot_scaled;
+    u_sq += u_boot_scaled % u_boot_scaled;
+    usc_distrib_boot.slice(b) = tmp_orig_usc;
+  }
+
+  return Rcpp::List::create(
+    Rcpp::Named("u_sum") = u_sum,
+    Rcpp::Named("u_sq") = u_sq,
+    Rcpp::Named("usc_distrib_boot") = usc_distrib_boot
+  );
+}

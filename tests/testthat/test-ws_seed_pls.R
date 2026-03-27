@@ -308,8 +308,31 @@ test_that("ws_seed_pls with multiple seeds", {
   )
 
   expect_s3_class(result, "pls_task")
-  # With 2 seeds, columns should be n_vox * n_seeds = 60
-  expect_equal(ncol(result$u), d$n_cond)
+  expect_equal(result$num_cond, d$n_cond * d$n_seeds)
+  expect_equal(result$conditions, c("seed_1:1", "seed_1:2", "seed_2:1", "seed_2:2"))
+  expect_equal(result$ws_seed_info$layout, "seed_condition")
+  expect_equal(result$feature_layout$kind, "voxel_map")
+  expect_equal(nrow(result$u), d$n_vox)
+})
+
+test_that("ws_seed_pls supports stacked multiseed feature layout as an alternate mode", {
+  d <- make_ws_data(n_subj = 8, n_trials = 20, n_vox = 30,
+                    n_cond = 2, n_seeds = 2)
+  result <- ws_seed_pls(
+    beta_lst = d$beta_lst,
+    seed_lst = d$seed_lst,
+    condition_lst = d$cond_lst,
+    num_subj_lst = d$n_subj,
+    layout = "stacked_seed_features",
+    nperm = 0, nboot = 0,
+    progress = FALSE
+  )
+
+  expect_s3_class(result, "pls_task")
+  expect_equal(result$num_cond, d$n_cond)
+  expect_equal(result$ws_seed_info$layout, "stacked_seed_features")
+  expect_equal(result$feature_layout$kind, "voxel_seed")
+  expect_equal(nrow(result$u), d$n_vox * d$n_seeds)
 })
 
 
@@ -374,6 +397,7 @@ test_that("builder API propagates bootstrap, split-half, and ws-seed metadata", 
   expect_equal(result$ws_seed_info$n_seeds, 1L)
   expect_equal(result$ws_seed_info$n_voxels, d$n_vox)
   expect_equal(result$feature_layout$source, "ws_seed")
+  expect_equal(result$ws_seed_info$layout, "seed_condition")
 })
 
 test_that("add_trial_data rejects conflicting builder structure", {
@@ -435,6 +459,31 @@ test_that("ws_seed_pls supports SSB when subject groups are supplied", {
   expect_true(is.list(result$num_subj_lst))
   expect_equal(result$num_subj_lst, list(A = c(3L, 2L), B = c(2L, 1L)))
   expect_equal(result$groups, c("A", "B"))
+})
+
+test_that("process_trial_data expands seed-condition layout and seed labels", {
+  d <- make_ws_data(n_subj = 4, n_trials = 20, n_vox = 12, n_cond = 2, n_seeds = 2)
+
+  spec <- pls_spec() |>
+    add_conditions(c("Past", "Future")) |>
+    add_trial_data(
+      d$beta_lst,
+      d$seed_lst,
+      d$cond_lst,
+      seed_labels = c("Precuneus", "IPS")
+    ) |>
+    configure(method = "ws_seed_nonrotated", nperm = 0, nboot = 0)
+
+  proc <- plsrri:::.process_trial_data(spec)
+
+  expect_equal(proc$num_cond, 4L)
+  expect_equal(proc$conditions, c("Precuneus:Past", "Precuneus:Future", "IPS:Past", "IPS:Future"))
+  expect_equal(proc$ws_seed_info$seed_labels, c("Precuneus", "IPS"))
+  expect_equal(proc$ws_seed_info$layout, "seed_condition")
+  expect_equal(proc$feature_layout$kind, "voxel_map")
+  expect_equal(ncol(proc$datamat_lst[[1]]), d$n_vox)
+  expect_equal(nrow(proc$stacked_designdata), 4L)
+  expect_equal(ncol(proc$stacked_designdata), 4L)
 })
 
 test_that("ws_seed_pls requires subject groups for SSB num_subj_lst", {

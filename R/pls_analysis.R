@@ -63,6 +63,9 @@ NULL
 #' @param bootsamp Optional bootstrap reordering matrix (`total_rows x num_boot`).
 #' @param bootsamp_4beh Optional behavior bootstrap matrix (`total_rows x num_boot`)
 #'   for behavior/multiblock methods.
+#' @param parallel_config Optional parallel execution config list with
+#'   `backend` (`"future"` or `"sequential"`) and `workers`. This affects
+#'   permutation testing and task-only bootstrap execution.
 #' @param progress Logical, show progress messages.
 #'
 #' @return A `pls_result` object containing:
@@ -112,6 +115,7 @@ pls_analysis <- function(datamat_lst,
                           Bpermsamp = NULL,
                           bootsamp = NULL,
                           bootsamp_4beh = NULL,
+                          parallel_config = NULL,
                           progress = TRUE) {
 
   # --- Input Validation ---
@@ -521,6 +525,7 @@ pls_analysis <- function(datamat_lst,
       permsamp = permsamp,
       Tpermsamp = Tpermsamp,
       Bpermsamp = Bpermsamp,
+      parallel_config = parallel_config,
       progress = progress
     )
   }
@@ -551,6 +556,7 @@ pls_analysis <- function(datamat_lst,
       bootsamp = bootsamp,
       bootsamp_4beh = bootsamp_4beh,
       clim = clim,
+      parallel_config = parallel_config,
       progress = progress
     )
   }

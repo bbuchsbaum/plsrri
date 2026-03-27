@@ -266,7 +266,7 @@ setup_register_export_handlers <- function(input, output, session, local_rv) {
     if (!length(choices)) return(NULL)
 
     div(
-      class = "d-flex align-items-center gap-2",
+      class = "pls-setup-recent",
       selectInput(
         session$ns("recent_pipeline_key"),
         label = NULL,
@@ -277,7 +277,7 @@ setup_register_export_handlers <- function(input, output, session, local_rv) {
       actionButton(
         session$ns("btn_load_recent_pipeline"),
         "Load Recent",
-        class = "btn btn-outline-secondary"
+        class = "btn btn-outline-secondary pls-btn-secondary"
       )
     )
   })

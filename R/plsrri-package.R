@@ -86,8 +86,19 @@
 #'
 #' @section Performance:
 #' For large-scale analyses (500+ subjects, 10k permutations), the package
-#' provides Rcpp-accelerated versions of key functions. These are used
-#' automatically when available.
+#' provides Rcpp-accelerated versions of key functions. The default exact fast
+#' paths are tuned conservatively:
+#' \itemize{
+#'   \item \code{"xcor"}: enabled by default
+#'   \item \code{"bootstrap"}: enabled by default
+#'   \item \code{"permutation"}: available, but disabled by default
+#' }
+#'
+#' Use \code{options(plsrri.fast_paths = c("xcor", "bootstrap"))} to make the
+#' default explicit, \code{options(plsrri.fast_paths = c("xcor", "bootstrap",
+#' "permutation"))} to opt into permutation fast paths, or
+#' \code{options(plsrri.fast_paths = FALSE)} to disable exact fast paths
+#' entirely.
 #'
 #' @references
 #' McIntosh AR, Lobaugh NJ (2004). Partial least squares analysis of
