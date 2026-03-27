@@ -4,8 +4,10 @@
 <url><loc>https://bbuchsbaum.github.io/plsrri/articles/behavior-pls.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/articles/index.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/articles/multiblock-and-seed.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/articles/pipeline-yaml-spec.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/articles/plsrri.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/articles/scripted-workflows.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/articles/ws-seed-pls.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/authors.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/index.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/news/index.html</loc></url>
@@ -22,7 +24,9 @@
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/align_signs_cpp.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/analysis-api.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/behav_pls.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/benchmark_fast_paths.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/boot_test_task_cpp.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/boot_test_task_reduced_cpp.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/bsr.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/builder-behavior.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/builder-conditions.html</loc></url>

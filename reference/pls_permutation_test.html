@@ -19,7 +19,9 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/plsrri.html">Getting Started</a></li>
     <li><a class="dropdown-item" href="../articles/scripted-workflows.html">Scripted Workflows</a></li>
+    <li><a class="dropdown-item" href="../articles/pipeline-yaml-spec.html">Pipeline YAML Specification</a></li>
     <li><a class="dropdown-item" href="../articles/behavior-pls.html">Behavior PLS</a></li>
+    <li><a class="dropdown-item" href="../articles/ws-seed-pls.html">Within-Subject Seed PLS</a></li>
     <li><a class="dropdown-item" href="../articles/multiblock-and-seed.html">Multiblock and Seed</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -63,6 +65,7 @@
 <span>  meancentering_type <span class="op">=</span> <span class="fl">0L</span>,</span>
 <span>  cormode <span class="op">=</span> <span class="fl">0L</span>,</span>
 <span>  is_struct <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  parallel_config <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  permsamp <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  Tpermsamp <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  Bpermsamp <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -124,6 +127,11 @@
 
 <dt id="arg-is-struct">is_struct<a class="anchor" aria-label="anchor" href="#arg-is-struct"></a></dt>
 <dd><p>Structure PLS flag</p></dd>
+
+
+<dt id="arg-parallel-config">parallel_config<a class="anchor" aria-label="anchor" href="#arg-parallel-config"></a></dt>
+<dd><p>Optional parallel execution config list with
+<code>backend</code> and <code>workers</code></p></dd>
 
 
 <dt id="arg-progress">progress<a class="anchor" aria-label="anchor" href="#arg-progress"></a></dt>

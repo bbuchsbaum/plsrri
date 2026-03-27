@@ -91,11 +91,11 @@ cbind(
   variance = round(singular_values(result, normalize = TRUE), 1)
 )
 #>     pvalue variance
-#> LV1  0.600     29.5
-#> LV2  0.415     27.0
-#> LV3  0.215     24.6
-#> LV4  0.875     18.8
-#> LV5  1.000      0.0
+#> LV1  0.075     29.5
+#> LV2  0.230     27.0
+#> LV3  0.545     24.6
+#> LV4  1.000     18.8
+#> LV5  0.985      0.0
 #> LV6  1.000      0.0
 ```
 
@@ -238,12 +238,13 @@ analysis, go next to
 which shows the public non-GUI contract built around saved first-level
 artifacts, staged CLI runs, and Quarto reporting.
 
-| Goal                                     | Resource                                                                                                                                                                                                                                                             |
-|:-----------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Scripted R API, CLI, and report workflow | [`vignette("scripted-workflows")`](https://bbuchsbaum.github.io/plsrri/articles/scripted-workflows.md)                                                                                                                                                               |
-| Behavior PLS with continuous measures    | [`vignette("behavior-pls")`](https://bbuchsbaum.github.io/plsrri/articles/behavior-pls.md)                                                                                                                                                                           |
-| Multiblock and seed connectivity PLS     | [`vignette("multiblock-and-seed")`](https://bbuchsbaum.github.io/plsrri/articles/multiblock-and-seed.md)                                                                                                                                                             |
-| Full engine parameters                   | [`?pls_analysis`](https://bbuchsbaum.github.io/plsrri/reference/pls_analysis.md)                                                                                                                                                                                     |
-| Builder verbs                            | [`?pls_spec`](https://bbuchsbaum.github.io/plsrri/reference/pls_spec.md), [`?configure`](https://bbuchsbaum.github.io/plsrri/reference/configure.md), [`?run`](https://bbuchsbaum.github.io/plsrri/reference/run.md)                                                 |
-| Plotting functions                       | [`?plot_scores`](https://bbuchsbaum.github.io/plsrri/reference/plot_scores.md), [`?plot_loadings`](https://bbuchsbaum.github.io/plsrri/reference/plot_loadings.md), [`?plot_singular_values`](https://bbuchsbaum.github.io/plsrri/reference/plot_singular_values.md) |
-| Bootstrap and permutation details        | [`?bsr`](https://bbuchsbaum.github.io/plsrri/reference/bsr.md), [`?significance`](https://bbuchsbaum.github.io/plsrri/reference/significance.md), [`?confidence`](https://bbuchsbaum.github.io/plsrri/reference/confidence.md)                                       |
+| Goal                                                   | Resource                                                                                                                                                                                                                                                             |
+|:-------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Scripted R API, CLI, and report workflow               | [`vignette("scripted-workflows")`](https://bbuchsbaum.github.io/plsrri/articles/scripted-workflows.md)                                                                                                                                                               |
+| Behavior PLS with continuous measures                  | [`vignette("behavior-pls")`](https://bbuchsbaum.github.io/plsrri/articles/behavior-pls.md)                                                                                                                                                                           |
+| Within-subject seed connectivity from trial-level data | [`vignette("ws-seed-pls")`](https://bbuchsbaum.github.io/plsrri/articles/ws-seed-pls.md)                                                                                                                                                                             |
+| Multiblock and seed connectivity PLS                   | [`vignette("multiblock-and-seed")`](https://bbuchsbaum.github.io/plsrri/articles/multiblock-and-seed.md)                                                                                                                                                             |
+| Full engine parameters                                 | [`?pls_analysis`](https://bbuchsbaum.github.io/plsrri/reference/pls_analysis.md)                                                                                                                                                                                     |
+| Builder verbs                                          | [`?pls_spec`](https://bbuchsbaum.github.io/plsrri/reference/pls_spec.md), [`?configure`](https://bbuchsbaum.github.io/plsrri/reference/configure.md), [`?run`](https://bbuchsbaum.github.io/plsrri/reference/run.md)                                                 |
+| Plotting functions                                     | [`?plot_scores`](https://bbuchsbaum.github.io/plsrri/reference/plot_scores.md), [`?plot_loadings`](https://bbuchsbaum.github.io/plsrri/reference/plot_loadings.md), [`?plot_singular_values`](https://bbuchsbaum.github.io/plsrri/reference/plot_singular_values.md) |
+| Bootstrap and permutation details                      | [`?bsr`](https://bbuchsbaum.github.io/plsrri/reference/bsr.md), [`?significance`](https://bbuchsbaum.github.io/plsrri/reference/significance.md), [`?confidence`](https://bbuchsbaum.github.io/plsrri/reference/confidence.md)                                       |

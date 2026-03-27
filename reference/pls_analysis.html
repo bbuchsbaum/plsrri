@@ -23,7 +23,9 @@ with both rotated and non-rotated variants."></head><body>
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/plsrri.html">Getting Started</a></li>
     <li><a class="dropdown-item" href="../articles/scripted-workflows.html">Scripted Workflows</a></li>
+    <li><a class="dropdown-item" href="../articles/pipeline-yaml-spec.html">Pipeline YAML Specification</a></li>
     <li><a class="dropdown-item" href="../articles/behavior-pls.html">Behavior PLS</a></li>
+    <li><a class="dropdown-item" href="../articles/ws-seed-pls.html">Within-Subject Seed PLS</a></li>
     <li><a class="dropdown-item" href="../articles/multiblock-and-seed.html">Multiblock and Seed</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -73,6 +75,7 @@ with both rotated and non-rotated variants.</p>
 <span>  Bpermsamp <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  bootsamp <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  bootsamp_4beh <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  parallel_config <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  progress <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -212,6 +215,12 @@ for multiblock/behavior methods.</p></dd>
 <dt id="arg-bootsamp-beh">bootsamp_4beh<a class="anchor" aria-label="anchor" href="#arg-bootsamp-beh"></a></dt>
 <dd><p>Optional behavior bootstrap matrix (<code>total_rows x num_boot</code>)
 for behavior/multiblock methods.</p></dd>
+
+
+<dt id="arg-parallel-config">parallel_config<a class="anchor" aria-label="anchor" href="#arg-parallel-config"></a></dt>
+<dd><p>Optional parallel execution config list with
+<code>backend</code> (<code>"future"</code> or <code>"sequential"</code>) and <code>workers</code>. This affects
+permutation testing and task-only bootstrap execution.</p></dd>
 
 
 <dt id="arg-progress">progress<a class="anchor" aria-label="anchor" href="#arg-progress"></a></dt>

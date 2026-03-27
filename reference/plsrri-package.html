@@ -27,7 +27,9 @@ A modern R implementation of the McIntosh Lab PLS package for neuroimaging analy
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/plsrri.html">Getting Started</a></li>
     <li><a class="dropdown-item" href="../articles/scripted-workflows.html">Scripted Workflows</a></li>
+    <li><a class="dropdown-item" href="../articles/pipeline-yaml-spec.html">Pipeline YAML Specification</a></li>
     <li><a class="dropdown-item" href="../articles/behavior-pls.html">Behavior PLS</a></li>
+    <li><a class="dropdown-item" href="../articles/ws-seed-pls.html">Within-Subject Seed PLS</a></li>
     <li><a class="dropdown-item" href="../articles/multiblock-and-seed.html">Multiblock and Seed</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -143,8 +145,15 @@ relationships.</p></dd>
 
 
 <p>For large-scale analyses (500+ subjects, 10k permutations), the package
-provides Rcpp-accelerated versions of key functions. These are used
-automatically when available.</p>
+provides Rcpp-accelerated versions of key functions. The default exact fast
+paths are tuned conservatively:</p><ul><li><p><code>"xcor"</code>: enabled by default</p></li>
+<li><p><code>"bootstrap"</code>: enabled by default</p></li>
+<li><p><code>"permutation"</code>: available, but disabled by default</p></li>
+</ul><p>Use <code>options(plsrri.fast_paths = c("xcor", "bootstrap"))</code> to make the
+default explicit, <code>options(plsrri.fast_paths = c("xcor", "bootstrap",
+"permutation"))</code> to opt into permutation fast paths, or
+<code>options(plsrri.fast_paths = FALSE)</code> to disable exact fast paths
+entirely.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
@@ -156,7 +165,9 @@ NeuroImage 3: 143-157.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p>Useful links:</p><ul><li><p><a href="https://bbuchsbaum.github.io/plsrri">https://bbuchsbaum.github.io/plsrri</a></p></li>
+    <div class="dont-index"><p>Useful links:</p><ul><li><p><a href="https://bbuchsbaum.github.io/plsrri/">https://bbuchsbaum.github.io/plsrri/</a></p></li>
+<li><p><a href="https://github.com/bbuchsbaum/plsrri" class="external-link">https://github.com/bbuchsbaum/plsrri</a></p></li>
+<li><p>Report bugs at <a href="https://github.com/bbuchsbaum/plsrri/issues" class="external-link">https://github.com/bbuchsbaum/plsrri/issues</a></p></li>
 </ul></div>
     </div>
     <div class="section level2">

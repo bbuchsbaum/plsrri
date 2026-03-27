@@ -28,6 +28,7 @@ pls_analysis(
   Bpermsamp = NULL,
   bootsamp = NULL,
   bootsamp_4beh = NULL,
+  parallel_config = NULL,
   progress = TRUE
 )
 ```
@@ -177,6 +178,12 @@ pls_analysis(
 
   Optional behavior bootstrap matrix (`total_rows x num_boot`) for
   behavior/multiblock methods.
+
+- parallel_config:
+
+  Optional parallel execution config list with `backend` (`"future"` or
+  `"sequential"`) and `workers`. This affects permutation testing and
+  task-only bootstrap execution.
 
 - progress:
 

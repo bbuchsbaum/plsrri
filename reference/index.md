@@ -38,6 +38,9 @@
 - [`behav_pls()`](https://bbuchsbaum.github.io/plsrri/reference/behav_pls.md)
   : Behavioral Correlates PLS
 
+- [`benchmark_fast_paths()`](https://bbuchsbaum.github.io/plsrri/reference/benchmark_fast_paths.md)
+  : Benchmark Exact Fast Paths
+
 - [`bsr()`](https://bbuchsbaum.github.io/plsrri/reference/bsr.md) :
   Extract Bootstrap Ratios
 

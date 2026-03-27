@@ -35,7 +35,9 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/plsrri.html">Getting Started</a></li>
     <li><a class="dropdown-item" href="../articles/scripted-workflows.html">Scripted Workflows</a></li>
+    <li><a class="dropdown-item" href="../articles/pipeline-yaml-spec.html">Pipeline YAML Specification</a></li>
     <li><a class="dropdown-item" href="../articles/behavior-pls.html">Behavior PLS</a></li>
+    <li><a class="dropdown-item" href="../articles/ws-seed-pls.html">Within-Subject Seed PLS</a></li>
     <li><a class="dropdown-item" href="../articles/multiblock-and-seed.html">Multiblock and Seed</a></li>
   </ul>
 </li>
@@ -174,11 +176,11 @@ how variance is distributed:</p>
 <span>  variance <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="../reference/singular_values.html">singular_values</a></span><span class="op">(</span><span class="va">result</span>, normalize <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>, <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt;     pvalue variance</span></span>
-<span><span class="co">#&gt; LV1  0.600     29.5</span></span>
-<span><span class="co">#&gt; LV2  0.415     27.0</span></span>
-<span><span class="co">#&gt; LV3  0.215     24.6</span></span>
-<span><span class="co">#&gt; LV4  0.875     18.8</span></span>
-<span><span class="co">#&gt; LV5  1.000      0.0</span></span>
+<span><span class="co">#&gt; LV1  0.075     29.5</span></span>
+<span><span class="co">#&gt; LV2  0.230     27.0</span></span>
+<span><span class="co">#&gt; LV3  0.545     24.6</span></span>
+<span><span class="co">#&gt; LV4  1.000     18.8</span></span>
+<span><span class="co">#&gt; LV5  0.985      0.0</span></span>
 <span><span class="co">#&gt; LV6  1.000      0.0</span></span></code></pre></div>
 <p>LV1 captures 29.5% of the variance. The scree plot makes this
 dominance visual:</p>
@@ -319,28 +321,33 @@ runs, and Quarto reporting.</p>
 <td align="left"><code><a href="../articles/behavior-pls.html">vignette("behavior-pls")</a></code></td>
 </tr>
 <tr class="odd">
+<td align="left">Within-subject seed connectivity from trial-level
+data</td>
+<td align="left"><code><a href="../articles/ws-seed-pls.html">vignette("ws-seed-pls")</a></code></td>
+</tr>
+<tr class="even">
 <td align="left">Multiblock and seed connectivity PLS</td>
 <td align="left"><code><a href="../articles/multiblock-and-seed.html">vignette("multiblock-and-seed")</a></code></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Full engine parameters</td>
 <td align="left"><code><a href="../reference/pls_analysis.html">?pls_analysis</a></code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Builder verbs</td>
 <td align="left">
 <code><a href="../reference/pls_spec.html">?pls_spec</a></code>, <code><a href="../reference/configure.html">?configure</a></code>,
 <code><a href="../reference/run.html">?run</a></code>
 </td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Plotting functions</td>
 <td align="left">
 <code><a href="../reference/plot_scores.html">?plot_scores</a></code>, <code><a href="../reference/plot_loadings.html">?plot_loadings</a></code>,
 <code><a href="../reference/plot_singular_values.html">?plot_singular_values</a></code>
 </td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Bootstrap and permutation details</td>
 <td align="left">
 <code><a href="../reference/bsr.html">?bsr</a></code>, <code><a href="../reference/significance.html">?significance</a></code>,
