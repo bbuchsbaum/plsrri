@@ -275,6 +275,23 @@ test_that("site_pooling_diagnostics accepts mva_result inputs", {
   )
 }
 
+.manual_fisher_q <- function(corr, n_subjects) {
+  keep <- is.finite(corr) & is.finite(n_subjects) & n_subjects > 3L
+  corr <- corr[keep]
+  n_subjects <- n_subjects[keep]
+  if (length(corr) < 2L) {
+    return(list(q = NA_real_, pooled = NA_real_))
+  }
+
+  w <- n_subjects - 3
+  z <- atanh(pmin(pmax(corr, -1 + 1e-6), 1 - 1e-6))
+  z_bar <- sum(w * z) / sum(w)
+  list(
+    q = sum(w * (z - z_bar)^2),
+    pooled = tanh(z_bar)
+  )
+}
+
 test_that("site score inference returns block-bootstrap intervals and heterogeneity tests", {
   fx <- .make_site_pool_fixture(seed = 3002)
 
@@ -309,6 +326,84 @@ test_that("site score inference returns block-bootstrap intervals and heterogene
                     diag$score_heterogeneity$site_intervals$conf_high, na.rm = TRUE))
   expect_true(all(diag$score_heterogeneity$global_tests$perm_pvalue >= 0 &
                     diag$score_heterogeneity$global_tests$perm_pvalue <= 1, na.rm = TRUE))
+})
+
+test_that("score heterogeneity matches manual Fisher-Q calculation", {
+  fx <- .make_site_pool_fixture(seed = 3005)
+
+  result <- behav_pls(
+    datamat_lst = list(fx$datamat),
+    behav_data = fx$behav,
+    num_subj_lst = nrow(fx$behav) / 2L,
+    num_cond = 2L,
+    nperm = 0,
+    nboot = 0,
+    progress = FALSE
+  )
+
+  diag <- site_pooling_diagnostics(
+    result,
+    site = fx$site,
+    spec = fx$spec,
+    infer = "score",
+    nperm = 0,
+    nboot = 0,
+    progress = FALSE
+  )
+
+  lv1_corr <- subset(diag$site_score_correlations, lv == 1)
+  lv1_global <- subset(diag$score_heterogeneity$global_tests, lv == 1)
+  manual <- .manual_fisher_q(lv1_corr$correlation, lv1_corr$n_subjects)
+
+  expect_equal(lv1_global$fisher_q, manual$q, tolerance = 1e-12)
+  expect_equal(lv1_global$pooled_correlation, manual$pooled, tolerance = 1e-12)
+})
+
+test_that("inferential diagnostics are invariant to subject-vs-observation site labels", {
+  fx <- .make_site_pool_fixture(seed = 3006)
+  site_obs <- rep(fx$site, times = fx$spec$num_cond)
+
+  result <- behav_pls(
+    datamat_lst = list(fx$datamat),
+    behav_data = fx$behav,
+    num_subj_lst = nrow(fx$behav) / 2L,
+    num_cond = 2L,
+    nperm = 0,
+    nboot = 0,
+    progress = FALSE
+  )
+
+  set.seed(99)
+  diag_subj <- site_pooling_diagnostics(
+    result,
+    site = fx$site,
+    spec = fx$spec,
+    infer = "score",
+    nperm = 19,
+    nboot = 29,
+    progress = FALSE
+  )
+  set.seed(99)
+  diag_obs <- site_pooling_diagnostics(
+    result,
+    site = site_obs,
+    spec = fx$spec,
+    infer = "score",
+    nperm = 19,
+    nboot = 29,
+    progress = FALSE
+  )
+
+  expect_equal(
+    diag_subj$score_heterogeneity$site_intervals,
+    diag_obs$score_heterogeneity$site_intervals,
+    tolerance = 1e-12
+  )
+  expect_equal(
+    diag_subj$score_heterogeneity$global_tests,
+    diag_obs$score_heterogeneity$global_tests,
+    tolerance = 1e-12
+  )
 })
 
 test_that("score heterogeneity statistic grows when one site flips sign", {
@@ -363,6 +458,89 @@ test_that("score heterogeneity statistic grows when one site flips sign", {
   expect_gt(length(unique(sign(het_corr_lv1$correlation))), 1L)
 })
 
+test_that("score inference remains well-defined across randomized pooled fixtures", {
+  seeds <- 3010:3014
+
+  for (seed in seeds) {
+    flipped <- if (seed %% 2L == 0L) "site_c" else NULL
+    fx <- .make_site_pool_fixture(flipped_site = flipped, seed = seed)
+    result <- behav_pls(
+      datamat_lst = list(fx$datamat),
+      behav_data = fx$behav,
+      num_subj_lst = nrow(fx$behav) / 2L,
+      num_cond = 2L,
+      nperm = 0,
+      nboot = 0,
+      progress = FALSE
+    )
+
+    diag <- site_pooling_diagnostics(
+      result,
+      site = fx$site,
+      spec = fx$spec,
+      infer = "score",
+      nperm = 9,
+      nboot = 11,
+      progress = FALSE
+    )
+
+    expect_true(all(is.finite(diag$site_score_correlations$correlation)))
+    expect_true(all(diag$score_heterogeneity$global_tests$i2 >= 0 &
+                      diag$score_heterogeneity$global_tests$i2 <= 1, na.rm = TRUE))
+    expect_true(all(diag$score_heterogeneity$global_tests$n_sites_valid <=
+                      diag$score_heterogeneity$global_tests$n_sites))
+    expect_true(all(diag$score_heterogeneity$site_intervals$conf_low <=
+                      diag$score_heterogeneity$site_intervals$conf_high, na.rm = TRUE))
+  }
+})
+
+test_that("score heterogeneity degrades gracefully when sites have too few subjects", {
+  set.seed(3015)
+  n_subj <- 9L
+  n_cond <- 2L
+  n_feat <- 16L
+  site <- rep(c("site_a", "site_b", "site_c"), each = 3L)
+  site_obs <- rep(site, times = n_cond)
+
+  datamat <- matrix(rnorm(n_subj * n_cond * n_feat), nrow = n_subj * n_cond, ncol = n_feat)
+  behav <- matrix(rnorm(n_subj * n_cond), ncol = 1)
+  datamat <- .standardize_within_site(datamat, site_obs)
+  behav <- .standardize_within_site(behav, site_obs)
+
+  spec <- pls_spec()
+  spec$datamat_lst <- list(datamat)
+  spec$stacked_behavdata <- behav
+  spec$num_subj_lst <- n_subj
+  spec$num_cond <- n_cond
+  spec$method <- 3L
+  spec$cormode <- 0L
+  spec$site <- site
+
+  result <- behav_pls(
+    datamat_lst = list(datamat),
+    behav_data = behav,
+    num_subj_lst = n_subj,
+    num_cond = n_cond,
+    nperm = 0,
+    nboot = 0,
+    progress = FALSE
+  )
+
+  diag <- site_pooling_diagnostics(
+    result,
+    site = site,
+    spec = spec,
+    infer = "score",
+    nperm = 9,
+    nboot = 9,
+    progress = FALSE
+  )
+
+  expect_true(all(is.na(diag$score_heterogeneity$global_tests$fisher_q)))
+  expect_true(all(is.na(diag$score_heterogeneity$global_tests$perm_pvalue)))
+  expect_true(all(diag$score_heterogeneity$global_tests$n_sites_valid == 0L))
+})
+
 test_that("full site inference returns subspace concordance summaries with permutation p-values", {
   fx <- .make_site_pool_fixture(flipped_site = "site_c", seed = 3004)
 
@@ -383,16 +561,51 @@ test_that("full site inference returns subspace concordance summaries with permu
     infer = "full",
     nperm = 9,
     nboot = 0,
-    subspace_k = 1,
+    subspace_k = 2,
     progress = FALSE
   )
 
   expect_true(is.list(diag$site_subspace_concordance))
   expect_true(all(c("sitewise", "global") %in% names(diag$site_subspace_concordance)))
+  expect_equal(
+    nrow(diag$site_subspace_concordance$sitewise),
+    length(unique(fx$site)) * 2L
+  )
+  expect_equal(nrow(diag$site_subspace_concordance$global), 2L)
   expect_true(all(c("feature_perm_pvalue", "design_perm_pvalue") %in%
                     names(diag$site_subspace_concordance$sitewise)))
   expect_true(all(diag$site_subspace_concordance$sitewise$feature_perm_pvalue >= 0 &
                     diag$site_subspace_concordance$sitewise$feature_perm_pvalue <= 1, na.rm = TRUE))
   expect_true(all(diag$site_subspace_concordance$global$mean_feature_perm_pvalue >= 0 &
                     diag$site_subspace_concordance$global$mean_feature_perm_pvalue <= 1, na.rm = TRUE))
+})
+
+test_that("site score inference stays within a small runtime budget on the smoke fixture", {
+  skip_on_cran()
+
+  fx <- .make_site_pool_fixture(seed = 3016)
+  result <- behav_pls(
+    datamat_lst = list(fx$datamat),
+    behav_data = fx$behav,
+    num_subj_lst = nrow(fx$behav) / 2L,
+    num_cond = 2L,
+    nperm = 0,
+    nboot = 0,
+    progress = FALSE
+  )
+
+  elapsed <- system.time({
+    diag <- site_pooling_diagnostics(
+      result,
+      site = fx$site,
+      spec = fx$spec,
+      infer = "score",
+      nperm = 9,
+      nboot = 19,
+      progress = FALSE
+    )
+  })[["elapsed"]]
+
+  expect_true(is.list(diag$score_heterogeneity))
+  expect_lt(unname(elapsed), 5)
 })
