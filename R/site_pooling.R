@@ -12,12 +12,51 @@
 #'   for site-specific and leave-one-site-out reruns when \code{x} does not
 #'   already carry enough input context.
 #' @param progress Logical; emit informational messages during reruns.
+#' @param infer One of \code{"none"}, \code{"score"}, or \code{"full"}.
+#'   \code{"score"} adds subject-block bootstrap intervals and a subject-block
+#'   permutation heterogeneity test for sitewise LV score correlations.
+#'   \code{"full"} additionally compares site-specific PLS subspaces against the
+#'   pooled fit using cumulative RV-style concordance summaries and site-label
+#'   permutation p-values.
+#' @param nperm Number of permutations used by inferential site diagnostics.
+#' @param nboot Number of subject-block bootstrap resamples used for sitewise
+#'   score-correlation intervals.
+#' @param subspace_k Maximum number of leading LVs to compare in subspace
+#'   concordance summaries. Defaults to the number of pooled LVs with
+#'   permutation p-values \eqn{\le 0.05}, or 1 when permutation results are not
+#'   available.
+#' @param conf Confidence level for sitewise bootstrap intervals.
 #'
 #' @return A named list containing pooled observation metadata, sitewise score
 #'   summaries, sitewise score correlations, site-specific salience similarity,
-#'   and leave-one-site-out rerun summaries.
+#'   and leave-one-site-out rerun summaries. When \code{infer != "none"}, the
+#'   result also contains inferential score-heterogeneity summaries; when
+#'   \code{infer == "full"}, it also contains site-subspace concordance tests.
 #' @export
-site_pooling_diagnostics <- function(x, site = NULL, spec = NULL, progress = FALSE) {
+site_pooling_diagnostics <- function(x,
+                                     site = NULL,
+                                     spec = NULL,
+                                     progress = FALSE,
+                                     infer = c("none", "score", "full"),
+                                     nperm = 199L,
+                                     nboot = 499L,
+                                     subspace_k = NULL,
+                                     conf = 0.95) {
+  infer <- match.arg(infer)
+  nperm <- as.integer(nperm)
+  nboot <- as.integer(nboot)
+  conf <- as.numeric(conf)
+
+  if (!is.finite(nperm) || length(nperm) != 1L || nperm < 0L) {
+    stop("nperm must be a single non-negative integer", call. = FALSE)
+  }
+  if (!is.finite(nboot) || length(nboot) != 1L || nboot < 0L) {
+    stop("nboot must be a single non-negative integer", call. = FALSE)
+  }
+  if (!is.finite(conf) || length(conf) != 1L || conf <= 0 || conf >= 1) {
+    stop("conf must be a single number strictly between 0 and 1", call. = FALSE)
+  }
+
   if (inherits(x, "mva_result")) {
     x <- mva_result_to_pls_result(x)
   }
@@ -76,39 +115,60 @@ site_pooling_diagnostics <- function(x, site = NULL, spec = NULL, progress = FAL
   }))
   rownames(site_score_summary) <- NULL
 
-  site_score_correlations <- do.call(rbind, lapply(split(score_df, list(score_df$site, score_df$lv), drop = TRUE), function(df) {
-    corr <- if (all(is.na(df$design_score)) ||
-                length(unique(df$brain_score[is.finite(df$brain_score)])) < 2L ||
-                length(unique(df$design_score[is.finite(df$design_score)])) < 2L) {
-      NA_real_
-    } else {
-      stats::cor(df$brain_score, df$design_score, use = "pairwise.complete.obs")
-    }
-    data.frame(
-      site = df$site[[1]],
-      lv = df$lv[[1]],
-      n_obs = nrow(df),
-      correlation = corr,
-      stringsAsFactors = FALSE
-    )
-  }))
-  rownames(site_score_correlations) <- NULL
+  site_score_correlations <- .plsrri_compute_site_score_correlations(score_df)
 
   site_fit_similarity <- NULL
+  site_subspace_concordance <- NULL
   leave_one_site_out <- NULL
+  score_heterogeneity <- NULL
+
+  if (infer != "none") {
+    score_heterogeneity <- .plsrri_score_heterogeneity(
+      score_df = score_df,
+      obs_meta = obs_meta,
+      site_obs = site_obs,
+      nperm = nperm,
+      nboot = nboot,
+      conf = conf
+    )
+  }
+
   if (!is.null(spec) && inherits(spec, "pls_spec") && !is.list(spec$num_subj_lst) &&
       identical(x$method %in% c(3L, 5L), TRUE)) {
-    site_fit_similarity <- .plsrri_site_specific_similarity(
+    fit_metrics <- .plsrri_site_specific_similarity(
       result = x,
       spec = spec,
       site_obs = site_obs,
-      progress = progress
+      progress = progress,
+      subspace_k = subspace_k
+    )
+    site_fit_similarity <- fit_metrics$per_lv
+    site_subspace_concordance <- list(
+      sitewise = fit_metrics$subspace,
+      global = .plsrri_subspace_global_summary(fit_metrics$subspace)
     )
     leave_one_site_out <- .plsrri_leave_one_site_out(
       result = x,
       spec = spec,
       site_obs = site_obs,
       progress = progress
+    )
+    if (identical(infer, "full")) {
+      site_subspace_concordance <- .plsrri_subspace_concordance_inference(
+        result = x,
+        spec = spec,
+        obs_meta = obs_meta,
+        site_obs = site_obs,
+        observed = site_subspace_concordance,
+        nperm = nperm,
+        progress = progress,
+        subspace_k = subspace_k
+      )
+    }
+  } else if (identical(infer, "full")) {
+    warning(
+      "Full site inference requires a balanced behavior PLS spec; returning score-level heterogeneity only.",
+      call. = FALSE
     )
   }
 
@@ -118,7 +178,9 @@ site_pooling_diagnostics <- function(x, site = NULL, spec = NULL, progress = FAL
       observation_scores = score_df,
       site_score_summary = site_score_summary,
       site_score_correlations = site_score_correlations,
+      score_heterogeneity = score_heterogeneity,
       site_fit_similarity = site_fit_similarity,
+      site_subspace_concordance = site_subspace_concordance,
       leave_one_site_out = leave_one_site_out
     ),
     class = "plsrri_site_diagnostics"
@@ -186,6 +248,190 @@ site_pooling_diagnostics <- function(x, site = NULL, spec = NULL, progress = FAL
   ), call. = FALSE)
 }
 
+.plsrri_safe_cor <- function(x, y) {
+  if (all(is.na(y)) ||
+      length(unique(x[is.finite(x)])) < 2L ||
+      length(unique(y[is.finite(y)])) < 2L) {
+    return(NA_real_)
+  }
+  stats::cor(x, y, use = "pairwise.complete.obs")
+}
+
+.plsrri_compute_site_score_correlations <- function(score_df) {
+  out <- do.call(rbind, lapply(split(score_df, list(score_df$site, score_df$lv), drop = TRUE), function(df) {
+    data.frame(
+      site = df$site[[1]],
+      lv = df$lv[[1]],
+      n_obs = nrow(df),
+      n_subjects = length(unique(df$subject)),
+      correlation = .plsrri_safe_cor(df$brain_score, df$design_score),
+      stringsAsFactors = FALSE
+    )
+  }))
+  rownames(out) <- NULL
+  out
+}
+
+.plsrri_subject_site_frame <- function(obs_meta, site_obs) {
+  out <- unique(data.frame(
+    subject = obs_meta$subject,
+    group = obs_meta$group,
+    group_index = obs_meta$group_index,
+    site = site_obs,
+    stringsAsFactors = FALSE
+  ))
+  dup_check <- tapply(out$site, out$subject, function(x) unique(x))
+  if (any(lengths(dup_check) != 1L)) {
+    stop("Site labels must be constant within subject", call. = FALSE)
+  }
+  out[order(out$subject), , drop = FALSE]
+}
+
+.plsrri_permute_subject_sites <- function(subject_site_df) {
+  permuted <- subject_site_df$site
+  for (g in unique(subject_site_df$group_index)) {
+    idx <- which(subject_site_df$group_index == g)
+    permuted[idx] <- sample(permuted[idx], length(idx), replace = FALSE)
+  }
+  permuted
+}
+
+.plsrri_clamp_cor <- function(x, eps = 1e-6) {
+  pmin(pmax(x, -1 + eps), 1 - eps)
+}
+
+.plsrri_score_q_table <- function(site_score_correlations) {
+  rows <- lapply(split(site_score_correlations, site_score_correlations$lv), function(df) {
+    keep <- is.finite(df$correlation) & is.finite(df$n_subjects) & df$n_subjects > 3L
+    df_valid <- df[keep, , drop = FALSE]
+    if (nrow(df_valid) < 2L) {
+      return(data.frame(
+        lv = df$lv[[1]],
+        n_sites = sum(is.finite(df$correlation)),
+        n_sites_valid = nrow(df_valid),
+        fisher_q = NA_real_,
+        fisher_df = NA_integer_,
+        fisher_pvalue = NA_real_,
+        i2 = NA_real_,
+        pooled_correlation = NA_real_,
+        min_correlation = if (all(is.na(df$correlation))) NA_real_ else min(df$correlation, na.rm = TRUE),
+        max_correlation = if (all(is.na(df$correlation))) NA_real_ else max(df$correlation, na.rm = TRUE),
+        stringsAsFactors = FALSE
+      ))
+    }
+
+    w <- pmax(df_valid$n_subjects - 3, 1e-8)
+    z <- atanh(.plsrri_clamp_cor(df_valid$correlation))
+    z_bar <- sum(w * z) / sum(w)
+    q <- sum(w * (z - z_bar)^2)
+    q_df <- length(z) - 1L
+    data.frame(
+      lv = df$lv[[1]],
+      n_sites = sum(is.finite(df$correlation)),
+      n_sites_valid = nrow(df_valid),
+      fisher_q = q,
+      fisher_df = q_df,
+      fisher_pvalue = stats::pchisq(q, df = q_df, lower.tail = FALSE),
+      i2 = if (q <= 0) 0 else max(0, (q - q_df) / q),
+      pooled_correlation = tanh(z_bar),
+      min_correlation = min(df_valid$correlation),
+      max_correlation = max(df_valid$correlation),
+      stringsAsFactors = FALSE
+    )
+  })
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out
+}
+
+.plsrri_bootstrap_site_score_intervals <- function(score_df, nboot = 499L, conf = 0.95) {
+  alpha <- (1 - conf) / 2
+  probs <- c(alpha, 1 - alpha)
+
+  rows <- lapply(split(score_df, list(score_df$site, score_df$lv), drop = TRUE), function(df) {
+    corr_obs <- .plsrri_safe_cor(df$brain_score, df$design_score)
+    subjects <- unique(df$subject)
+    subj_rows <- split(seq_len(nrow(df)), df$subject)
+    boot_corr <- rep(NA_real_, nboot)
+
+    if (nboot > 0L && length(subjects) >= 2L) {
+      for (b in seq_len(nboot)) {
+        sampled <- sample(subjects, length(subjects), replace = TRUE)
+        idx <- unlist(subj_rows[as.character(sampled)], use.names = FALSE)
+        boot_corr[[b]] <- .plsrri_safe_cor(df$brain_score[idx], df$design_score[idx])
+      }
+    }
+
+    ci <- if (nboot > 0L && any(is.finite(boot_corr))) {
+      stats::quantile(boot_corr, probs = probs, na.rm = TRUE, names = FALSE, type = 6)
+    } else {
+      c(NA_real_, NA_real_)
+    }
+
+    data.frame(
+      site = df$site[[1]],
+      lv = df$lv[[1]],
+      n_subjects = length(subjects),
+      correlation = corr_obs,
+      conf_low = ci[[1]],
+      conf_high = ci[[2]],
+      stringsAsFactors = FALSE
+    )
+  })
+
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out
+}
+
+.plsrri_score_heterogeneity <- function(score_df, obs_meta, site_obs, nperm = 199L, nboot = 499L, conf = 0.95) {
+  subject_site_df <- .plsrri_subject_site_frame(obs_meta, site_obs)
+  observed_site_corr <- .plsrri_compute_site_score_correlations(score_df)
+  observed_global <- .plsrri_score_q_table(observed_site_corr)
+  observed_global$perm_pvalue <- NA_real_
+
+  if (nperm > 0L) {
+    perm_q <- matrix(
+      NA_real_,
+      nrow = nperm,
+      ncol = nrow(observed_global),
+      dimnames = list(NULL, paste0("lv", observed_global$lv))
+    )
+
+    subj_match <- match(score_df$subject, subject_site_df$subject)
+    for (b in seq_len(nperm)) {
+      perm_subject_site <- .plsrri_permute_subject_sites(subject_site_df)
+      perm_score_df <- score_df
+      perm_score_df$site <- perm_subject_site[subj_match]
+      perm_site_corr <- .plsrri_compute_site_score_correlations(perm_score_df)
+      perm_global <- .plsrri_score_q_table(perm_site_corr)
+      perm_q[b, match(perm_global$lv, observed_global$lv)] <- perm_global$fisher_q
+    }
+
+    observed_global$perm_pvalue <- vapply(seq_len(nrow(observed_global)), function(i) {
+      obs_q <- observed_global$fisher_q[[i]]
+      if (!is.finite(obs_q)) {
+        return(NA_real_)
+      }
+      vals <- perm_q[, i]
+      vals <- vals[is.finite(vals)]
+      if (!length(vals)) {
+        return(NA_real_)
+      }
+      (1 + sum(vals >= obs_q)) / (length(vals) + 1)
+    }, numeric(1))
+  }
+
+  list(
+    site_intervals = .plsrri_bootstrap_site_score_intervals(
+      score_df = score_df,
+      nboot = nboot,
+      conf = conf
+    ),
+    global_tests = observed_global
+  )
+}
+
 .plsrri_cosine_cols <- function(x, y) {
   stopifnot(is.matrix(x), is.matrix(y), ncol(x) == ncol(y))
   out <- numeric(ncol(x))
@@ -196,6 +442,36 @@ site_pooling_diagnostics <- function(x, site = NULL, spec = NULL, progress = FAL
     out[[j]] <- if (denom <= 0) NA_real_ else sum(xj * yj) / denom
   }
   out
+}
+
+.plsrri_subspace_rv <- function(x, y, k) {
+  stopifnot(is.matrix(x), is.matrix(y), k >= 1L)
+  xk <- x[, seq_len(k), drop = FALSE]
+  yk <- y[, seq_len(k), drop = FALSE]
+  qx <- qr.Q(qr(xk))
+  qy <- qr.Q(qr(yk))
+  px <- qx %*% t(qx)
+  py <- qy %*% t(qy)
+  denom <- sqrt(sum(px * px) * sum(py * py))
+  if (denom <= 0) {
+    return(NA_real_)
+  }
+  sum(px * py) / denom
+}
+
+.plsrri_default_subspace_k <- function(result) {
+  sig <- tryCatch(significance(result), error = function(e) NULL)
+  if (is.null(sig)) {
+    return(1L)
+  }
+  k <- sum(is.finite(sig) & sig <= 0.05)
+  max(1L, min(k, ncol(result$u), ncol(result$v)))
+}
+
+.plsrri_resolve_subspace_k <- function(result, subspace_k = NULL) {
+  k <- subspace_k %||% .plsrri_default_subspace_k(result)
+  k <- as.integer(k[[1]])
+  max(1L, min(k, ncol(result$u), ncol(result$v)))
 }
 
 .plsrri_align_to_reference <- function(x, ref) {
@@ -254,23 +530,162 @@ site_pooling_diagnostics <- function(x, site = NULL, spec = NULL, progress = FAL
   out
 }
 
-.plsrri_site_specific_similarity <- function(result, spec, site_obs, progress = FALSE) {
+.plsrri_site_specific_similarity <- function(result, spec, site_obs, progress = FALSE, subspace_k = NULL) {
   sites <- sort(unique(site_obs))
-  rows <- lapply(sites, function(site_name) {
+  max_k <- .plsrri_resolve_subspace_k(result, subspace_k)
+
+  per_lv_rows <- vector("list", length(sites))
+  subspace_rows <- vector("list", length(sites))
+
+  for (i in seq_along(sites)) {
+    site_name <- sites[[i]]
     site_spec <- .plsrri_subset_spec_by_site(spec, site_obs, keep_sites = site_name)
     fit <- run(site_spec, progress = progress)
     fit_u <- .plsrri_align_to_reference(fit$u, result$u)
     fit_v <- .plsrri_align_to_reference(fit$v, result$v)
 
-    data.frame(
+    per_lv_rows[[i]] <- data.frame(
       site = site_name,
       lv = seq_len(ncol(result$u)),
       feature_cosine = .plsrri_cosine_cols(fit_u, result$u),
       design_cosine = .plsrri_cosine_cols(fit_v, result$v),
       stringsAsFactors = FALSE
     )
-  })
-  do.call(rbind, rows)
+
+    subspace_rows[[i]] <- do.call(rbind, lapply(seq_len(max_k), function(k) {
+      data.frame(
+        site = site_name,
+        k = k,
+        feature_rv = .plsrri_subspace_rv(fit$u, result$u, k),
+        design_rv = .plsrri_subspace_rv(fit$v, result$v, k),
+        stringsAsFactors = FALSE
+      )
+    }))
+  }
+
+  list(
+    per_lv = do.call(rbind, per_lv_rows),
+    subspace = do.call(rbind, subspace_rows)
+  )
+}
+
+.plsrri_subspace_global_summary <- function(sitewise_subspace) {
+  if (is.null(sitewise_subspace) || !nrow(sitewise_subspace)) {
+    return(NULL)
+  }
+  out <- do.call(rbind, lapply(split(sitewise_subspace, sitewise_subspace$k), function(df) {
+    data.frame(
+      k = df$k[[1]],
+      mean_feature_rv = mean(df$feature_rv, na.rm = TRUE),
+      min_feature_rv = min(df$feature_rv, na.rm = TRUE),
+      mean_design_rv = mean(df$design_rv, na.rm = TRUE),
+      min_design_rv = min(df$design_rv, na.rm = TRUE),
+      stringsAsFactors = FALSE
+    )
+  }))
+  rownames(out) <- NULL
+  out
+}
+
+.plsrri_subspace_concordance_inference <- function(result,
+                                                   spec,
+                                                   obs_meta,
+                                                   site_obs,
+                                                   observed,
+                                                   nperm = 199L,
+                                                   progress = FALSE,
+                                                   subspace_k = NULL) {
+  sitewise <- observed$sitewise
+  global <- observed$global
+
+  sitewise$feature_perm_pvalue <- NA_real_
+  sitewise$design_perm_pvalue <- NA_real_
+  global$mean_feature_perm_pvalue <- NA_real_
+  global$min_feature_perm_pvalue <- NA_real_
+  global$mean_design_perm_pvalue <- NA_real_
+  global$min_design_perm_pvalue <- NA_real_
+
+  if (nperm <= 0L || is.null(sitewise) || !nrow(sitewise)) {
+    return(list(sitewise = sitewise, global = global))
+  }
+
+  subject_site_df <- .plsrri_subject_site_frame(obs_meta, site_obs)
+  perm_sitewise <- vector("list", nperm)
+  perm_global <- vector("list", nperm)
+
+  for (b in seq_len(nperm)) {
+    perm_subject_site <- .plsrri_permute_subject_sites(subject_site_df)
+    perm_site_obs <- perm_subject_site[match(obs_meta$subject, subject_site_df$subject)]
+    perm_metrics <- .plsrri_site_specific_similarity(
+      result = result,
+      spec = spec,
+      site_obs = perm_site_obs,
+      progress = progress,
+      subspace_k = subspace_k
+    )
+    perm_sitewise[[b]] <- perm_metrics$subspace
+    perm_global[[b]] <- .plsrri_subspace_global_summary(perm_metrics$subspace)
+  }
+
+  for (i in seq_len(nrow(sitewise))) {
+    obs_row <- sitewise[i, , drop = FALSE]
+    feat_null <- vapply(perm_sitewise, function(df) {
+      idx <- which(df$site == obs_row$site[[1]] & df$k == obs_row$k[[1]])
+      if (!length(idx)) NA_real_ else df$feature_rv[[idx[[1]]]]
+    }, numeric(1))
+    des_null <- vapply(perm_sitewise, function(df) {
+      idx <- which(df$site == obs_row$site[[1]] & df$k == obs_row$k[[1]])
+      if (!length(idx)) NA_real_ else df$design_rv[[idx[[1]]]]
+    }, numeric(1))
+    feat_null <- feat_null[is.finite(feat_null)]
+    des_null <- des_null[is.finite(des_null)]
+    if (length(feat_null)) {
+      sitewise$feature_perm_pvalue[[i]] <- (1 + sum(feat_null <= obs_row$feature_rv)) / (length(feat_null) + 1)
+    }
+    if (length(des_null)) {
+      sitewise$design_perm_pvalue[[i]] <- (1 + sum(des_null <= obs_row$design_rv)) / (length(des_null) + 1)
+    }
+  }
+
+  for (i in seq_len(nrow(global))) {
+    obs_row <- global[i, , drop = FALSE]
+    feat_mean_null <- vapply(perm_global, function(df) {
+      idx <- which(df$k == obs_row$k[[1]])
+      if (!length(idx)) NA_real_ else df$mean_feature_rv[[idx[[1]]]]
+    }, numeric(1))
+    feat_min_null <- vapply(perm_global, function(df) {
+      idx <- which(df$k == obs_row$k[[1]])
+      if (!length(idx)) NA_real_ else df$min_feature_rv[[idx[[1]]]]
+    }, numeric(1))
+    des_mean_null <- vapply(perm_global, function(df) {
+      idx <- which(df$k == obs_row$k[[1]])
+      if (!length(idx)) NA_real_ else df$mean_design_rv[[idx[[1]]]]
+    }, numeric(1))
+    des_min_null <- vapply(perm_global, function(df) {
+      idx <- which(df$k == obs_row$k[[1]])
+      if (!length(idx)) NA_real_ else df$min_design_rv[[idx[[1]]]]
+    }, numeric(1))
+
+    feat_mean_null <- feat_mean_null[is.finite(feat_mean_null)]
+    feat_min_null <- feat_min_null[is.finite(feat_min_null)]
+    des_mean_null <- des_mean_null[is.finite(des_mean_null)]
+    des_min_null <- des_min_null[is.finite(des_min_null)]
+
+    if (length(feat_mean_null)) {
+      global$mean_feature_perm_pvalue[[i]] <- (1 + sum(feat_mean_null <= obs_row$mean_feature_rv)) / (length(feat_mean_null) + 1)
+    }
+    if (length(feat_min_null)) {
+      global$min_feature_perm_pvalue[[i]] <- (1 + sum(feat_min_null <= obs_row$min_feature_rv)) / (length(feat_min_null) + 1)
+    }
+    if (length(des_mean_null)) {
+      global$mean_design_perm_pvalue[[i]] <- (1 + sum(des_mean_null <= obs_row$mean_design_rv)) / (length(des_mean_null) + 1)
+    }
+    if (length(des_min_null)) {
+      global$min_design_perm_pvalue[[i]] <- (1 + sum(des_min_null <= obs_row$min_design_rv)) / (length(des_min_null) + 1)
+    }
+  }
+
+  list(sitewise = sitewise, global = global)
 }
 
 .plsrri_leave_one_site_out <- function(result, spec, site_obs, progress = FALSE) {

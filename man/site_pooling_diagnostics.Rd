@@ -4,7 +4,17 @@
 \alias{site_pooling_diagnostics}
 \title{Site-Pooling Diagnostics for Multisite PLS}
 \usage{
-site_pooling_diagnostics(x, site = NULL, spec = NULL, progress = FALSE)
+site_pooling_diagnostics(
+  x,
+  site = NULL,
+  spec = NULL,
+  progress = FALSE,
+  infer = c("none", "score", "full"),
+  nperm = 199L,
+  nboot = 499L,
+  subspace_k = NULL,
+  conf = 0.95
+)
 }
 \arguments{
 \item{x}{A fitted \code{pls_result}.}
@@ -17,11 +27,32 @@ for site-specific and leave-one-site-out reruns when \code{x} does not
 already carry enough input context.}
 
 \item{progress}{Logical; emit informational messages during reruns.}
+
+\item{infer}{One of \code{"none"}, \code{"score"}, or \code{"full"}.
+\code{"score"} adds subject-block bootstrap intervals and a subject-block
+permutation heterogeneity test for sitewise LV score correlations.
+\code{"full"} additionally compares site-specific PLS subspaces against the
+pooled fit using cumulative RV-style concordance summaries and site-label
+permutation p-values.}
+
+\item{nperm}{Number of permutations used by inferential site diagnostics.}
+
+\item{nboot}{Number of subject-block bootstrap resamples used for sitewise
+score-correlation intervals.}
+
+\item{subspace_k}{Maximum number of leading LVs to compare in subspace
+concordance summaries. Defaults to the number of pooled LVs with
+permutation p-values \eqn{\le 0.05}, or 1 when permutation results are not
+available.}
+
+\item{conf}{Confidence level for sitewise bootstrap intervals.}
 }
 \value{
 A named list containing pooled observation metadata, sitewise score
 summaries, sitewise score correlations, site-specific salience similarity,
-and leave-one-site-out rerun summaries.
+and leave-one-site-out rerun summaries. When \code{infer != "none"}, the
+result also contains inferential score-heterogeneity summaries; when
+\code{infer == "full"}, it also contains site-subspace concordance tests.
 }
 \description{
 Optional post-fit diagnostics for pooled multisite analyses. When
