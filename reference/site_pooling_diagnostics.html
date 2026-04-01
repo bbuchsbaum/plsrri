@@ -56,7 +56,17 @@ quantify how stable a pooled solution is across sites.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">site_pooling_diagnostics</span><span class="op">(</span><span class="va">x</span>, site <span class="op">=</span> <span class="cn">NULL</span>, spec <span class="op">=</span> <span class="cn">NULL</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">site_pooling_diagnostics</span><span class="op">(</span></span>
+<span>  <span class="va">x</span>,</span>
+<span>  site <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  spec <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  progress <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  infer <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"none"</span>, <span class="st">"score"</span>, <span class="st">"full"</span><span class="op">)</span>,</span>
+<span>  nperm <span class="op">=</span> <span class="fl">199L</span>,</span>
+<span>  nboot <span class="op">=</span> <span class="fl">499L</span>,</span>
+<span>  subspace_k <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  conf <span class="op">=</span> <span class="fl">0.95</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -81,12 +91,43 @@ already carry enough input context.</p></dd>
 <dt id="arg-progress">progress<a class="anchor" aria-label="anchor" href="#arg-progress"></a></dt>
 <dd><p>Logical; emit informational messages during reruns.</p></dd>
 
+
+<dt id="arg-infer">infer<a class="anchor" aria-label="anchor" href="#arg-infer"></a></dt>
+<dd><p>One of <code>"none"</code>, <code>"score"</code>, or <code>"full"</code>.
+<code>"score"</code> adds subject-block bootstrap intervals and a subject-block
+permutation heterogeneity test for sitewise LV score correlations.
+<code>"full"</code> additionally compares site-specific PLS subspaces against the
+pooled fit using cumulative RV-style concordance summaries and site-label
+permutation p-values.</p></dd>
+
+
+<dt id="arg-nperm">nperm<a class="anchor" aria-label="anchor" href="#arg-nperm"></a></dt>
+<dd><p>Number of permutations used by inferential site diagnostics.</p></dd>
+
+
+<dt id="arg-nboot">nboot<a class="anchor" aria-label="anchor" href="#arg-nboot"></a></dt>
+<dd><p>Number of subject-block bootstrap resamples used for sitewise
+score-correlation intervals.</p></dd>
+
+
+<dt id="arg-subspace-k">subspace_k<a class="anchor" aria-label="anchor" href="#arg-subspace-k"></a></dt>
+<dd><p>Maximum number of leading LVs to compare in subspace
+concordance summaries. Defaults to the number of pooled LVs with
+permutation p-values \(\le 0.05\), or 1 when permutation results are not
+available.</p></dd>
+
+
+<dt id="arg-conf">conf<a class="anchor" aria-label="anchor" href="#arg-conf"></a></dt>
+<dd><p>Confidence level for sitewise bootstrap intervals.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A named list containing pooled observation metadata, sitewise score
 summaries, sitewise score correlations, site-specific salience similarity,
-and leave-one-site-out rerun summaries.</p>
+and leave-one-site-out rerun summaries. When <code>infer != "none"</code>, the
+result also contains inferential score-heterogeneity summaries; when
+<code>infer == "full"</code>, it also contains site-subspace concordance tests.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

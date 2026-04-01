@@ -47,10 +47,19 @@ site_spec <- pls_spec() |>
 
 site_result <- run(site_spec, progress = FALSE)
 site_diag <- site_result$site_diagnostics
+site_diag_infer <- site_pooling_diagnostics(
+  site_result,
+  spec = site_spec,
+  infer = "score",
+  nperm = 39,
+  nboot = 79,
+  progress = FALSE
+)
 
 stopifnot(
   inherits(site_result, "pls_result"),
   is.list(site_diag),
+  is.list(site_diag_infer$score_heterogeneity),
   setequal(site_diag$sites, site_levels)
 )
 ```
@@ -104,10 +113,10 @@ stopifnot(
 )
 
 site_corr_lv1
-#>     site lv n_obs correlation
-#> 1 site_a  1    24   0.9610821
-#> 2 site_b  1    24   0.9730672
-#> 3 site_c  1    24   0.9562201
+#>     site lv n_obs n_subjects correlation
+#> 1 site_a  1    24         12   0.9610821
+#> 2 site_b  1    24         12   0.9730672
+#> 3 site_c  1    24         12   0.9562201
 ```
 
 Every site shows the same direction of brain-behavior association on
@@ -118,7 +127,7 @@ analysis.
 ggplot2::ggplot(site_corr_lv1, ggplot2::aes(x = site, y = correlation, fill = site)) +
   ggplot2::geom_col(width = 0.7, show.legend = FALSE) +
   ggplot2::geom_hline(yintercept = 0, linetype = 2, color = "grey50") +
-  ggplot2::labs(x = "Site", y = "LV1 score correlation") +
+ggplot2::labs(x = "Site", y = "LV1 score correlation") +
   theme_pls()
 ```
 
@@ -128,6 +137,42 @@ association.](site-pooling_files/figure-html/plot-site-correlations-1.png)
 
 Sitewise LV1 brain-behavior score correlations. All three sites show the
 same direction of association.
+
+## Can you test whether those site correlations are too heterogeneous?
+
+Yes. `infer = "score"` adds subject-block bootstrap intervals for each
+site’s LV score correlation and a permutation p-value for cross-site
+heterogeneity of those correlations. This is a better answer than
+“correlation below some fixed cutoff” because it asks whether the site
+differences are larger than you would expect from random subject-to-site
+reassignment under the pooled model.
+
+``` r
+hetero_lv1 <- subset(site_diag_infer$score_heterogeneity$global_tests, lv == 1)
+site_ci_lv1 <- subset(site_diag_infer$score_heterogeneity$site_intervals, lv == 1)
+
+stopifnot(
+  nrow(hetero_lv1) == 1L,
+  hetero_lv1$perm_pvalue > 0.1,
+  all(site_ci_lv1$conf_low <= site_ci_lv1$conf_high)
+)
+
+hetero_lv1
+#>   lv n_sites n_sites_valid  fisher_q fisher_df fisher_pvalue i2
+#> 1  1       3             3 0.2991849         2     0.8610588  0
+#>   pooled_correlation min_correlation max_correlation perm_pvalue
+#> 1          0.9641849       0.9562201       0.9730672        0.75
+site_ci_lv1
+#>     site lv n_subjects correlation  conf_low conf_high
+#> 1 site_a  1         12   0.9610821 0.9088551 0.9822471
+#> 2 site_b  1         12   0.9730672 0.9283814 0.9887762
+#> 3 site_c  1         12   0.9562201 0.9146692 0.9804204
+```
+
+In this synthetic example, LV1 remains highly consistent across sites,
+so the heterogeneity p-value is not small. If that p-value were small,
+the pooled LV could still be significant overall while failing the
+multisite stability check.
 
 ## Do the site-specific saliences resemble the pooled solution?
 
@@ -152,7 +197,10 @@ site_sim_lv1
 
 Those similarities are not a replacement for interpretation, but they
 are a useful quick check that the pooled LV is not being driven by one
-site alone.
+site alone. If you want an inferential version of that check, use
+`site_pooling_diagnostics(..., infer = "full")`, which adds site-label
+permutation p-values for cumulative subspace concordance across the
+first `k` LVs.
 
 ## What happens if you leave one site out?
 
@@ -191,8 +239,11 @@ papering over site heterogeneity.
 
 Rethink the pooled model if you see any of these:
 
-- sitewise LV correlations with different signs
-- low site-specific salience similarity to the pooled LV
+- a small score-heterogeneity p-value for the pooled LV
+- sitewise LV correlations with different signs or non-overlapping
+  sitewise bootstrap intervals
+- low site-specific salience similarity to the pooled LV, especially if
+  `infer = "full"` also shows weak subspace concordance
 - leave-one-site-out fits that fail only when one particular site is
   held out
 - score distributions that are dominated by one site rather than by the

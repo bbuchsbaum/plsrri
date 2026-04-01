@@ -116,10 +116,19 @@ labels before running the fit.</p>
 <span></span>
 <span><span class="va">site_result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run.html">run</a></span><span class="op">(</span><span class="va">site_spec</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">site_diag</span> <span class="op">&lt;-</span> <span class="va">site_result</span><span class="op">$</span><span class="va">site_diagnostics</span></span>
+<span><span class="va">site_diag_infer</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/site_pooling_diagnostics.html">site_pooling_diagnostics</a></span><span class="op">(</span></span>
+<span>  <span class="va">site_result</span>,</span>
+<span>  spec <span class="op">=</span> <span class="va">site_spec</span>,</span>
+<span>  infer <span class="op">=</span> <span class="st">"score"</span>,</span>
+<span>  nperm <span class="op">=</span> <span class="fl">39</span>,</span>
+<span>  nboot <span class="op">=</span> <span class="fl">79</span>,</span>
+<span>  progress <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">inherits</a></span><span class="op">(</span><span class="va">site_result</span>, <span class="st">"pls_result"</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">is.list</a></span><span class="op">(</span><span class="va">site_diag</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">is.list</a></span><span class="op">(</span><span class="va">site_diag_infer</span><span class="op">$</span><span class="va">score_heterogeneity</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">setequal</a></span><span class="op">(</span><span class="va">site_diag</span><span class="op">$</span><span class="va">sites</span>, <span class="va">site_levels</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Check the pooled latent variables first, just as you would in an
@@ -167,10 +176,10 @@ diagnostics are already attached to the result:</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">site_corr_lv1</span></span>
-<span><span class="co">#&gt;     site lv n_obs correlation</span></span>
-<span><span class="co">#&gt; 1 site_a  1    24   0.9610821</span></span>
-<span><span class="co">#&gt; 2 site_b  1    24   0.9730672</span></span>
-<span><span class="co">#&gt; 3 site_c  1    24   0.9562201</span></span></code></pre></div>
+<span><span class="co">#&gt;     site lv n_obs n_subjects correlation</span></span>
+<span><span class="co">#&gt; 1 site_a  1    24         12   0.9610821</span></span>
+<span><span class="co">#&gt; 2 site_b  1    24         12   0.9730672</span></span>
+<span><span class="co">#&gt; 3 site_c  1    24         12   0.9562201</span></span></code></pre></div>
 <p>Every site shows the same direction of brain-behavior association on
 LV1. That is the first thing you want to see in a pooled multisite
 analysis.</p>
@@ -178,7 +187,7 @@ analysis.</p>
 <code class="sourceCode R"><span><span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">site_corr_lv1</span>, <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">site</span>, y <span class="op">=</span> <span class="va">correlation</span>, fill <span class="op">=</span> <span class="va">site</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_bar.html" class="external-link">geom_col</a></span><span class="op">(</span>width <span class="op">=</span> <span class="fl">0.7</span>, show.legend <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_hline</a></span><span class="op">(</span>yintercept <span class="op">=</span> <span class="fl">0</span>, linetype <span class="op">=</span> <span class="fl">2</span>, color <span class="op">=</span> <span class="st">"grey50"</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Site"</span>, y <span class="op">=</span> <span class="st">"LV1 score correlation"</span><span class="op">)</span> <span class="op">+</span></span>
+<span><span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Site"</span>, y <span class="op">=</span> <span class="st">"LV1 score correlation"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="../reference/theme_pls.html">theme_pls</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
 <img src="site-pooling_files/figure-html/plot-site-correlations-1.png" class="r-plt" alt="Sitewise LV1 brain-behavior score correlations. All three sites show the same direction of association." width="576"><p class="caption">
@@ -188,11 +197,46 @@ same direction of association.
 </div>
 </div>
 <div class="section level2">
+<h2 id="can-you-test-whether-those-site-correlations-are-too-heterogeneous">Can you test whether those site correlations are too
+heterogeneous?<a class="anchor" aria-label="anchor" href="#can-you-test-whether-those-site-correlations-are-too-heterogeneous"></a>
+</h2>
+<p>Yes. <code>infer = "score"</code> adds subject-block bootstrap
+intervals for each site’s LV score correlation and a permutation p-value
+for cross-site heterogeneity of those correlations. This is a better
+answer than “correlation below some fixed cutoff” because it asks
+whether the site differences are larger than you would expect from
+random subject-to-site reassignment under the pooled model.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">hetero_lv1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="va">site_diag_infer</span><span class="op">$</span><span class="va">score_heterogeneity</span><span class="op">$</span><span class="va">global_tests</span>, <span class="va">lv</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">site_ci_lv1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="va">site_diag_infer</span><span class="op">$</span><span class="va">score_heterogeneity</span><span class="op">$</span><span class="va">site_intervals</span>, <span class="va">lv</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">hetero_lv1</span><span class="op">)</span> <span class="op">==</span> <span class="fl">1L</span>,</span>
+<span>  <span class="va">hetero_lv1</span><span class="op">$</span><span class="va">perm_pvalue</span> <span class="op">&gt;</span> <span class="fl">0.1</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">site_ci_lv1</span><span class="op">$</span><span class="va">conf_low</span> <span class="op">&lt;=</span> <span class="va">site_ci_lv1</span><span class="op">$</span><span class="va">conf_high</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">hetero_lv1</span></span>
+<span><span class="co">#&gt;   lv n_sites n_sites_valid  fisher_q fisher_df fisher_pvalue i2</span></span>
+<span><span class="co">#&gt; 1  1       3             3 0.2991849         2     0.8610588  0</span></span>
+<span><span class="co">#&gt;   pooled_correlation min_correlation max_correlation perm_pvalue</span></span>
+<span><span class="co">#&gt; 1          0.9641849       0.9562201       0.9730672        0.75</span></span>
+<span><span class="va">site_ci_lv1</span></span>
+<span><span class="co">#&gt;     site lv n_subjects correlation  conf_low conf_high</span></span>
+<span><span class="co">#&gt; 1 site_a  1         12   0.9610821 0.9088551 0.9822471</span></span>
+<span><span class="co">#&gt; 2 site_b  1         12   0.9730672 0.9283814 0.9887762</span></span>
+<span><span class="co">#&gt; 3 site_c  1         12   0.9562201 0.9146692 0.9804204</span></span></code></pre></div>
+<p>In this synthetic example, LV1 remains highly consistent across
+sites, so the heterogeneity p-value is not small. If that p-value were
+small, the pooled LV could still be significant overall while failing
+the multisite stability check.</p>
+</div>
+<div class="section level2">
 <h2 id="do-the-site-specific-saliences-resemble-the-pooled-solution">Do the site-specific saliences resemble the pooled solution?<a class="anchor" aria-label="anchor" href="#do-the-site-specific-saliences-resemble-the-pooled-solution"></a>
 </h2>
 <p>The site-specific reruns compare each site’s own fit to the pooled
 fit using cosine similarity in both feature space and design space.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">site_sim_lv1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="va">site_diag</span><span class="op">$</span><span class="va">site_fit_similarity</span>, <span class="va">lv</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span></span>
@@ -208,7 +252,10 @@ fit using cosine similarity in both feature space and design space.</p>
 <span><span class="co">#&gt; 9 site_c  1      0.9889637     0.9998657</span></span></code></pre></div>
 <p>Those similarities are not a replacement for interpretation, but they
 are a useful quick check that the pooled LV is not being driven by one
-site alone.</p>
+site alone. If you want an inferential version of that check, use
+<code>site_pooling_diagnostics(..., infer = "full")</code>, which adds
+site-label permutation p-values for cumulative subspace concordance
+across the first <code>k</code> LVs.</p>
 </div>
 <div class="section level2">
 <h2 id="what-happens-if-you-leave-one-site-out">What happens if you leave one site out?<a class="anchor" aria-label="anchor" href="#what-happens-if-you-leave-one-site-out"></a>
@@ -216,7 +263,7 @@ site alone.</p>
 <p>Leave-one-site-out reruns are the strongest built-in stress test in
 the current workflow. They refit the model on two sites, then project
 the held-out site into that score space.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">loos_lv1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="va">site_diag</span><span class="op">$</span><span class="va">leave_one_site_out</span>, <span class="va">lv</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span></span>
@@ -245,8 +292,11 @@ tell you when the pooled result is doing real shared work and when it is
 papering over site heterogeneity.</p>
 <p>Rethink the pooled model if you see any of these:</p>
 <ul>
-<li>sitewise LV correlations with different signs</li>
-<li>low site-specific salience similarity to the pooled LV</li>
+<li>a small score-heterogeneity p-value for the pooled LV</li>
+<li>sitewise LV correlations with different signs or non-overlapping
+sitewise bootstrap intervals</li>
+<li>low site-specific salience similarity to the pooled LV, especially
+if <code>infer = "full"</code> also shows weak subspace concordance</li>
 <li>leave-one-site-out fits that fail only when one particular site is
 held out</li>
 <li>score distributions that are dominated by one site rather than by
