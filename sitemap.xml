@@ -6,7 +6,9 @@
 <url><loc>https://bbuchsbaum.github.io/plsrri/articles/multiblock-and-seed.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/articles/pipeline-yaml-spec.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/articles/plsrri.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/articles/predictive-measures.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/articles/scripted-workflows.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/articles/site-pooling.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/articles/ws-seed-pls.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/authors.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/index.html</loc></url>
@@ -16,6 +18,7 @@
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/add_conditions.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/add_design.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/add_group_labels.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/add_site_labels.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/add_subjects.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/add_subjects_bids_manifest.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/add_subjects_manifest.html</loc></url>
@@ -87,6 +90,7 @@
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/dot-validate_spec.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/dot-values_to_neurovol.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/dot-ws_cor_vec.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/evaluate_prediction.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/feature_weights.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/format_pvalue.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/generate_boot_samples.html</loc></url>
@@ -206,11 +210,14 @@
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/plscli.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/plscli_main.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/plsrri-package.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/predict-cv.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/predict-projection.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/prepare_firstlevel.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/prepare_pls.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/procrustes_boot_cpp.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/procrustes_cpp.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/progress_msg.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/project_scores.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/quick_pls.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/read_pipeline_spec.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/register_method.html</loc></url>
@@ -232,6 +239,7 @@
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/set_pls_seed.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/significance.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/singular_values.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/site_pooling_diagnostics.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/stability.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/stack_datamats.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/task_mean_cpp.html</loc></url>

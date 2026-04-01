@@ -36,6 +36,8 @@
 <li><a class="dropdown-item" href="../articles/plsrri.html">Getting Started</a></li>
     <li><a class="dropdown-item" href="../articles/scripted-workflows.html">Scripted Workflows</a></li>
     <li><a class="dropdown-item" href="../articles/pipeline-yaml-spec.html">Pipeline YAML Specification</a></li>
+    <li><a class="dropdown-item" href="../articles/site-pooling.html">Multisite Behavioral PLS</a></li>
+    <li><a class="dropdown-item" href="../articles/predictive-measures.html">Predictive Measures</a></li>
     <li><a class="dropdown-item" href="../articles/behavior-pls.html">Behavior PLS</a></li>
     <li><a class="dropdown-item" href="../articles/ws-seed-pls.html">Within-Subject Seed PLS</a></li>
     <li><a class="dropdown-item" href="../articles/multiblock-and-seed.html">Multiblock and Seed</a></li>
@@ -81,12 +83,16 @@ path all share.</p>
 <p>This article is a reference for that contract. It focuses on
 structure, required fields, and common variants. For the scripted
 workflow itself, see <code><a href="../articles/scripted-workflows.html">vignette("scripted-workflows")</a></code>.</p>
+<p>The intended starting point is a scaffold, not a blank file:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/write_pipeline_template.html">write_pipeline_template</a></span><span class="op">(</span><span class="st">"study.yml"</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="ex">plscli</span> template <span class="at">--out</span> study.yml</span></code></pre></div>
 <div class="section level2">
 <h2 id="what-sections-does-the-spec-contain">What sections does the spec contain?<a class="anchor" aria-label="anchor" href="#what-sections-does-the-spec-contain"></a>
 </h2>
 <p>The scaffold written by <code><a href="../reference/write_pipeline_template.html">write_pipeline_template()</a></code> gives
 the intended shape.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">required_sections</span></span>
 <span><span class="co">#&gt; [1] "dataset"     "design"      "first_level" "pls"         "execution"  </span></span>
 <span><span class="co">#&gt; [6] "outputs"</span></span></code></pre></div>
@@ -119,10 +125,10 @@ analysis</li>
 <li>a PLS method</li>
 <li>an output root</li>
 </ul>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://yaml.r-lib.org/reference/as.yaml.html" class="external-link">as.yaml</a></span><span class="op">(</span><span class="va">minimal_spec</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; dataset:</span></span>
-<span><span class="co">#&gt;   bids_dir: /tmp/Rtmpre2aTG/plsrri-yaml-28dd28f27c36/bids</span></span>
+<span><span class="co">#&gt;   bids_dir: /tmp/RtmpT8stjN/plsrri-yaml-2bba5ad64db5/bids</span></span>
 <span><span class="co">#&gt;   task: stroop</span></span>
 <span><span class="co">#&gt; design:</span></span>
 <span><span class="co">#&gt;   formula: onset ~ hrf(condition, basis = 'spmg1')</span></span>
@@ -135,7 +141,7 @@ analysis</li>
 <span><span class="co">#&gt;   nperm: 0</span></span>
 <span><span class="co">#&gt;   nboot: 0</span></span>
 <span><span class="co">#&gt; outputs:</span></span>
-<span><span class="co">#&gt;   root: /tmp/Rtmpre2aTG/plsrri-yaml-28dd28f27c36/out</span></span></code></pre></div>
+<span><span class="co">#&gt;   root: /tmp/RtmpT8stjN/plsrri-yaml-2bba5ad64db5/out</span></span></code></pre></div>
 <p>That small object already validates and picks up defaults for
 <code>execution.mode</code>, <code>execution.parallelism</code>,
 <code>first_level.strategy</code>, and <code>pls.input</code>.</p>
@@ -157,11 +163,11 @@ space should be used?</p>
 <li><code>group_column</code></li>
 <li>optional subject/session/run filters</li>
 </ul>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>dataset<span class="sc">:</span></span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  bids_dir<span class="sc">:</span> <span class="er">/</span>path<span class="sc">/</span>to<span class="sc">/</span>bids</span>
-<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  task<span class="sc">:</span> stroop</span>
-<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  space<span class="sc">:</span> MNI152NLin2009cAsym</span>
-<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  group_column<span class="sc">:</span> group</span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>dataset<span class="sc">:</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  bids_dir<span class="sc">:</span> <span class="er">/</span>path<span class="sc">/</span>to<span class="sc">/</span>bids</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  task<span class="sc">:</span> stroop</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  space<span class="sc">:</span> MNI152NLin2009cAsym</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>  group_column<span class="sc">:</span> group</span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="design">
@@ -169,7 +175,7 @@ space should be used?</p>
 </h3>
 <p><code>design</code> defines the first-level model, not the PLS
 contrast. The key field is <code>formula</code>.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">design</span><span class="op">:</span></span>
 <span>  <span class="va">formula</span><span class="op">:</span> <span class="va">onset</span> <span class="op">~</span> <span class="fu">hrf</span><span class="op">(</span><span class="va">condition</span>, basis <span class="op">=</span> <span class="st">'spmg1'</span><span class="op">)</span></span>
 <span>  <span class="va">block</span><span class="op">:</span> <span class="op">~</span> <span class="va">run</span></span></code></pre></div>
@@ -182,12 +188,12 @@ expansions such as FIR or tent-style models.</p>
 </h3>
 <p><code>first_level</code> controls how the GLM stage is run and what
 maps are written.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>first_level<span class="sc">:</span></span>
-<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  strategy<span class="sc">:</span> runwise</span>
-<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  nchunks<span class="sc">:</span> <span class="dv">1</span></span>
-<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  output<span class="sc">:</span></span>
-<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>    type<span class="sc">:</span> estimates</span>
-<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>    statistics<span class="sc">:</span> [estimate]</span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>first_level<span class="sc">:</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>  strategy<span class="sc">:</span> runwise</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  nchunks<span class="sc">:</span> <span class="dv">1</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  output<span class="sc">:</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>    type<span class="sc">:</span> estimates</span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>    statistics<span class="sc">:</span> [estimate]</span></code></pre></div>
 <p>The important distinction is:</p>
 <ul>
 <li>
@@ -205,7 +211,7 @@ maps</li>
 </h3>
 <p><code>pls</code> tells the second stage how to interpret first-level
 outputs.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pls</span><span class="op">:</span></span>
 <span>  <span class="va">method</span><span class="op">:</span> <span class="va">task</span></span>
 <span>  <span class="va">input</span><span class="op">:</span></span>
@@ -230,7 +236,7 @@ methods such as:</p>
 </h3>
 <p><code>execution</code> controls how staged commands are scheduled,
 not the statistical analysis itself.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">execution</span><span class="op">:</span></span>
 <span>  <span class="va">mode</span><span class="op">:</span> <span class="va">array</span></span>
 <span>  <span class="va">parallelism</span><span class="op">:</span> <span class="fl">8</span></span></code></pre></div>
@@ -241,7 +247,7 @@ not the statistical analysis itself.</p>
 </h3>
 <p><code>outputs.root</code> is the artifact root that the CLI, scripted
 R API, report layer, and Shiny attach mode all reuse.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">outputs</span><span class="op">:</span></span>
 <span>  <span class="va">root</span><span class="op">:</span> <span class="va">plscli</span><span class="op">-</span><span class="va">out</span></span></code></pre></div>
 </div>
@@ -256,10 +262,10 @@ labels encode basis functions such as FIR bins or tent functions:</p>
 <li>how PLS should fold those labels back into a basis-aware
 manifest</li>
 </ol>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://yaml.r-lib.org/reference/as.yaml.html" class="external-link">as.yaml</a></span><span class="op">(</span><span class="va">basis_spec</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; dataset:</span></span>
-<span><span class="co">#&gt;   bids_dir: /tmp/Rtmpre2aTG/plsrri-yaml-28dd28f27c36/bids</span></span>
+<span><span class="co">#&gt;   bids_dir: /tmp/RtmpT8stjN/plsrri-yaml-2bba5ad64db5/bids</span></span>
 <span><span class="co">#&gt;   task: stroop</span></span>
 <span><span class="co">#&gt; design:</span></span>
 <span><span class="co">#&gt;   formula: onset ~ hrf(condition, basis = 'fir', K = 4)</span></span>
@@ -289,7 +295,7 @@ manifest</li>
 <span><span class="co">#&gt;   nperm: 0</span></span>
 <span><span class="co">#&gt;   nboot: 0</span></span>
 <span><span class="co">#&gt; outputs:</span></span>
-<span><span class="co">#&gt;   root: /tmp/Rtmpre2aTG/plsrri-yaml-28dd28f27c36/fir-out</span></span></code></pre></div>
+<span><span class="co">#&gt;   root: /tmp/RtmpT8stjN/plsrri-yaml-2bba5ad64db5/fir-out</span></span></code></pre></div>
 <p>The important point is that basis handling belongs in both
 places:</p>
 <ul>

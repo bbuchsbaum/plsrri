@@ -172,11 +172,13 @@ weakly.
 
 ## Where to go next
 
-| Goal                           | Resource                                                                                                 |
-|:-------------------------------|:---------------------------------------------------------------------------------------------------------|
-| Task PLS workflow              | [`vignette("plsrri")`](https://bbuchsbaum.github.io/plsrri/articles/plsrri.md)                           |
-| Multiblock and seed PLS        | [`vignette("multiblock-and-seed")`](https://bbuchsbaum.github.io/plsrri/articles/multiblock-and-seed.md) |
-| Behavior wrapper               | [`?behav_pls`](https://bbuchsbaum.github.io/plsrri/reference/behav_pls.md)                               |
-| Full engine with all options   | [`?pls_analysis`](https://bbuchsbaum.github.io/plsrri/reference/pls_analysis.md)                         |
-| Loadings interpretation        | [`?plot_loadings`](https://bbuchsbaum.github.io/plsrri/reference/plot_loadings.md)                       |
-| Bootstrap confidence intervals | [`?confidence`](https://bbuchsbaum.github.io/plsrri/reference/confidence.md)                             |
+| Goal                                                | Resource                                                                                                 |
+|:----------------------------------------------------|:---------------------------------------------------------------------------------------------------------|
+| Multisite pooled behavior PLS with site diagnostics | [`vignette("site-pooling")`](https://bbuchsbaum.github.io/plsrri/articles/site-pooling.md)               |
+| Task PLS workflow                                   | [`vignette("plsrri")`](https://bbuchsbaum.github.io/plsrri/articles/plsrri.md)                           |
+| Predictive validation from the same score space     | [`vignette("predictive-measures")`](https://bbuchsbaum.github.io/plsrri/articles/predictive-measures.md) |
+| Multiblock and seed PLS                             | [`vignette("multiblock-and-seed")`](https://bbuchsbaum.github.io/plsrri/articles/multiblock-and-seed.md) |
+| Behavior wrapper                                    | [`?behav_pls`](https://bbuchsbaum.github.io/plsrri/reference/behav_pls.md)                               |
+| Full engine with all options                        | [`?pls_analysis`](https://bbuchsbaum.github.io/plsrri/reference/pls_analysis.md)                         |
+| Loadings interpretation                             | [`?plot_loadings`](https://bbuchsbaum.github.io/plsrri/reference/plot_loadings.md)                       |
+| Bootstrap confidence intervals                      | [`?confidence`](https://bbuchsbaum.github.io/plsrri/reference/confidence.md)                             |

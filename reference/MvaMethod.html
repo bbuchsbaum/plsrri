@@ -22,6 +22,8 @@ new methods (e.g., CPCA, CCA, ICA). See PlsMethod for an example."></head><body>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/plsrri.html">Getting Started</a></li>
     <li><a class="dropdown-item" href="../articles/scripted-workflows.html">Scripted Workflows</a></li>
     <li><a class="dropdown-item" href="../articles/pipeline-yaml-spec.html">Pipeline YAML Specification</a></li>
+    <li><a class="dropdown-item" href="../articles/site-pooling.html">Multisite Behavioral PLS</a></li>
+    <li><a class="dropdown-item" href="../articles/predictive-measures.html">Predictive Measures</a></li>
     <li><a class="dropdown-item" href="../articles/behavior-pls.html">Behavior PLS</a></li>
     <li><a class="dropdown-item" href="../articles/ws-seed-pls.html">Within-Subject Seed PLS</a></li>
     <li><a class="dropdown-item" href="../articles/multiblock-and-seed.html">Multiblock and Seed</a></li>
@@ -80,6 +82,7 @@ new methods (e.g., CPCA, CCA, ICA). See <code>PlsMethod</code> for an example.</
 <li><p><a href="#method-MvaMethod-fit"><code>MvaMethod$fit()</code></a></p></li>
 <li><p><a href="#method-MvaMethod-permutation_fit"><code>MvaMethod$permutation_fit()</code></a></p></li>
 <li><p><a href="#method-MvaMethod-bootstrap_fit"><code>MvaMethod$bootstrap_fit()</code></a></p></li>
+<li><p><a href="#method-MvaMethod-project_scores"><code>MvaMethod$project_scores()</code></a></p></li>
 <li><p><a href="#method-MvaMethod-align_to_reference"><code>MvaMethod$align_to_reference()</code></a></p></li>
 <li><p><a href="#method-MvaMethod-validate_spec"><code>MvaMethod$validate_spec()</code></a></p></li>
 <li><p><a href="#method-MvaMethod-configure"><code>MvaMethod$configure()</code></a></p></li>
@@ -187,16 +190,49 @@ Default: resample rows, then call fit().</p><div class="section">
 <p>An <code>mva_decomposition</code> object</p>
 </div>
 
-</div><p></p><hr><a id="method-MvaMethod-align_to_reference"></a><div class="section">
-<h3 id="method-align-to-reference-">Method <code>align_to_reference()</code><a class="anchor" aria-label="anchor" href="#method-align-to-reference-"></a></h3>
-<p>Align bootstrap decomposition to reference (e.g., Procrustes).
-Default: sign-flip columns to maximize agreement.</p><div class="section">
+</div><p></p><hr><a id="method-MvaMethod-project_scores"></a><div class="section">
+<h3 id="method-project-scores-">Method <code><a href="project_scores.html">project_scores()</a></code><a class="anchor" aria-label="anchor" href="#method-project-scores-"></a></h3>
+<p>Project held-out observations into the fitted score space.
+Subclasses should use only training-fit artifacts stored on <code>result</code>.</p><div class="section">
 <h4 id="usage-4">Usage<a class="anchor" aria-label="anchor" href="#usage-4"></a></h4>
-<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">MvaMethod</span><span class="op">$</span><span class="fu">align_to_reference</span><span class="op">(</span><span class="va">boot_decomp</span>, <span class="va">ref_decomp</span><span class="op">)</span></span></code></pre></div><p></p></div>
+<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">MvaMethod</span><span class="op">$</span><span class="fu">project_scores</span><span class="op">(</span><span class="va">result</span>, <span class="va">spec</span>, type <span class="op">=</span> <span class="st">"feature"</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
 <div class="section">
 <h4 id="arguments-4">Arguments<a class="anchor" aria-label="anchor" href="#arguments-4"></a></h4>
+<p></p><div class="arguments"><dl><dt><code>result</code></dt>
+<dd><p>A fitted <code>mva_result</code></p></dd>
+
+
+<dt><code>spec</code></dt>
+<dd><p>Held-out <code>mva_spec</code> or <code>pls_spec</code></p></dd>
+
+
+<dt><code>type</code></dt>
+<dd><p>Score space to project into</p></dd>
+
+
+<dt><code>progress</code></dt>
+<dd><p>Logical, show progress</p></dd>
+
+
+</dl><p></p></div>
+</div>
+<div class="section">
+<h4 id="returns-3">Returns<a class="anchor" aria-label="anchor" href="#returns-3"></a></h4>
+<p>Matrix of held-out scores, or a named list when <code>type = "both"</code></p>
+</div>
+
+</div><p></p><hr><a id="method-MvaMethod-align_to_reference"></a><div class="section">
+<h3 id="method-align-to-reference-">Method <code>align_to_reference()</code><a class="anchor" aria-label="anchor" href="#method-align-to-reference-"></a></h3>
+<p>Align bootstrap decomposition to reference (e.g., Procrustes).
+Default: sign-flip columns to maximize agreement.</p><div class="section">
+<h4 id="usage-5">Usage<a class="anchor" aria-label="anchor" href="#usage-5"></a></h4>
+<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">MvaMethod</span><span class="op">$</span><span class="fu">align_to_reference</span><span class="op">(</span><span class="va">boot_decomp</span>, <span class="va">ref_decomp</span><span class="op">)</span></span></code></pre></div><p></p></div>
+</div>
+
+<div class="section">
+<h4 id="arguments-5">Arguments<a class="anchor" aria-label="anchor" href="#arguments-5"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>boot_decomp</code></dt>
 <dd><p>An <code>mva_decomposition</code> from bootstrap</p></dd>
 
@@ -208,19 +244,19 @@ Default: sign-flip columns to maximize agreement.</p><div class="section">
 </dl><p></p></div>
 </div>
 <div class="section">
-<h4 id="returns-3">Returns<a class="anchor" aria-label="anchor" href="#returns-3"></a></h4>
+<h4 id="returns-4">Returns<a class="anchor" aria-label="anchor" href="#returns-4"></a></h4>
 <p>Aligned <code>mva_decomposition</code></p>
 </div>
 
 </div><p></p><hr><a id="method-MvaMethod-validate_spec"></a><div class="section">
 <h3 id="method-validate-spec-">Method <code>validate_spec()</code><a class="anchor" aria-label="anchor" href="#method-validate-spec-"></a></h3>
 <p>Validate that a spec has everything this method needs.</p><div class="section">
-<h4 id="usage-5">Usage<a class="anchor" aria-label="anchor" href="#usage-5"></a></h4>
+<h4 id="usage-6">Usage<a class="anchor" aria-label="anchor" href="#usage-6"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">MvaMethod</span><span class="op">$</span><span class="fu">validate_spec</span><span class="op">(</span><span class="va">spec</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
 <div class="section">
-<h4 id="arguments-5">Arguments<a class="anchor" aria-label="anchor" href="#arguments-5"></a></h4>
+<h4 id="arguments-6">Arguments<a class="anchor" aria-label="anchor" href="#arguments-6"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>spec</code></dt>
 <dd><p>An <code>mva_spec</code> or <code>pls_spec</code> object</p></dd>
 
@@ -228,7 +264,7 @@ Default: sign-flip columns to maximize agreement.</p><div class="section">
 </dl><p></p></div>
 </div>
 <div class="section">
-<h4 id="returns-4">Returns<a class="anchor" aria-label="anchor" href="#returns-4"></a></h4>
+<h4 id="returns-5">Returns<a class="anchor" aria-label="anchor" href="#returns-5"></a></h4>
 <p>TRUE invisibly, or stops with error</p>
 </div>
 
@@ -236,12 +272,12 @@ Default: sign-flip columns to maximize agreement.</p><div class="section">
 <h3 id="method-configure-">Method <code><a href="configure.html">configure()</a></code><a class="anchor" aria-label="anchor" href="#method-configure-"></a></h3>
 <p>Apply method-specific configuration to a spec.
 Override to handle method-specific parameters.</p><div class="section">
-<h4 id="usage-6">Usage<a class="anchor" aria-label="anchor" href="#usage-6"></a></h4>
+<h4 id="usage-7">Usage<a class="anchor" aria-label="anchor" href="#usage-7"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">MvaMethod</span><span class="op">$</span><span class="fu">configure</span><span class="op">(</span><span class="va">spec</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
 <div class="section">
-<h4 id="arguments-6">Arguments<a class="anchor" aria-label="anchor" href="#arguments-6"></a></h4>
+<h4 id="arguments-7">Arguments<a class="anchor" aria-label="anchor" href="#arguments-7"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>spec</code></dt>
 <dd><p>An <code>mva_spec</code> or <code>pls_spec</code> object</p></dd>
 
@@ -253,31 +289,31 @@ Override to handle method-specific parameters.</p><div class="section">
 </dl><p></p></div>
 </div>
 <div class="section">
-<h4 id="returns-5">Returns<a class="anchor" aria-label="anchor" href="#returns-5"></a></h4>
+<h4 id="returns-6">Returns<a class="anchor" aria-label="anchor" href="#returns-6"></a></h4>
 <p>Modified spec</p>
 </div>
 
 </div><p></p><hr><a id="method-MvaMethod-ui_config"></a><div class="section">
 <h3 id="method-ui-config-">Method <code>ui_config()</code><a class="anchor" aria-label="anchor" href="#method-ui-config-"></a></h3>
 <p>UI metadata for the Shiny app. Override to customize.</p><div class="section">
-<h4 id="usage-7">Usage<a class="anchor" aria-label="anchor" href="#usage-7"></a></h4>
+<h4 id="usage-8">Usage<a class="anchor" aria-label="anchor" href="#usage-8"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">MvaMethod</span><span class="op">$</span><span class="fu">ui_config</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
 <div class="section">
-<h4 id="returns-6">Returns<a class="anchor" aria-label="anchor" href="#returns-6"></a></h4>
+<h4 id="returns-7">Returns<a class="anchor" aria-label="anchor" href="#returns-7"></a></h4>
 <p>Named list with analysis_stages, explore_panels, inspector_metrics</p>
 </div>
 
 </div><p></p><hr><a id="method-MvaMethod-clone"></a><div class="section">
 <h3 id="method-clone-">Method <code>clone()</code><a class="anchor" aria-label="anchor" href="#method-clone-"></a></h3>
 <p>The objects of this class are cloneable with this method.</p><div class="section">
-<h4 id="usage-8">Usage<a class="anchor" aria-label="anchor" href="#usage-8"></a></h4>
+<h4 id="usage-9">Usage<a class="anchor" aria-label="anchor" href="#usage-9"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">MvaMethod</span><span class="op">$</span><span class="fu">clone</span><span class="op">(</span>deep <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
 <div class="section">
-<h4 id="arguments-7">Arguments<a class="anchor" aria-label="anchor" href="#arguments-7"></a></h4>
+<h4 id="arguments-8">Arguments<a class="anchor" aria-label="anchor" href="#arguments-8"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>deep</code></dt>
 <dd><p>Whether to make a deep clone.</p></dd>
 

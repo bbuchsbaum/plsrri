@@ -33,6 +33,8 @@ new methods (e.g., CPCA, CCA, ICA). See `PlsMethod` for an example.
 
 - [`MvaMethod$bootstrap_fit()`](#method-MvaMethod-bootstrap_fit)
 
+- [`MvaMethod$project_scores()`](#method-MvaMethod-project_scores)
+
 - [`MvaMethod$align_to_reference()`](#method-MvaMethod-align_to_reference)
 
 - [`MvaMethod$validate_spec()`](#method-MvaMethod-validate_spec)
@@ -144,6 +146,39 @@ rows, then call fit().
 #### Returns
 
 An `mva_decomposition` object
+
+------------------------------------------------------------------------
+
+### Method [`project_scores()`](https://bbuchsbaum.github.io/plsrri/reference/project_scores.md)
+
+Project held-out observations into the fitted score space. Subclasses
+should use only training-fit artifacts stored on `result`.
+
+#### Usage
+
+    MvaMethod$project_scores(result, spec, type = "feature", progress = FALSE)
+
+#### Arguments
+
+- `result`:
+
+  A fitted `mva_result`
+
+- `spec`:
+
+  Held-out `mva_spec` or `pls_spec`
+
+- `type`:
+
+  Score space to project into
+
+- `progress`:
+
+  Logical, show progress
+
+#### Returns
+
+Matrix of held-out scores, or a named list when `type = "both"`
 
 ------------------------------------------------------------------------
 

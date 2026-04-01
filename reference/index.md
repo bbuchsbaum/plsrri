@@ -17,6 +17,9 @@
 - [`add_group_labels()`](https://bbuchsbaum.github.io/plsrri/reference/add_group_labels.md)
   : Add Group Labels
 
+- [`add_site_labels()`](https://bbuchsbaum.github.io/plsrri/reference/add_site_labels.md)
+  : Add Site Labels
+
 - [`add_subjects()`](https://bbuchsbaum.github.io/plsrri/reference/add_subjects.md)
   : Add Subjects to PLS Specification
 
@@ -79,6 +82,9 @@
 
 - [`design_weights()`](https://bbuchsbaum.github.io/plsrri/reference/design_weights.md)
   : Extract Design/Behavior Weights
+
+- [`evaluate_prediction()`](https://bbuchsbaum.github.io/plsrri/reference/evaluate_prediction.md)
+  : Evaluate Predictive Performance with Nested Cross-Validation
 
 - [`feature_weights()`](https://bbuchsbaum.github.io/plsrri/reference/feature_weights.md)
   : Extract Feature Weights
@@ -381,6 +387,9 @@
 
   Run the `plscli` Dispatcher
 
+- [`predict-cv`](https://bbuchsbaum.github.io/plsrri/reference/predict-cv.md)
+  : Predictive Cross-Validation for PLS
+
 - [`prepare_firstlevel()`](https://bbuchsbaum.github.io/plsrri/reference/prepare_firstlevel.md)
   : Prepare First-Level Artifacts
 
@@ -392,6 +401,9 @@
 
 - [`procrustes_cpp()`](https://bbuchsbaum.github.io/plsrri/reference/procrustes_cpp.md)
   : Procrustes Rotation
+
+- [`project_scores()`](https://bbuchsbaum.github.io/plsrri/reference/project_scores.md)
+  : Project Held-Out Observations into a Fitted Score Space
 
 - [`quick_pls()`](https://bbuchsbaum.github.io/plsrri/reference/quick_pls.md)
   : Quick Run for Simple Analyses
@@ -445,6 +457,9 @@
 
 - [`singular_values()`](https://bbuchsbaum.github.io/plsrri/reference/singular_values.md)
   : Extract Singular Values
+
+- [`site_pooling_diagnostics()`](https://bbuchsbaum.github.io/plsrri/reference/site_pooling_diagnostics.md)
+  : Site-Pooling Diagnostics for Multisite PLS
 
 - [`stability()`](https://bbuchsbaum.github.io/plsrri/reference/stability.md)
   : Extract Stability Estimates

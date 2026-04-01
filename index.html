@@ -38,6 +38,8 @@
 <li><a class="dropdown-item" href="articles/plsrri.html">Getting Started</a></li>
     <li><a class="dropdown-item" href="articles/scripted-workflows.html">Scripted Workflows</a></li>
     <li><a class="dropdown-item" href="articles/pipeline-yaml-spec.html">Pipeline YAML Specification</a></li>
+    <li><a class="dropdown-item" href="articles/site-pooling.html">Multisite Behavioral PLS</a></li>
+    <li><a class="dropdown-item" href="articles/predictive-measures.html">Predictive Measures</a></li>
     <li><a class="dropdown-item" href="articles/behavior-pls.html">Behavior PLS</a></li>
     <li><a class="dropdown-item" href="articles/ws-seed-pls.html">Within-Subject Seed PLS</a></li>
     <li><a class="dropdown-item" href="articles/multiblock-and-seed.html">Multiblock and Seed</a></li>
@@ -80,21 +82,26 @@
 <p>If you want a clean non-GUI pipeline from saved first-level artifacts to PLS results and Quarto reports, start with:</p>
 <ul>
 <li><a href="articles/scripted-workflows.html">Scripted Workflows</a></li>
+<li><a href="articles/pipeline-yaml-spec.html">Pipeline YAML Specification</a></li>
 <li><code><a href="reference/prepare_firstlevel.html">prepare_firstlevel()</a></code></li>
 <li><code><a href="reference/prepare_pls.html">prepare_pls()</a></code></li>
 <li><code><a href="reference/run_pls.html">run_pls()</a></code></li>
 <li><code><a href="reference/render_pls_report.html">render_pls_report()</a></code></li>
 <li><code><a href="reference/plscli_main.html">plscli_main()</a></code></li>
 </ul>
-<p>The minimal scripted path is:</p>
+<p>Start by scaffolding a spec rather than writing YAML from scratch:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/write_pipeline_template.html">write_pipeline_template</a></span><span class="op">(</span><span class="st">"study.yml"</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="ex">plscli</span> template <span class="at">--out</span> study.yml</span></code></pre></div>
+<p>The minimal scripted path is:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">prep</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/prepare_firstlevel.html">prepare_firstlevel</a></span><span class="op">(</span><span class="st">"study.yml"</span><span class="op">)</span></span>
 <span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/run_pls.html">run_pls</a></span><span class="op">(</span><span class="va">prep</span><span class="op">)</span></span>
 <span><span class="fu"><a href="reference/render_pls_report.html">render_pls_report</a></span><span class="op">(</span><span class="va">prep</span><span class="op">$</span><span class="va">spec</span><span class="op">)</span></span></code></pre></div>
 <p>The matching staged CLI path is:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="ex">plscli</span> validate <span class="at">--spec</span> study.yml</span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="ex">plscli</span> run <span class="at">--spec</span> study.yml</span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="ex">plscli</span> report <span class="at">--input</span> study.yml <span class="at">--format</span> html</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="ex">plscli</span> validate <span class="at">--spec</span> study.yml</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="ex">plscli</span> run <span class="at">--spec</span> study.yml</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="ex">plscli</span> report <span class="at">--input</span> study.yml <span class="at">--format</span> html</span></code></pre></div>
 <p>That same contract is designed to work across:</p>
 <ul>
 <li>ordinary R scripts</li>

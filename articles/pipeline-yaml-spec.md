@@ -17,6 +17,16 @@ required fields, and common variants. For the scripted workflow itself,
 see
 [`vignette("scripted-workflows")`](https://bbuchsbaum.github.io/plsrri/articles/scripted-workflows.md).
 
+The intended starting point is a scaffold, not a blank file:
+
+``` r
+write_pipeline_template("study.yml")
+```
+
+``` bash
+plscli template --out study.yml
+```
+
 ## What sections does the spec contain?
 
 The scaffold written by
@@ -52,7 +62,7 @@ The minimum viable spec is deliberately small. You need:
 ``` r
 cat(as.yaml(minimal_spec))
 #> dataset:
-#>   bids_dir: /tmp/Rtmpre2aTG/plsrri-yaml-28dd28f27c36/bids
+#>   bids_dir: /tmp/RtmpT8stjN/plsrri-yaml-2bba5ad64db5/bids
 #>   task: stroop
 #> design:
 #>   formula: onset ~ hrf(condition, basis = 'spmg1')
@@ -65,7 +75,7 @@ cat(as.yaml(minimal_spec))
 #>   nperm: 0
 #>   nboot: 0
 #> outputs:
-#>   root: /tmp/Rtmpre2aTG/plsrri-yaml-28dd28f27c36/out
+#>   root: /tmp/RtmpT8stjN/plsrri-yaml-2bba5ad64db5/out
 ```
 
 That small object already validates and picks up defaults for
@@ -184,7 +194,7 @@ encode basis functions such as FIR bins or tent functions:
 ``` r
 cat(as.yaml(basis_spec))
 #> dataset:
-#>   bids_dir: /tmp/Rtmpre2aTG/plsrri-yaml-28dd28f27c36/bids
+#>   bids_dir: /tmp/RtmpT8stjN/plsrri-yaml-2bba5ad64db5/bids
 #>   task: stroop
 #> design:
 #>   formula: onset ~ hrf(condition, basis = 'fir', K = 4)
@@ -214,7 +224,7 @@ cat(as.yaml(basis_spec))
 #>   nperm: 0
 #>   nboot: 0
 #> outputs:
-#>   root: /tmp/Rtmpre2aTG/plsrri-yaml-28dd28f27c36/fir-out
+#>   root: /tmp/RtmpT8stjN/plsrri-yaml-2bba5ad64db5/fir-out
 ```
 
 The important point is that basis handling belongs in both places:

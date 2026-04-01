@@ -12,7 +12,8 @@ launch_pls_gui(...)
 
 - ...:
 
-  Additional arguments passed to `shiny::runApp()`.
+  Additional arguments passed to
+  [`shiny::runApp()`](https://rdrr.io/pkg/shiny/man/runApp.html).
 
 ## Value
 
