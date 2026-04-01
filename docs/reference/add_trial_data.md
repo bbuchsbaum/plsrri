@@ -12,6 +12,8 @@ add_trial_data(
   seed_lst,
   condition_lst,
   groups = NULL,
+  seed_labels = NULL,
+  layout = c("seed_condition", "stacked_seed_features"),
   fisher_z = TRUE,
   min_trials = 3L
 )

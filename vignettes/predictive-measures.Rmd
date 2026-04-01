@@ -1,0 +1,397 @@
+---
+title: "Predictive Measures and Resampling Inference"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Predictive Measures and Resampling Inference}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 6,
+  fig.height = 4
+)
+
+ensure_local_plsrri <- function(required_exports) {
+  pkg_root <- if (file.exists("DESCRIPTION")) "." else ".."
+  if (!file.exists(file.path(pkg_root, "DESCRIPTION")) ||
+      !requireNamespace("devtools", quietly = TRUE)) {
+    return(invisible(FALSE))
+  }
+
+  installed_exports <- if (requireNamespace("plsrri", quietly = TRUE)) {
+    getNamespaceExports("plsrri")
+  } else {
+    character(0)
+  }
+
+  if (!all(required_exports %in% installed_exports)) {
+    devtools::load_all(pkg_root, quiet = TRUE)
+    return(invisible(TRUE))
+  }
+
+  invisible(FALSE)
+}
+
+ensure_local_plsrri("evaluate_prediction")
+
+round_numeric_df <- function(df, digits = 2) {
+  num <- vapply(df, is.numeric, logical(1))
+  df[num] <- lapply(df[num], round, digits = digits)
+  df
+}
+```
+
+```{r load-package}
+library(plsrri)
+```
+
+You can now ask two different questions of the same PLS analysis. First, does
+the latent-variable decomposition look non-random and stable under the usual
+PLS resampling tools? Second, can the fitted score space support honest
+out-of-fold prediction for held-out subjects? `plsrri` now supports both.
+
+This article shows how predictive measures complement, rather than replace,
+the existing permutation, bootstrap, and split-half analyses:
+
+- permutation on a `pls_result` asks whether an LV is stronger than expected
+  under the null decomposition
+- bootstrap asks which voxel or behavior relationships are stable
+- predictive cross-validation asks whether the learned score space
+  generalizes to held-out subjects
+
+## What does a predictive quick win look like?
+
+This vignette uses one synthetic brain-behavior dataset throughout. The quick
+win is a classification analysis: can you recover a held-out high-vs-low
+subject label from the score space learned inside each training fold?
+
+```{r simulate-and-fit, include = FALSE}
+set.seed(2026)
+
+n_subj <- 24L
+n_cond <- 2L
+n_feat <- 90L
+
+subj_latent <- as.numeric(scale(
+  seq(-1.5, 1.5, length.out = n_subj) + rnorm(n_subj, sd = 0.2)
+))
+cond_shift <- c(-0.5, 0.5)
+
+behav <- cbind(
+  symptom = as.numeric(scale(
+    rep(subj_latent, times = n_cond) +
+      rep(cond_shift, each = n_subj) +
+      rnorm(n_subj * n_cond, sd = 0.15)
+  )),
+  reserve = as.numeric(scale(
+    -0.7 * rep(subj_latent, times = n_cond) +
+      rnorm(n_subj * n_cond, sd = 0.2)
+  ))
+)
+
+brain <- matrix(
+  rnorm(n_subj * n_cond * n_feat, sd = 0.5),
+  nrow = n_subj * n_cond,
+  ncol = n_feat
+)
+
+brain[, 1:30] <- brain[, 1:30] +
+  rep(subj_latent, times = n_cond) %o% rep(1.0, 30)
+brain[, 31:60] <- brain[, 31:60] +
+  rep(cond_shift, each = n_subj) %o% rep(0.8, 30)
+brain[, 61:90] <- brain[, 61:90] +
+  rep(subj_latent * rep(cond_shift, each = n_subj), 1) %o% rep(0.6, 30)
+
+symptom_score <- subj_latent + rnorm(n_subj, sd = 0.05)
+diagnosis <- factor(
+  ifelse(subj_latent > median(subj_latent), "high", "low"),
+  levels = c("low", "high")
+)
+
+spec <- pls_spec() |>
+  add_subjects(list(brain), groups = n_subj) |>
+  add_conditions(c("baseline", "challenge")) |>
+  add_behavior(behav, measures = c("symptom", "reserve")) |>
+  configure(method = "behavior", nperm = 79, nboot = 79)
+
+fit <- run(spec, progress = FALSE)
+
+reg_result <- evaluate_prediction(
+  spec,
+  outcome = symptom_score,
+  task = "regression",
+  components = 1:2,
+  resampling = list(
+    outer_folds = 4L,
+    outer_repeats = 1L,
+    inner_folds = 3L,
+    inner_repeats = 1L,
+    stratify = FALSE
+  ),
+  num_perm = 9L,
+  num_boot = 29L,
+  seed = 11L,
+  progress = FALSE
+)
+
+cls_result <- evaluate_prediction(
+  spec,
+  outcome = diagnosis,
+  task = "classification",
+  components = 1:2,
+  resampling = list(
+    outer_folds = 4L,
+    outer_repeats = 1L,
+    inner_folds = 3L,
+    inner_repeats = 1L,
+    stratify = TRUE
+  ),
+  num_perm = 9L,
+  num_boot = 29L,
+  seed = 12L,
+  progress = FALSE
+)
+
+sig <- significance(fit)
+var_exp <- singular_values(fit, normalize = TRUE)
+
+corr_ci <- confidence(fit, what = "correlation", lv = 1)
+corr_labels <- as.vector(sapply(spec$conditions, function(cond) {
+  paste(cond, colnames(behav), sep = " / ")
+}))
+corr_table <- data.frame(
+  loading = corr_labels,
+  lower = corr_ci$lower[, 1],
+  upper = corr_ci$upper[, 1],
+  stringsAsFactors = FALSE
+)
+reliable_corr <- sum(corr_table$lower * corr_table$upper > 0)
+
+reg_summary <- setNames(reg_result$summary$mean, reg_result$summary$metric)
+cls_summary <- setNames(cls_result$summary$mean, cls_result$summary$metric)
+
+reg_subject <- aggregate(
+  cbind(estimate, truth) ~ subject_id,
+  data = reg_result$oof_predictions,
+  FUN = mean
+)
+
+cls_subject <- aggregate(
+  probability ~ subject_id + truth,
+  data = cls_result$oof_predictions,
+  FUN = mean
+)
+
+comparison <- data.frame(
+  question = c(
+    "Is the dominant latent variable stronger than a null decomposition?",
+    "Which behavior relationships are stable under bootstrap resampling?",
+    "Can the latent score space predict a held-out continuous outcome?",
+    "Can the latent score space classify held-out subjects?"
+  ),
+  diagnostic = c(
+    sprintf("LV1 permutation p = %.3f; variance explained = %.1f%%", sig[1], var_exp[1]),
+    sprintf("%d of %d behavior intervals exclude zero", reliable_corr, nrow(corr_table)),
+    sprintf("OOF R^2 = %.2f; RMSE = %.2f", reg_summary[["rsq"]], reg_summary[["rmse"]]),
+    sprintf("OOF accuracy = %.2f; AUC = %.2f", cls_summary[["accuracy"]], cls_summary[["auc"]])
+  ),
+  stringsAsFactors = FALSE
+)
+
+stopifnot(
+  all(is.finite(sig)),
+  sig[1] < 0.05,
+  is.finite(var_exp[1]),
+  var_exp[1] > 50,
+  reliable_corr >= 4,
+  all(is.finite(reg_result$summary$mean)),
+  reg_summary[["rsq"]] > 0.5,
+  reg_result$perm_test$observed < median(reg_result$perm_test$null_distribution),
+  all(reg_result$boot_ci$lower <= reg_result$boot_ci$upper),
+  all(is.finite(cls_result$summary$mean)),
+  cls_summary[["accuracy"]] > 0.7,
+  cls_summary[["auc"]] > 0.75,
+  cls_result$perm_test$observed > median(cls_result$perm_test$null_distribution),
+  all(cls_result$boot_ci$lower <= cls_result$boot_ci$upper),
+  nrow(reg_subject) == n_subj,
+  nrow(cls_subject) == n_subj
+)
+```
+
+```{r quick-win}
+round_numeric_df(cls_result$summary)
+```
+
+```{r quick-win-inference}
+round_numeric_df(cls_result$boot_ci[, c("metric", "estimate", "lower", "upper")])
+```
+
+The key point is that this object is not another decomposition summary. It is
+an out-of-fold predictive result built from nested cross-validation, with its
+own permutation null and bootstrap intervals.
+
+## What data are we using?
+
+The example has `r n_subj` subjects, `r n_cond` conditions, `r n_feat`
+features, and two behavior measures. One subject-level latent factor drives a
+brain block, the symptom measure, and the binary diagnosis; a second block
+captures condition structure.
+
+```{r inspect-data}
+rbind(
+  brain = dim(brain),
+  behavior = dim(behav)
+)
+```
+
+```{r inspect-subject-outcomes}
+head(data.frame(
+  subject = seq_len(6),
+  symptom_score = round(symptom_score[1:6], 2),
+  diagnosis = diagnosis[1:6]
+))
+```
+
+## What does ordinary PLS inference tell you first?
+
+Start with the decomposition-side questions. Here the behavior PLS fit asks
+whether there is a dominant brain-behavior latent variable, and whether the
+behavior links are stable under bootstrap resampling.
+
+```{r decomposition-significance}
+round(cbind(
+  pvalue = significance(fit),
+  variance = singular_values(fit, normalize = TRUE)
+), 2)
+```
+
+```{r plot-scree, fig.cap = "The decomposition-side permutation test is about latent variables, not held-out prediction. LV1 dominates the singular value spectrum."}
+plot_singular_values(fit)
+```
+
+LV1 is clearly non-null in the ordinary PLS sense. That still does not tell
+you whether held-out subjects can be predicted. It only tells you that the
+brain-behavior decomposition is stronger than the null decomposition generated
+by row shuffling.
+
+Bootstrap intervals answer a different question again: which specific
+brain-behavior links are stable?
+
+```{r behavior-correlation-ci}
+round_numeric_df(corr_table)
+```
+
+All four behavior-by-condition intervals stay away from zero. That supports
+the claim that the symptom/reserve pattern is stable, but it is still not a
+held-out predictive statement.
+
+## What does predictive regression add?
+
+Now switch from decomposition inference to honest prediction. The regression
+target is the subject-level symptom score, not the repeated behavior matrix
+used to fit the decomposition.
+
+```{r regression-summary}
+round_numeric_df(reg_result$summary)
+```
+
+```{r regression-inference}
+round_numeric_df(reg_result$boot_ci[, c("metric", "estimate", "lower", "upper")])
+```
+
+For speed, this vignette uses only `r reg_result$perm_test$num_perm`
+predictive label permutations, so the smallest attainable predictive
+p-value is `r 1 / (reg_result$perm_test$num_perm + 1)`. In a real analysis
+you would increase this substantially.
+
+```{r regression-permutation}
+reg_result$perm_test
+```
+
+The continuous outcome is recoverable out of sample: the held-out
+`R^2` is `r sprintf('%.2f', reg_summary[['rsq']])`, and the observed RMSE is
+smaller than the median value from the shuffled-label null.
+
+```{r plot-regression-oof, echo = FALSE, fig.cap = "Each point is one held-out subject, aggregated across outer folds. Predictive validation asks whether these subject-level estimates track the true outcome."}
+plot(
+  reg_subject$truth,
+  reg_subject$estimate,
+  pch = 19,
+  col = "steelblue",
+  xlab = "True symptom score",
+  ylab = "Out-of-fold predicted symptom score"
+)
+abline(a = 0, b = 1, lty = 2, col = "grey40")
+```
+
+## What does predictive classification add?
+
+The same score space can also be used for classification. Here the target is
+a binary high-vs-low diagnosis derived from the same latent factor.
+
+```{r classification-summary}
+round_numeric_df(cls_result$summary)
+```
+
+```{r classification-permutation}
+cls_result$perm_test
+```
+
+```{r classification-boot}
+round_numeric_df(cls_result$boot_ci[, c("metric", "estimate", "lower", "upper")])
+```
+
+Again, the predictive inference is about held-out performance. Accuracy and
+AUC are computed from out-of-fold predictions, and the predictive permutation
+test compares those numbers to a null generated by re-running the full nested
+cross-validation workflow with shuffled subject labels.
+
+```{r plot-classification-oof, echo = FALSE, fig.cap = "Held-out class probabilities aggregated to one row per subject. The horizontal line marks a 0.5 decision threshold."}
+boxplot(
+  probability ~ truth,
+  data = cls_subject,
+  col = c("grey85", "tomato"),
+  ylab = "Mean held-out Pr(high)",
+  xlab = "True class"
+)
+abline(h = 0.5, lty = 2, col = "grey40")
+```
+
+## How do the inferential layers complement each other?
+
+These tools are strongest when you treat them as complementary rather than
+interchangeable:
+
+```{r comparison-table}
+comparison
+```
+
+You can read the table as four distinct questions:
+
+- Decomposition permutation: is there a latent variable stronger than a null
+  PLS decomposition?
+- Decomposition bootstrap: which loadings or correlations are stable?
+- Predictive regression/classification: do those learned score patterns
+  generalize to held-out subjects?
+
+Split-half validation fits beside the first two, not the last one. It asks
+whether the decomposition itself replicates across random halves of the data,
+while `evaluate_prediction()` asks whether a training-fit score space supports
+honest out-of-fold prediction.
+
+## Where should you go next?
+
+| Goal | Resource |
+|:-----|:---------|
+| Core task PLS workflow | `vignette("plsrri")` |
+| Ordinary behavior PLS workflow | `vignette("behavior-pls")` |
+| Multiblock and seed methods | `vignette("multiblock-and-seed")` |
+| Predictive entry point | `?evaluate_prediction` |
+| Decomposition-side significance | `?significance` |
+| Bootstrap confidence intervals | `?confidence` |

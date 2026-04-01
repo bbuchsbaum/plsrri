@@ -17,6 +17,10 @@ navbar:
           href: articles/scripted-workflows.html
         - text: Pipeline YAML Specification
           href: articles/pipeline-yaml-spec.html
+        - text: Multisite Behavioral PLS
+          href: articles/site-pooling.html
+        - text: Predictive Measures
+          href: articles/predictive-measures.html
         - text: Behavior PLS
           href: articles/behavior-pls.html
         - text: Within-Subject Seed PLS
@@ -31,6 +35,8 @@ articles:
       - plsrri
       - scripted-workflows
       - pipeline-yaml-spec
+      - site-pooling
+      - predictive-measures
       - behavior-pls
       - ws-seed-pls
       - multiblock-and-seed

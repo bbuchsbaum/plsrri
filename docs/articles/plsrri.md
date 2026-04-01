@@ -4,6 +4,9 @@
 library(plsrri)
 ```
 
+> **Note:** `plsrri` is under active development. The API may change
+> before the first stable release.
+
 You have subject-by-condition brain data and want to know two things:
 which latent patterns separate your experimental conditions, and how
 stable are those patterns under resampling? `plsrri` gives you both a
@@ -88,12 +91,12 @@ cbind(
   variance = round(singular_values(result, normalize = TRUE), 1)
 )
 #>     pvalue variance
-#> LV1  0.600     29.5
-#> LV2  0.415     27.0
-#> LV3  0.215     24.6
-#> LV4  0.875     18.8
-#> LV5  0.010      0.0
-#> LV6  0.000      0.0
+#> LV1  0.075     29.5
+#> LV2  0.230     27.0
+#> LV3  0.545     24.6
+#> LV4  1.000     18.8
+#> LV5  0.930      0.0
+#> LV6  1.000      0.0
 ```
 
 LV1 captures 29.5% of the variance. The scree plot makes this dominance
@@ -239,6 +242,8 @@ artifacts, staged CLI runs, and Quarto reporting.
 |:---|:---|
 | Scripted R API, CLI, and report workflow | [`vignette("scripted-workflows")`](https://bbuchsbaum.github.io/plsrri/articles/scripted-workflows.md) |
 | Behavior PLS with continuous measures | [`vignette("behavior-pls")`](https://bbuchsbaum.github.io/plsrri/articles/behavior-pls.md) |
+| Multisite pooled behavior PLS with site diagnostics | [`vignette("site-pooling")`](https://bbuchsbaum.github.io/plsrri/articles/site-pooling.md) |
+| Within-subject seed connectivity from trial-level data | [`vignette("ws-seed-pls")`](https://bbuchsbaum.github.io/plsrri/articles/ws-seed-pls.md) |
 | Multiblock and seed connectivity PLS | [`vignette("multiblock-and-seed")`](https://bbuchsbaum.github.io/plsrri/articles/multiblock-and-seed.md) |
 | Full engine parameters | [`?pls_analysis`](https://bbuchsbaum.github.io/plsrri/reference/pls_analysis.md) |
 | Builder verbs | [`?pls_spec`](https://bbuchsbaum.github.io/plsrri/reference/pls_spec.md), [`?configure`](https://bbuchsbaum.github.io/plsrri/reference/configure.md), [`?run`](https://bbuchsbaum.github.io/plsrri/reference/run.md) |

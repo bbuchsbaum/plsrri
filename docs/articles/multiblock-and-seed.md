@@ -241,6 +241,7 @@ Brain scores for LV1 in the seed PLS example.
 |:---|:---|
 | Task PLS workflow | [`vignette("plsrri")`](https://bbuchsbaum.github.io/plsrri/articles/plsrri.md) |
 | Behavior PLS with continuous measures | [`vignette("behavior-pls")`](https://bbuchsbaum.github.io/plsrri/articles/behavior-pls.md) |
+| Within-subject seed connectivity with trial-level betas | [`vignette("ws-seed-pls")`](https://bbuchsbaum.github.io/plsrri/articles/ws-seed-pls.md) |
 | Seed PLS wrapper | [`?seed_pls`](https://bbuchsbaum.github.io/plsrri/reference/seed_pls.md) |
 | Multiblock block conditions | [`?add_behavior`](https://bbuchsbaum.github.io/plsrri/reference/add_behavior.md) |
 | Method switching | [`?configure`](https://bbuchsbaum.github.io/plsrri/reference/configure.md) |

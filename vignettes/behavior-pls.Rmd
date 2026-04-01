@@ -16,6 +16,29 @@ knitr::opts_chunk$set(
   fig.width = 6,
   fig.height = 4
 )
+
+ensure_local_plsrri <- function(required_exports) {
+  pkg_root <- if (file.exists("DESCRIPTION")) "." else ".."
+  if (!file.exists(file.path(pkg_root, "DESCRIPTION")) ||
+      !requireNamespace("devtools", quietly = TRUE)) {
+    return(invisible(FALSE))
+  }
+
+  installed_exports <- if (requireNamespace("plsrri", quietly = TRUE)) {
+    getNamespaceExports("plsrri")
+  } else {
+    character(0)
+  }
+
+  if (!all(required_exports %in% installed_exports)) {
+    devtools::load_all(pkg_root, quiet = TRUE)
+    return(invisible(TRUE))
+  }
+
+  invisible(FALSE)
+}
+
+ensure_local_plsrri("behav_pls")
 ```
 
 ```{r load-package}
@@ -170,7 +193,9 @@ latent structure, while the condition block (71-90) contributes more weakly.
 
 | Goal | Resource |
 |:-----|:---------|
+| Multisite pooled behavior PLS with site diagnostics | `vignette("site-pooling")` |
 | Task PLS workflow | `vignette("plsrri")` |
+| Predictive validation from the same score space | `vignette("predictive-measures")` |
 | Multiblock and seed PLS | `vignette("multiblock-and-seed")` |
 | Behavior wrapper | `?behav_pls` |
 | Full engine with all options | `?pls_analysis` |

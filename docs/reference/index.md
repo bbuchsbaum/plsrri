@@ -2,6 +2,9 @@
 
 ## All functions
 
+- [`MvaMethod`](https://bbuchsbaum.github.io/plsrri/reference/MvaMethod.md)
+  : MvaMethod R6 Class
+
 - [`add_behavior()`](https://bbuchsbaum.github.io/plsrri/reference/add_behavior.md)
   : Add Behavior Data to PLS Specification
 
@@ -13,6 +16,9 @@
 
 - [`add_group_labels()`](https://bbuchsbaum.github.io/plsrri/reference/add_group_labels.md)
   : Add Group Labels
+
+- [`add_site_labels()`](https://bbuchsbaum.github.io/plsrri/reference/add_site_labels.md)
+  : Add Site Labels
 
 - [`add_subjects()`](https://bbuchsbaum.github.io/plsrri/reference/add_subjects.md)
   : Add Subjects to PLS Specification
@@ -34,6 +40,9 @@
 
 - [`behav_pls()`](https://bbuchsbaum.github.io/plsrri/reference/behav_pls.md)
   : Behavioral Correlates PLS
+
+- [`benchmark_fast_paths()`](https://bbuchsbaum.github.io/plsrri/reference/benchmark_fast_paths.md)
+  : Benchmark Exact Fast Paths
 
 - [`bsr()`](https://bbuchsbaum.github.io/plsrri/reference/bsr.md) :
   Extract Bootstrap Ratios
@@ -71,14 +80,32 @@
 - [`configure()`](https://bbuchsbaum.github.io/plsrri/reference/configure.md)
   : Configure PLS Analysis
 
+- [`design_weights()`](https://bbuchsbaum.github.io/plsrri/reference/design_weights.md)
+  : Extract Design/Behavior Weights
+
+- [`evaluate_prediction()`](https://bbuchsbaum.github.io/plsrri/reference/evaluate_prediction.md)
+  : Evaluate Predictive Performance with Nested Cross-Validation
+
+- [`feature_weights()`](https://bbuchsbaum.github.io/plsrri/reference/feature_weights.md)
+  : Extract Feature Weights
+
 - [`generate_contrasts()`](https://bbuchsbaum.github.io/plsrri/reference/generate_contrasts.md)
   : Generate Common Contrasts
 
 - [`get_condition_rows()`](https://bbuchsbaum.github.io/plsrri/reference/get_condition_rows.md)
   : Get Condition Indices
 
+- [`get_method()`](https://bbuchsbaum.github.io/plsrri/reference/get_method.md)
+  : Get a Registered Method by Name
+
+- [`importance()`](https://bbuchsbaum.github.io/plsrri/reference/importance.md)
+  : Extract Component Importance
+
 - [`launch_pls_gui()`](https://bbuchsbaum.github.io/plsrri/reference/launch_pls_gui.md)
   : Launch PLS GUI
+
+- [`list_methods()`](https://bbuchsbaum.github.io/plsrri/reference/list_methods.md)
+  : List All Registered Methods
 
 - [`loadings()`](https://bbuchsbaum.github.io/plsrri/reference/loadings.md)
   : Extract Loadings
@@ -86,11 +113,35 @@
 - [`misssvd()`](https://bbuchsbaum.github.io/plsrri/reference/misssvd.md)
   : SVD with Missing Value Handling
 
+- [`mva-accessors`](https://bbuchsbaum.github.io/plsrri/reference/mva-accessors.md)
+  : Generic Accessors for Multivariate Analysis Results
+
+- [`mva-classes`](https://bbuchsbaum.github.io/plsrri/reference/mva-classes.md)
+  : Multivariate Analysis Data Classes
+
+- [`mva-method`](https://bbuchsbaum.github.io/plsrri/reference/mva-method.md)
+  : Multivariate Analysis Method Protocol
+
+- [`mva-pls-methods`](https://bbuchsbaum.github.io/plsrri/reference/mva-pls-methods.md)
+  : PLS Method Implementations for MvaMethod Protocol
+
+- [`mva_result_to_pls_result()`](https://bbuchsbaum.github.io/plsrri/reference/mva_result_to_pls_result.md)
+  : Convert an mva_result back to pls_result
+
+- [`n_components()`](https://bbuchsbaum.github.io/plsrri/reference/n_components.md)
+  : Get Number of Components
+
 - [`n_features()`](https://bbuchsbaum.github.io/plsrri/reference/n_features.md)
   : Get Number of Voxels/Features
 
 - [`n_lv()`](https://bbuchsbaum.github.io/plsrri/reference/n_lv.md) :
   Get Number of Latent Variables
+
+- [`new_mva_decomposition()`](https://bbuchsbaum.github.io/plsrri/reference/new_mva_decomposition.md)
+  : Create a Multivariate Decomposition Object
+
+- [`new_mva_result()`](https://bbuchsbaum.github.io/plsrri/reference/new_mva_result.md)
+  : Create a Multivariate Analysis Result
 
 - [`normalize_rows()`](https://bbuchsbaum.github.io/plsrri/reference/normalize_rows.md)
   : Normalize Rows to Unit Length
@@ -300,6 +351,9 @@
 - [`pls_pvalue()`](https://bbuchsbaum.github.io/plsrri/reference/pls_pvalue.md)
   : Compute P-values from Distribution
 
+- [`pls_result_to_mva_result()`](https://bbuchsbaum.github.io/plsrri/reference/pls_result_to_mva_result.md)
+  : Convert a pls_result to mva_result
+
 - [`pls_spec()`](https://bbuchsbaum.github.io/plsrri/reference/pls_spec.md)
   : Create a PLS Specification Object
 
@@ -333,6 +387,9 @@
 
   Run the `plscli` Dispatcher
 
+- [`predict-cv`](https://bbuchsbaum.github.io/plsrri/reference/predict-cv.md)
+  : Predictive Cross-Validation for PLS
+
 - [`prepare_firstlevel()`](https://bbuchsbaum.github.io/plsrri/reference/prepare_firstlevel.md)
   : Prepare First-Level Artifacts
 
@@ -345,6 +402,9 @@
 - [`procrustes_cpp()`](https://bbuchsbaum.github.io/plsrri/reference/procrustes_cpp.md)
   : Procrustes Rotation
 
+- [`project_scores()`](https://bbuchsbaum.github.io/plsrri/reference/project_scores.md)
+  : Project Held-Out Observations into a Fitted Score Space
+
 - [`quick_pls()`](https://bbuchsbaum.github.io/plsrri/reference/quick_pls.md)
   : Quick Run for Simple Analyses
 
@@ -352,6 +412,9 @@
   :
 
   Read a `plscli` Pipeline Specification
+
+- [`register_method()`](https://bbuchsbaum.github.io/plsrri/reference/register_method.md)
+  : Register a Multivariate Analysis Method
 
 - [`render_pls_report()`](https://bbuchsbaum.github.io/plsrri/reference/render_pls_report.md)
   : Render a PLS Report
@@ -394,6 +457,12 @@
 
 - [`singular_values()`](https://bbuchsbaum.github.io/plsrri/reference/singular_values.md)
   : Extract Singular Values
+
+- [`site_pooling_diagnostics()`](https://bbuchsbaum.github.io/plsrri/reference/site_pooling_diagnostics.md)
+  : Site-Pooling Diagnostics for Multisite PLS
+
+- [`stability()`](https://bbuchsbaum.github.io/plsrri/reference/stability.md)
+  : Extract Stability Estimates
 
 - [`task_mean_cpp()`](https://bbuchsbaum.github.io/plsrri/reference/task_mean_cpp.md)
   : Fast Task Mean Computation

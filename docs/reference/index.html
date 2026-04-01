@@ -19,13 +19,18 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/plsrri.html">Getting Started</a></li>
     <li><a class="dropdown-item" href="../articles/scripted-workflows.html">Scripted Workflows</a></li>
+    <li><a class="dropdown-item" href="../articles/pipeline-yaml-spec.html">Pipeline YAML Specification</a></li>
+    <li><a class="dropdown-item" href="../articles/site-pooling.html">Multisite Behavioral PLS</a></li>
+    <li><a class="dropdown-item" href="../articles/predictive-measures.html">Predictive Measures</a></li>
     <li><a class="dropdown-item" href="../articles/behavior-pls.html">Behavior PLS</a></li>
+    <li><a class="dropdown-item" href="../articles/ws-seed-pls.html">Within-Subject Seed PLS</a></li>
     <li><a class="dropdown-item" href="../articles/multiblock-and-seed.html">Multiblock and Seed</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/bbuchsbaum/plsrri/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
 
 
@@ -48,6 +53,13 @@
 
 
       <dl><dt>
+
+          <code><a href="MvaMethod.html">MvaMethod</a></code>
+
+        </dt>
+        <dd>MvaMethod R6 Class</dd>
+
+        <dt>
 
           <code><a href="add_behavior.html">add_behavior()</a></code>
 
@@ -74,6 +86,13 @@
 
         </dt>
         <dd>Add Group Labels</dd>
+
+        <dt>
+
+          <code><a href="add_site_labels.html">add_site_labels()</a></code>
+
+        </dt>
+        <dd>Add Site Labels</dd>
 
         <dt>
 
@@ -123,6 +142,13 @@
 
         </dt>
         <dd>Behavioral Correlates PLS</dd>
+
+        <dt>
+
+          <code><a href="benchmark_fast_paths.html">benchmark_fast_paths()</a></code>
+
+        </dt>
+        <dd>Benchmark Exact Fast Paths</dd>
 
         <dt>
 
@@ -210,6 +236,27 @@
 
         <dt>
 
+          <code><a href="design_weights.html">design_weights()</a></code>
+
+        </dt>
+        <dd>Extract Design/Behavior Weights</dd>
+
+        <dt>
+
+          <code><a href="evaluate_prediction.html">evaluate_prediction()</a></code>
+
+        </dt>
+        <dd>Evaluate Predictive Performance with Nested Cross-Validation</dd>
+
+        <dt>
+
+          <code><a href="feature_weights.html">feature_weights()</a></code>
+
+        </dt>
+        <dd>Extract Feature Weights</dd>
+
+        <dt>
+
           <code><a href="generate_contrasts.html">generate_contrasts()</a></code>
 
         </dt>
@@ -224,10 +271,31 @@
 
         <dt>
 
+          <code><a href="get_method.html">get_method()</a></code>
+
+        </dt>
+        <dd>Get a Registered Method by Name</dd>
+
+        <dt>
+
+          <code><a href="importance.html">importance()</a></code>
+
+        </dt>
+        <dd>Extract Component Importance</dd>
+
+        <dt>
+
           <code><a href="launch_pls_gui.html">launch_pls_gui()</a></code>
 
         </dt>
         <dd>Launch PLS GUI</dd>
+
+        <dt>
+
+          <code><a href="list_methods.html">list_methods()</a></code>
+
+        </dt>
+        <dd>List All Registered Methods</dd>
 
         <dt>
 
@@ -245,6 +313,48 @@
 
         <dt>
 
+          <code><a href="mva-accessors.html">mva-accessors</a></code>
+
+        </dt>
+        <dd>Generic Accessors for Multivariate Analysis Results</dd>
+
+        <dt>
+
+          <code><a href="mva-classes.html">mva-classes</a></code>
+
+        </dt>
+        <dd>Multivariate Analysis Data Classes</dd>
+
+        <dt>
+
+          <code><a href="mva-method.html">mva-method</a></code>
+
+        </dt>
+        <dd>Multivariate Analysis Method Protocol</dd>
+
+        <dt>
+
+          <code><a href="mva-pls-methods.html">mva-pls-methods</a></code>
+
+        </dt>
+        <dd>PLS Method Implementations for MvaMethod Protocol</dd>
+
+        <dt>
+
+          <code><a href="mva_result_to_pls_result.html">mva_result_to_pls_result()</a></code>
+
+        </dt>
+        <dd>Convert an mva_result back to pls_result</dd>
+
+        <dt>
+
+          <code><a href="n_components.html">n_components()</a></code>
+
+        </dt>
+        <dd>Get Number of Components</dd>
+
+        <dt>
+
           <code><a href="n_features.html">n_features()</a></code>
 
         </dt>
@@ -256,6 +366,20 @@
 
         </dt>
         <dd>Get Number of Latent Variables</dd>
+
+        <dt>
+
+          <code><a href="new_mva_decomposition.html">new_mva_decomposition()</a></code>
+
+        </dt>
+        <dd>Create a Multivariate Decomposition Object</dd>
+
+        <dt>
+
+          <code><a href="new_mva_result.html">new_mva_result()</a></code>
+
+        </dt>
+        <dd>Create a Multivariate Analysis Result</dd>
 
         <dt>
 
@@ -735,6 +859,13 @@
 
         <dt>
 
+          <code><a href="pls_result_to_mva_result.html">pls_result_to_mva_result()</a></code>
+
+        </dt>
+        <dd>Convert a pls_result to mva_result</dd>
+
+        <dt>
+
           <code><a href="pls_spec.html">pls_spec()</a></code>
 
         </dt>
@@ -805,6 +936,13 @@
 
         <dt>
 
+          <code><a href="predict-cv.html">predict-cv</a></code>
+
+        </dt>
+        <dd>Predictive Cross-Validation for PLS</dd>
+
+        <dt>
+
           <code><a href="prepare_firstlevel.html">prepare_firstlevel()</a></code>
 
         </dt>
@@ -833,6 +971,13 @@
 
         <dt>
 
+          <code><a href="project_scores.html">project_scores()</a></code>
+
+        </dt>
+        <dd>Project Held-Out Observations into a Fitted Score Space</dd>
+
+        <dt>
+
           <code><a href="quick_pls.html">quick_pls()</a></code>
 
         </dt>
@@ -844,6 +989,13 @@
 
         </dt>
         <dd>Read a <code>plscli</code> Pipeline Specification</dd>
+
+        <dt>
+
+          <code><a href="register_method.html">register_method()</a></code>
+
+        </dt>
+        <dd>Register a Multivariate Analysis Method</dd>
 
         <dt>
 
@@ -942,6 +1094,20 @@
 
         </dt>
         <dd>Extract Singular Values</dd>
+
+        <dt>
+
+          <code><a href="site_pooling_diagnostics.html">site_pooling_diagnostics()</a></code>
+
+        </dt>
+        <dd>Site-Pooling Diagnostics for Multisite PLS</dd>
+
+        <dt>
+
+          <code><a href="stability.html">stability()</a></code>
+
+        </dt>
+        <dd>Extract Stability Estimates</dd>
 
         <dt>
 

@@ -116,8 +116,20 @@ The package integrates with:
 ## Performance
 
 For large-scale analyses (500+ subjects, 10k permutations), the package
-provides Rcpp-accelerated versions of key functions. These are used
-automatically when available.
+provides Rcpp-accelerated versions of key functions. The default exact
+fast paths are tuned conservatively:
+
+- `"xcor"`: enabled by default
+
+- `"bootstrap"`: enabled by default
+
+- `"permutation"`: available, but disabled by default
+
+Use `options(plsrri.fast_paths = c("xcor", "bootstrap"))` to make the
+default explicit,
+`options(plsrri.fast_paths = c("xcor", "bootstrap", "permutation"))` to
+opt into permutation fast paths, or `options(plsrri.fast_paths = FALSE)`
+to disable exact fast paths entirely.
 
 ## References
 
@@ -127,6 +139,16 @@ neuroimaging data: applications and advances. NeuroImage 23: S250-S263.
 McIntosh AR, Bookstein FL, Haxby JV, Grady CL (1996). Spatial pattern
 analysis of functional brain images using partial least squares.
 NeuroImage 3: 143-157.
+
+## See also
+
+Useful links:
+
+- <https://bbuchsbaum.github.io/plsrri/>
+
+- <https://github.com/bbuchsbaum/plsrri>
+
+- Report bugs at <https://github.com/bbuchsbaum/plsrri/issues>
 
 ## Author
 

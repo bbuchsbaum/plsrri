@@ -27,6 +27,7 @@ new methods (e.g., CPCA, CCA, ICA). See \code{PlsMethod} for an example.
 \item \href{#method-MvaMethod-fit}{\code{MvaMethod$fit()}}
 \item \href{#method-MvaMethod-permutation_fit}{\code{MvaMethod$permutation_fit()}}
 \item \href{#method-MvaMethod-bootstrap_fit}{\code{MvaMethod$bootstrap_fit()}}
+\item \href{#method-MvaMethod-project_scores}{\code{MvaMethod$project_scores()}}
 \item \href{#method-MvaMethod-align_to_reference}{\code{MvaMethod$align_to_reference()}}
 \item \href{#method-MvaMethod-validate_spec}{\code{MvaMethod$validate_spec()}}
 \item \href{#method-MvaMethod-configure}{\code{MvaMethod$configure()}}
@@ -123,6 +124,33 @@ Default: resample rows, then call fit().
 }
 \subsection{Returns}{
 An \code{mva_decomposition} object
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-MvaMethod-project_scores"></a>}}
+\if{latex}{\out{\hypertarget{method-MvaMethod-project_scores}{}}}
+\subsection{Method \code{project_scores()}}{
+Project held-out observations into the fitted score space.
+Subclasses should use only training-fit artifacts stored on \code{result}.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{MvaMethod$project_scores(result, spec, type = "feature", progress = FALSE)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{result}}{A fitted \code{mva_result}}
+
+\item{\code{spec}}{Held-out \code{mva_spec} or \code{pls_spec}}
+
+\item{\code{type}}{Score space to project into}
+
+\item{\code{progress}}{Logical, show progress}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+Matrix of held-out scores, or a named list when \code{type = "both"}
 }
 }
 \if{html}{\out{<hr>}}

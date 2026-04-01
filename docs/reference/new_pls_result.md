@@ -27,7 +27,9 @@ new_pls_result(
   TBusc = NULL,
   TBvsc = NULL,
   is_struct = FALSE,
-  mask = NULL
+  mask = NULL,
+  site = NULL,
+  site_diagnostics = NULL
 )
 ```
 

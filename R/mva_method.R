@@ -89,6 +89,19 @@ MvaMethod <- R6::R6Class("MvaMethod",
     },
 
     #' @description
+    #' Project held-out observations into the fitted score space.
+    #' Subclasses should use only training-fit artifacts stored on `result`.
+    #' @param result A fitted `mva_result`
+    #' @param spec Held-out `mva_spec` or `pls_spec`
+    #' @param type Score space to project into
+    #' @param progress Logical, show progress
+    #' @return Matrix of held-out scores, or a named list when `type = "both"`
+    project_scores = function(result, spec, type = "feature", progress = FALSE) {
+      stop("Held-out score projection is not implemented for method: ", self$name,
+           call. = FALSE)
+    },
+
+    #' @description
     #' Align bootstrap decomposition to reference (e.g., Procrustes).
     #' Default: sign-flip columns to maximize agreement.
     #' @param boot_decomp An `mva_decomposition` from bootstrap

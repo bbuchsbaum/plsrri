@@ -28,6 +28,7 @@ pls_analysis(
   Bpermsamp = NULL,
   bootsamp = NULL,
   bootsamp_4beh = NULL,
+  parallel_config = NULL,
   progress = TRUE
 )
 ```
@@ -178,6 +179,12 @@ pls_analysis(
   Optional behavior bootstrap matrix (`total_rows x num_boot`) for
   behavior/multiblock methods.
 
+- parallel_config:
+
+  Optional parallel execution config list with `backend` (`"future"` or
+  `"sequential"`) and `workers`. This affects permutation testing and
+  task-only bootstrap execution.
+
 - progress:
 
   Logical, show progress messages.
@@ -236,9 +243,9 @@ result <- pls_analysis(
   num_cond = 3,
   method = 1
 )
-#> ℹ Stacking data matrices...
-#> ℹ Computing covariance/correlation matrix...
-#> ℹ Computing latent variables...
-#> ℹ Computing scores...
-#> ✔ PLS analysis complete
+#> i Stacking data matrices...
+#> i Computing covariance/correlation matrix...
+#> i Computing latent variables...
+#> i Computing scores...
+#> v PLS analysis complete
 ```

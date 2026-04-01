@@ -21,13 +21,28 @@ if (length(missing_pkgs) > 0) {
   knitr::knit_exit()
 }
 
-pkg_root <- if (file.exists("DESCRIPTION")) "." else ".."
-if (requireNamespace("plsrri", quietly = TRUE) &&
-    !"write_pipeline_template" %in% getNamespaceExports("plsrri") &&
-    requireNamespace("devtools", quietly = TRUE) &&
-    file.exists(file.path(pkg_root, "DESCRIPTION"))) {
-  devtools::load_all(pkg_root, quiet = TRUE)
+ensure_local_plsrri <- function(required_exports) {
+  pkg_root <- if (file.exists("DESCRIPTION")) "." else ".."
+  if (!file.exists(file.path(pkg_root, "DESCRIPTION")) ||
+      !requireNamespace("devtools", quietly = TRUE)) {
+    return(invisible(FALSE))
+  }
+
+  installed_exports <- if (requireNamespace("plsrri", quietly = TRUE)) {
+    getNamespaceExports("plsrri")
+  } else {
+    character(0)
+  }
+
+  if (!all(required_exports %in% installed_exports)) {
+    devtools::load_all(pkg_root, quiet = TRUE)
+    return(invisible(TRUE))
+  }
+
+  invisible(FALSE)
 }
+
+ensure_local_plsrri("write_pipeline_template")
 ```
 
 ```{r load-package}
@@ -42,6 +57,16 @@ import/export path all share.
 This article is a reference for that contract. It focuses on structure,
 required fields, and common variants. For the scripted workflow itself, see
 `vignette("scripted-workflows")`.
+
+The intended starting point is a scaffold, not a blank file:
+
+```r
+write_pipeline_template("study.yml")
+```
+
+```bash
+plscli template --out study.yml
+```
 
 ## What sections does the spec contain?
 

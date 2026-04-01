@@ -58,6 +58,45 @@ PlsMethod <- R6::R6Class("PlsMethod",
       pls_result_to_mva_result(raw, spec = spec, method_name = self$name)
     },
 
+    project_scores = function(result, spec, type = "feature", progress = FALSE) {
+      stopifnot(inherits(result, "mva_result"))
+
+      if (!inherits(spec, "pls_spec")) {
+        stop(
+          "Held-out score projection currently requires `newdata` to be a pls_spec object.",
+          call. = FALSE
+        )
+      }
+
+      type <- .normalize_projection_type(type)
+      spec$method <- self$pls_method_int
+
+      need_behavior <- type %in% c("design", "both") &&
+        self$pls_method_int %in% c(3L, 4L, 5L, 6L)
+
+      spec <- .materialize_pls_spec(
+        spec,
+        derive_seed_behavior = need_behavior
+      )
+
+      ctx <- .pls_projection_context(result)
+      .validate_pls_projection_spec(
+        result = result,
+        spec = spec,
+        method_int = self$pls_method_int,
+        type = type,
+        ctx = ctx
+      )
+
+      .project_pls_scores_impl(
+        result = result,
+        spec = spec,
+        method_int = self$pls_method_int,
+        type = type,
+        ctx = ctx
+      )
+    },
+
     validate_spec = function(spec) {
       # Delegate to the existing PLS validation where possible
       caps <- self$capabilities
@@ -254,7 +293,13 @@ pls_result_to_mva_result <- function(pls_res, spec = NULL, method_name = NULL) {
       stacked_designdata = pls_res$stacked_designdata,
       stacked_behavdata  = pls_res$stacked_behavdata,
       is_struct          = pls_res$is_struct,
-      pls_method_int     = pls_res$method
+      pls_method_int     = pls_res$method,
+      groups             = pls_res$groups %||% spec$groups %||% NULL,
+      site               = pls_res$site %||% spec$site %||% NULL,
+      conditions         = pls_res$conditions %||% spec$conditions %||% NULL,
+      feature_layout     = pls_res$feature_layout %||% spec$feature_layout %||% NULL,
+      ws_seed_info       = pls_res$ws_seed_info %||% spec$ws_seed_info %||% NULL,
+      site_diagnostics   = pls_res$site_diagnostics %||% NULL
     )
   )
 
@@ -283,7 +328,7 @@ mva_result_to_pls_result <- function(mva_res) {
   d <- mva_res$decomposition
   ex <- d$extra
 
-  new_pls_result(
+  res <- new_pls_result(
     method             = ex$pls_method_int %||% 1L,
     u                  = d$feature_weights,
     s                  = d$importance,
@@ -307,6 +352,19 @@ mva_result_to_pls_result <- function(mva_res) {
     is_struct          = ex$is_struct %||% FALSE,
     mask               = mva_res$mask
   )
+
+  if (!is.null(ex$lvintercorrs)) {
+    res$lvintercorrs <- ex$lvintercorrs
+  }
+
+  res$groups <- ex$groups
+  res$site <- ex$site
+  res$conditions <- ex$conditions
+  res$feature_layout <- ex$feature_layout
+  res$ws_seed_info <- ex$ws_seed_info
+  res$site_diagnostics <- ex$site_diagnostics
+
+  res
 }
 
 # --- Method Registration ---

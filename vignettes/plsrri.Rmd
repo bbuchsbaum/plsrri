@@ -16,6 +16,29 @@ knitr::opts_chunk$set(
   fig.width = 6,
   fig.height = 4
 )
+
+ensure_local_plsrri <- function(required_exports) {
+  pkg_root <- if (file.exists("DESCRIPTION")) "." else ".."
+  if (!file.exists(file.path(pkg_root, "DESCRIPTION")) ||
+      !requireNamespace("devtools", quietly = TRUE)) {
+    return(invisible(FALSE))
+  }
+
+  installed_exports <- if (requireNamespace("plsrri", quietly = TRUE)) {
+    getNamespaceExports("plsrri")
+  } else {
+    character(0)
+  }
+
+  if (!all(required_exports %in% installed_exports)) {
+    devtools::load_all(pkg_root, quiet = TRUE)
+    return(invisible(TRUE))
+  }
+
+  invisible(FALSE)
+}
+
+ensure_local_plsrri("quick_pls")
 ```
 
 ```{r load-package}
@@ -226,6 +249,7 @@ If you want to move from interactive examples to reproducible scripted analysis,
 |:-----|:---------|
 | Scripted R API, CLI, and report workflow | `vignette("scripted-workflows")` |
 | Behavior PLS with continuous measures | `vignette("behavior-pls")` |
+| Multisite pooled behavior PLS with site diagnostics | `vignette("site-pooling")` |
 | Within-subject seed connectivity from trial-level data | `vignette("ws-seed-pls")` |
 | Multiblock and seed connectivity PLS | `vignette("multiblock-and-seed")` |
 | Full engine parameters | `?pls_analysis` |

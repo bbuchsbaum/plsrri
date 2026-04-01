@@ -318,3 +318,23 @@ add_group_labels <- function(spec, labels) {
   spec$groups <- labels
   spec
 }
+
+#' Add Site Labels
+#'
+#' @description
+#' Adds subject- or observation-level site labels for multisite pooling
+#' diagnostics. The labels are stored on the specification and, when present,
+#' behavior PLS fits will attach post-fit site-stability summaries.
+#'
+#' @param spec A `pls_spec` object.
+#' @param labels Character vector of site labels. May have length equal to the
+#'   number of subjects or observations implied by the current specification.
+#'
+#' @return Updated `pls_spec` object.
+#' @export
+add_site_labels <- function(spec, labels) {
+  assert_that(inherits(spec, "pls_spec"))
+  assert_that(is.character(labels))
+  spec$site <- labels
+  spec
+}

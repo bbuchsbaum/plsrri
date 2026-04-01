@@ -59,5 +59,5 @@ spec <- pls_spec() |>
   add_subjects(list(d1, d2), groups = c(20, 18)) |>
   add_conditions(3) |>
   add_design(contrasts, labels = c("task_vs_baseline", "task1_vs_task2"))
-#> ℹ Contrasts are not orthogonal. LV effects may overlap.
+#> i Contrasts are not orthogonal. LV effects may overlap.
 ```

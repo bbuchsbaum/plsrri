@@ -27,6 +27,7 @@ pls_bootstrap_test(
   bootsamp = NULL,
   bootsamp_4beh = NULL,
   clim = 95,
+  parallel_config = NULL,
   progress = TRUE
 )
 ```
@@ -92,6 +93,11 @@ pls_bootstrap_test(
 - clim:
 
   Confidence level
+
+- parallel_config:
+
+  Optional parallel execution config list with `backend` and `workers`.
+  This currently affects task-only bootstrap.
 
 - progress:
 

@@ -22,6 +22,7 @@ pls_permutation_test(
   meancentering_type = 0L,
   cormode = 0L,
   is_struct = FALSE,
+  parallel_config = NULL,
   permsamp = NULL,
   Tpermsamp = NULL,
   Bpermsamp = NULL,
@@ -82,6 +83,10 @@ pls_permutation_test(
 - is_struct:
 
   Structure PLS flag
+
+- parallel_config:
+
+  Optional parallel execution config list with `backend` and `workers`
 
 - progress:
 

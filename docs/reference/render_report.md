@@ -72,8 +72,7 @@ render_report(
 
 - ...:
 
-  Additional arguments passed to
-  [`quarto::quarto_render()`](https://quarto-dev.github.io/quarto-r/reference/quarto_render.html)
+  Additional arguments passed to `quarto::quarto_render()`
 
 ## Value
 

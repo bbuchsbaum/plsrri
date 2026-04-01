@@ -122,10 +122,12 @@ pls_spec <- function(mask = NULL) {
       cormode = 0L,
       boot_type = "strat",
       groups = NULL,
+      site = NULL,
       conditions = NULL,
       trial_data = NULL,
       ws_seed_info = NULL,
-      .trial_raw = FALSE
+      .trial_raw = FALSE,
+      .skip_site_diagnostics = FALSE
     ),
     class = "pls_spec"
   )
@@ -163,6 +165,10 @@ print.pls_spec <- function(x, ...) {
 
   if (!is.null(x$stacked_behavdata)) {
     cli::cli_text("Behavior measures: {ncol(x$stacked_behavdata)}")
+  }
+
+  if (!is.null(x$site)) {
+    cli::cli_text("Sites: {length(unique(as.character(x$site)))}")
   }
 
   cli::cli_text("Permutations: {x$num_perm}")
@@ -218,7 +224,9 @@ new_pls_result <- function(method,
                            TBusc = NULL,
                            TBvsc = NULL,
                            is_struct = FALSE,
-                           mask = NULL) {
+                           mask = NULL,
+                           site = NULL,
+                           site_diagnostics = NULL) {
 
   # Determine class based on method
   method_class <- switch(
@@ -254,7 +262,9 @@ new_pls_result <- function(method,
       TBusc = TBusc,
       TBvsc = TBvsc,
       is_struct = is_struct,
-      mask = mask
+      mask = mask,
+      site = site,
+      site_diagnostics = site_diagnostics
     ),
     class = c(method_class, "pls_result")
   )

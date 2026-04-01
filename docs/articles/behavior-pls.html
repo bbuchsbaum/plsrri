@@ -35,7 +35,11 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/plsrri.html">Getting Started</a></li>
     <li><a class="dropdown-item" href="../articles/scripted-workflows.html">Scripted Workflows</a></li>
+    <li><a class="dropdown-item" href="../articles/pipeline-yaml-spec.html">Pipeline YAML Specification</a></li>
+    <li><a class="dropdown-item" href="../articles/site-pooling.html">Multisite Behavioral PLS</a></li>
+    <li><a class="dropdown-item" href="../articles/predictive-measures.html">Predictive Measures</a></li>
     <li><a class="dropdown-item" href="../articles/behavior-pls.html">Behavior PLS</a></li>
+    <li><a class="dropdown-item" href="../articles/ws-seed-pls.html">Within-Subject Seed PLS</a></li>
     <li><a class="dropdown-item" href="../articles/multiblock-and-seed.html">Multiblock and Seed</a></li>
   </ul>
 </li>
@@ -46,6 +50,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
 </form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/bbuchsbaum/plsrri/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -62,14 +67,14 @@
       <h1>Behavior PLS Workflow</h1>
             
       
-
+      <small class="dont-index">Source: <a href="https://github.com/bbuchsbaum/plsrri/blob/HEAD/vignettes/behavior-pls.Rmd" class="external-link"><code>vignettes/behavior-pls.Rmd</code></a></small>
       <div class="d-none name"><code>behavior-pls.Rmd</code></div>
     </div>
 
     
     
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/plsrri">plsrri</a></span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/plsrri/">plsrri</a></span><span class="op">)</span></span></code></pre></div>
 <p>Behavior PLS finds latent variables that maximally capture the
 covariance between brain features and continuous behavioral measures —
 reaction time, accuracy, symptom scores, or any per-subject-condition
@@ -224,14 +229,27 @@ more weakly.</p>
 <h2 id="where-to-go-next">Where to go next<a class="anchor" aria-label="anchor" href="#where-to-go-next"></a>
 </h2>
 <table class="table">
+<colgroup>
+<col width="37%">
+<col width="62%">
+</colgroup>
 <thead><tr class="header">
 <th align="left">Goal</th>
 <th align="left">Resource</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
+<td align="left">Multisite pooled behavior PLS with site
+diagnostics</td>
+<td align="left"><code><a href="../articles/site-pooling.html">vignette("site-pooling")</a></code></td>
+</tr>
+<tr class="even">
 <td align="left">Task PLS workflow</td>
 <td align="left"><code><a href="../articles/plsrri.html">vignette("plsrri")</a></code></td>
+</tr>
+<tr class="odd">
+<td align="left">Predictive validation from the same score space</td>
+<td align="left"><code><a href="../articles/predictive-measures.html">vignette("predictive-measures")</a></code></td>
 </tr>
 <tr class="even">
 <td align="left">Multiblock and seed PLS</td>

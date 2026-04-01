@@ -33,8 +33,12 @@ run <- function(spec, progress = TRUE, ...) {
   UseMethod("run")
 }
 
-#' @export
-run.pls_spec <- function(spec, progress = TRUE, ...) {
+#' Materialize Raw PLS Inputs Without Fitting
+#'
+#' @keywords internal
+.materialize_pls_spec <- function(spec, derive_seed_behavior = TRUE) {
+  assert_that(inherits(spec, "pls_spec"))
+
   # Process BIDS data if needed
   if (isTRUE(spec$.bids_raw)) {
     spec <- .process_bids_data(spec)
@@ -55,13 +59,23 @@ run.pls_spec <- function(spec, progress = TRUE, ...) {
     spec <- .process_trial_data(spec)
   }
 
-  # Validate specification
-  .validate_spec(spec)
-
   # Derive seed behavior matrix if requested (Seed PLS with manifest/BIDS inputs)
-  if (is.null(spec$stacked_behavdata) && !is.null(spec$seed_info) && spec$method %in% c(3L, 4L, 5L, 6L)) {
+  if (isTRUE(derive_seed_behavior) &&
+      is.null(spec$stacked_behavdata) &&
+      !is.null(spec$seed_info) &&
+      spec$method %in% c(3L, 4L, 5L, 6L)) {
     spec <- .process_seed_data(spec)
   }
+
+  spec
+}
+
+#' @export
+run.pls_spec <- function(spec, progress = TRUE, ...) {
+  spec <- .materialize_pls_spec(spec, derive_seed_behavior = TRUE)
+
+  # Validate specification
+  .validate_spec(spec)
 
   # Run analysis
   result <- pls_analysis(
@@ -88,9 +102,26 @@ run.pls_spec <- function(spec, progress = TRUE, ...) {
   # Store metadata
   result$mask <- spec$mask
   result$groups <- spec$groups
+  result$site <- spec$site
   result$conditions <- spec$conditions
   result$feature_layout <- spec$feature_layout
   result$ws_seed_info <- spec$ws_seed_info
+
+  if (!isTRUE(spec$.skip_site_diagnostics) && !is.null(spec$site)) {
+    if (spec$method %in% c(3L, 5L) && !is.list(spec$num_subj_lst)) {
+      result$site_diagnostics <- site_pooling_diagnostics(
+        result,
+        spec = spec,
+        site = spec$site,
+        progress = FALSE
+      )
+    } else {
+      warning(
+        "Automatic site diagnostics are currently available only for balanced behavior PLS methods.",
+        call. = FALSE
+      )
+    }
+  }
 
   result
 }
@@ -901,7 +932,8 @@ seed_pls <- function(datamat_lst, seed_data, num_subj_lst, num_cond,
 #' )
 #' }
 behav_pls <- function(datamat_lst, behav_data, num_subj_lst, num_cond,
-                       cormode = 0L, nperm = 1000, nboot = 500, ...) {
+                       cormode = 0L, nperm = 1000, nboot = 500,
+                       site = NULL, ...) {
 
   total_rows <- sum(sapply(datamat_lst, nrow))
   if (nrow(behav_data) != total_rows) {
@@ -911,7 +943,7 @@ behav_pls <- function(datamat_lst, behav_data, num_subj_lst, num_cond,
     ))
   }
 
-  pls_analysis(
+  result <- pls_analysis(
     datamat_lst = datamat_lst,
     num_subj_lst = num_subj_lst,
     num_cond = num_cond,
@@ -922,6 +954,33 @@ behav_pls <- function(datamat_lst, behav_data, num_subj_lst, num_cond,
     num_boot = nboot,
     ...
   )
+
+  result$site <- site
+  if (!is.null(site)) {
+    if (!is.list(num_subj_lst)) {
+      spec <- pls_spec()
+      spec$datamat_lst <- datamat_lst
+      spec$stacked_behavdata <- behav_data
+      spec$num_subj_lst <- num_subj_lst
+      spec$num_cond <- num_cond
+      spec$method <- 3L
+      spec$cormode <- cormode
+      spec$site <- site
+      result$site_diagnostics <- site_pooling_diagnostics(
+        result,
+        spec = spec,
+        site = site,
+        progress = FALSE
+      )
+    } else {
+      warning(
+        "Automatic site diagnostics are currently available only for balanced behavior PLS methods.",
+        call. = FALSE
+      )
+    }
+  }
+
+  result
 }
 
 

@@ -12,6 +12,7 @@ behav_pls(
   cormode = 0L,
   nperm = 1000,
   nboot = 500,
+  site = NULL,
   ...
 )
 }

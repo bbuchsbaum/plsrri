@@ -23,13 +23,28 @@ if (length(missing_pkgs) > 0) {
   knitr::knit_exit()
 }
 
-pkg_root <- if (file.exists("DESCRIPTION")) "." else ".."
-if (requireNamespace("plsrri", quietly = TRUE) &&
-    !"prepare_pls" %in% getNamespaceExports("plsrri") &&
-    requireNamespace("devtools", quietly = TRUE) &&
-    file.exists(file.path(pkg_root, "DESCRIPTION"))) {
-  devtools::load_all(pkg_root, quiet = TRUE)
+ensure_local_plsrri <- function(required_exports) {
+  pkg_root <- if (file.exists("DESCRIPTION")) "." else ".."
+  if (!file.exists(file.path(pkg_root, "DESCRIPTION")) ||
+      !requireNamespace("devtools", quietly = TRUE)) {
+    return(invisible(FALSE))
+  }
+
+  installed_exports <- if (requireNamespace("plsrri", quietly = TRUE)) {
+    getNamespaceExports("plsrri")
+  } else {
+    character(0)
+  }
+
+  if (!all(required_exports %in% installed_exports)) {
+    devtools::load_all(pkg_root, quiet = TRUE)
+    return(invisible(TRUE))
+  }
+
+  invisible(FALSE)
 }
+
+ensure_local_plsrri("prepare_pls")
 ```
 
 ```{r load-package}
@@ -39,6 +54,27 @@ library(plsrri)
 You want one analysis contract that works in three places: ordinary R code, a staged CLI workflow, and later the Shiny app. In `plsrri`, that contract is a saved artifact directory containing first-level manifests, a planned PLS manifest, a saved `pls_result`, and optional reports.
 
 This vignette starts from a tiny synthetic artifact root so the core workflow stays runnable under `R CMD check`. It then shows how the same workflow extends to `prepare_firstlevel()` and `plscli` on a real BIDS dataset.
+
+## How do you start a new YAML spec?
+
+Do not start from a blank file. Scaffold the spec first, then edit the parts
+that are specific to your study.
+
+From R:
+
+```r
+write_pipeline_template("study.yml")
+```
+
+From the CLI:
+
+```bash
+plscli template --out study.yml
+```
+
+The resulting scaffold is the same contract used by `prepare_firstlevel()`,
+`prepare_pls()`, `run_pls()`, `plscli`, and the Shiny import/export path. Use
+`vignette("pipeline-yaml-spec")` for the field-by-field reference.
 
 ## What does the saved-artifact workflow look like?
 

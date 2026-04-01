@@ -35,7 +35,11 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/plsrri.html">Getting Started</a></li>
     <li><a class="dropdown-item" href="../articles/scripted-workflows.html">Scripted Workflows</a></li>
+    <li><a class="dropdown-item" href="../articles/pipeline-yaml-spec.html">Pipeline YAML Specification</a></li>
+    <li><a class="dropdown-item" href="../articles/site-pooling.html">Multisite Behavioral PLS</a></li>
+    <li><a class="dropdown-item" href="../articles/predictive-measures.html">Predictive Measures</a></li>
     <li><a class="dropdown-item" href="../articles/behavior-pls.html">Behavior PLS</a></li>
+    <li><a class="dropdown-item" href="../articles/ws-seed-pls.html">Within-Subject Seed PLS</a></li>
     <li><a class="dropdown-item" href="../articles/multiblock-and-seed.html">Multiblock and Seed</a></li>
   </ul>
 </li>
@@ -46,6 +50,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
 </form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/bbuchsbaum/plsrri/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -62,14 +67,18 @@
       <h1>Getting Started with plsrri</h1>
             
       
-
+      <small class="dont-index">Source: <a href="https://github.com/bbuchsbaum/plsrri/blob/HEAD/vignettes/plsrri.Rmd" class="external-link"><code>vignettes/plsrri.Rmd</code></a></small>
       <div class="d-none name"><code>plsrri.Rmd</code></div>
     </div>
 
     
     
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/plsrri">plsrri</a></span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/plsrri/">plsrri</a></span><span class="op">)</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> <code>plsrri</code> is under active
+development. The API may change before the first stable release.</p>
+</blockquote>
 <p>You have subject-by-condition brain data and want to know two things:
 which latent patterns separate your experimental conditions, and how
 stable are those patterns under resampling? <code>plsrri</code> gives
@@ -169,12 +178,12 @@ how variance is distributed:</p>
 <span>  variance <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="../reference/singular_values.html">singular_values</a></span><span class="op">(</span><span class="va">result</span>, normalize <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>, <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt;     pvalue variance</span></span>
-<span><span class="co">#&gt; LV1  0.600     29.5</span></span>
-<span><span class="co">#&gt; LV2  0.415     27.0</span></span>
-<span><span class="co">#&gt; LV3  0.215     24.6</span></span>
-<span><span class="co">#&gt; LV4  0.875     18.8</span></span>
-<span><span class="co">#&gt; LV5  0.010      0.0</span></span>
-<span><span class="co">#&gt; LV6  0.000      0.0</span></span></code></pre></div>
+<span><span class="co">#&gt; LV1  0.075     29.5</span></span>
+<span><span class="co">#&gt; LV2  0.230     27.0</span></span>
+<span><span class="co">#&gt; LV3  0.545     24.6</span></span>
+<span><span class="co">#&gt; LV4  1.000     18.8</span></span>
+<span><span class="co">#&gt; LV5  0.930      0.0</span></span>
+<span><span class="co">#&gt; LV6  1.000      0.0</span></span></code></pre></div>
 <p>LV1 captures 29.5% of the variance. The scree plot makes this
 dominance visual:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
@@ -312,6 +321,16 @@ runs, and Quarto reporting.</p>
 <tr class="even">
 <td align="left">Behavior PLS with continuous measures</td>
 <td align="left"><code><a href="../articles/behavior-pls.html">vignette("behavior-pls")</a></code></td>
+</tr>
+<tr class="odd">
+<td align="left">Multisite pooled behavior PLS with site
+diagnostics</td>
+<td align="left"><code><a href="../articles/site-pooling.html">vignette("site-pooling")</a></code></td>
+</tr>
+<tr class="even">
+<td align="left">Within-subject seed connectivity from trial-level
+data</td>
+<td align="left"><code><a href="../articles/ws-seed-pls.html">vignette("ws-seed-pls")</a></code></td>
 </tr>
 <tr class="odd">
 <td align="left">Multiblock and seed connectivity PLS</td>

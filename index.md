@@ -16,11 +16,22 @@ If you want to explore data, inspect scores and loadings, and attach to prepared
 If you want a clean non-GUI pipeline from saved first-level artifacts to PLS results and Quarto reports, start with:
 
 - [Scripted Workflows](articles/scripted-workflows.html)
+- [Pipeline YAML Specification](articles/pipeline-yaml-spec.html)
 - `prepare_firstlevel()`
 - `prepare_pls()`
 - `run_pls()`
 - `render_pls_report()`
 - `plscli_main()`
+
+Start by scaffolding a spec rather than writing YAML from scratch:
+
+```r
+write_pipeline_template("study.yml")
+```
+
+```bash
+plscli template --out study.yml
+```
 
 The minimal scripted path is:
 

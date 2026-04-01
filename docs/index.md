@@ -23,11 +23,23 @@ PLS results and Quarto reports, start with:
 
 - [Scripted
   Workflows](https://bbuchsbaum.github.io/plsrri/articles/scripted-workflows.md)
+- [Pipeline YAML
+  Specification](https://bbuchsbaum.github.io/plsrri/articles/pipeline-yaml-spec.md)
 - [`prepare_firstlevel()`](https://bbuchsbaum.github.io/plsrri/reference/prepare_firstlevel.md)
 - [`prepare_pls()`](https://bbuchsbaum.github.io/plsrri/reference/prepare_pls.md)
 - [`run_pls()`](https://bbuchsbaum.github.io/plsrri/reference/run_pls.md)
 - [`render_pls_report()`](https://bbuchsbaum.github.io/plsrri/reference/render_pls_report.md)
 - [`plscli_main()`](https://bbuchsbaum.github.io/plsrri/reference/plscli_main.md)
+
+Start by scaffolding a spec rather than writing YAML from scratch:
+
+``` r
+write_pipeline_template("study.yml")
+```
+
+``` bash
+plscli template --out study.yml
+```
 
 The minimal scripted path is:
 

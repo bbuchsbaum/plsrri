@@ -52,6 +52,7 @@ See the [pkgdown site](https://bbuchsbaum.github.io/plsrri/) for full documentat
 - [Getting Started](https://bbuchsbaum.github.io/plsrri/articles/plsrri.html)
 - [Scripted Workflows](https://bbuchsbaum.github.io/plsrri/articles/scripted-workflows.html)
 - [Behavior PLS](https://bbuchsbaum.github.io/plsrri/articles/behavior-pls.html)
+- [Predictive Measures](https://bbuchsbaum.github.io/plsrri/articles/predictive-measures.html)
 - [Multiblock and Seed PLS](https://bbuchsbaum.github.io/plsrri/articles/multiblock-and-seed.html)
 
 ## License

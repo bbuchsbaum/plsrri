@@ -35,7 +35,11 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/plsrri.html">Getting Started</a></li>
     <li><a class="dropdown-item" href="../articles/scripted-workflows.html">Scripted Workflows</a></li>
+    <li><a class="dropdown-item" href="../articles/pipeline-yaml-spec.html">Pipeline YAML Specification</a></li>
+    <li><a class="dropdown-item" href="../articles/site-pooling.html">Multisite Behavioral PLS</a></li>
+    <li><a class="dropdown-item" href="../articles/predictive-measures.html">Predictive Measures</a></li>
     <li><a class="dropdown-item" href="../articles/behavior-pls.html">Behavior PLS</a></li>
+    <li><a class="dropdown-item" href="../articles/ws-seed-pls.html">Within-Subject Seed PLS</a></li>
     <li><a class="dropdown-item" href="../articles/multiblock-and-seed.html">Multiblock and Seed</a></li>
   </ul>
 </li>
@@ -46,6 +50,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
 </form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/bbuchsbaum/plsrri/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -62,239 +67,14 @@
       <h1>Scripted End-to-End Workflows</h1>
             
       
-
+      <small class="dont-index">Source: <a href="https://github.com/bbuchsbaum/plsrri/blob/HEAD/vignettes/scripted-workflows.Rmd" class="external-link"><code>vignettes/scripted-workflows.Rmd</code></a></small>
       <div class="d-none name"><code>scripted-workflows.Rmd</code></div>
     </div>
 
     
     
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/plsrri">plsrri</a></span><span class="op">)</span></span></code></pre></div>
-<p>You want one analysis contract that works in three places: ordinary R
-code, a staged CLI workflow, and later the Shiny app. In
-<code>plsrri</code>, that contract is a saved artifact directory
-containing first-level manifests, a planned PLS manifest, a saved
-<code>pls_result</code>, and optional reports.</p>
-<p>This vignette starts from a tiny synthetic artifact root so the core
-workflow stays runnable under <code>R CMD check</code>. It then shows
-how the same workflow extends to <code><a href="../reference/prepare_firstlevel.html">prepare_firstlevel()</a></code> and
-<code>plscli</code> on a real BIDS dataset.</p>
-<div class="section level2">
-<h2 id="what-does-the-saved-artifact-workflow-look-like">What does the saved-artifact workflow look like?<a class="anchor" aria-label="anchor" href="#what-does-the-saved-artifact-workflow-look-like"></a>
-</h2>
-<p>The smallest stable path is:</p>
-<ol style="list-style-type: decimal">
-<li>point <code><a href="../reference/prepare_pls.html">prepare_pls()</a></code> at a saved artifact root or
-pipeline YAML</li>
-<li>run the returned <code>pls_spec</code>
-</li>
-<li>render a Quarto report from the same saved artifacts</li>
-</ol>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">pspec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_pls.html">prepare_pls</a></span><span class="op">(</span><span class="va">out_root</span>, pls_options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"task"</span>, nperm <span class="op">=</span> <span class="fl">0L</span>, nboot <span class="op">=</span> <span class="fl">0L</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">inherits</a></span><span class="op">(</span><span class="va">pspec</span>, <span class="st">"pls_spec"</span><span class="op">)</span>,</span>
-<span>  <span class="va">pspec</span><span class="op">$</span><span class="va">num_cond</span> <span class="op">==</span> <span class="fl">2L</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">pspec</span><span class="op">$</span><span class="va">datamat_lst</span><span class="op">)</span> <span class="op">==</span> <span class="fl">1L</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">pspec</span></span></code></pre></div>
-<p>Once you have a prepared spec, <code><a href="../reference/run_pls.html">run_pls()</a></code> and
-<code><a href="../reference/render_pls_report.html">render_pls_report()</a></code> are thin, deterministic wrappers.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_pls.html">run_pls</a></span><span class="op">(</span><span class="va">spec_path</span><span class="op">)</span></span>
-<span><span class="va">report_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">tmp</span>, <span class="st">"plsrri-scripted-report.html"</span><span class="op">)</span></span>
-<span><span class="va">rendered</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/render_pls_report.html">render_pls_report</a></span><span class="op">(</span><span class="va">spec_path</span>, output_file <span class="op">=</span> <span class="va">report_file</span>, include_brain <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; processing file: report.qmd</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 1/29                    </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 2/29 [setup]            </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 3/29                    </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 4/29 [provenance]       </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 5/29                    </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 6/29 [pipeline-summary] </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 7/29                    </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 8/29 [input-inventory]  </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 9/29                    </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 10/29 [sv-plot]          </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 11/29                    </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 12/29 [sv-table]         </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 13/29                    </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 14/29 [sig-status]       </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 15/29                    </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 16/29 [lv-tabs]          </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 17/29                    </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 18/29 [bootstrap-section]</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 19/29                    </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 20/29 [bootstrap-summary]</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 21/29                    </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 22/29 [artifact-notes]   </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 23/29                    </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 24/29 [unnamed-chunk-1]  </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 25/29                    </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 26/29 [unnamed-chunk-2]  </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 27/29                    </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 28/29 [unnamed-chunk-3]  </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; 29/29                    </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; output file: report.knit.md</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; </span><span style="color: #BB0000; font-weight: bold;">pandoc </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   to: html</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   output-file: plsrri-scripted-report.html</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   standalone: true</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   self-contained: true</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   section-divs: true</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   html-math-method: mathjax</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   wrap: none</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   default-image-extension: png</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   toc: true</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   toc-depth: 3</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   variables: {}</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; </span><span style="color: #BB0000; font-weight: bold;">metadata</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   document-css: false</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   link-citations: true</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   date-format: long</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   lang: en</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   title: '`r params$title`'</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   subtitle: Partial Least Squares Analysis</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   author: '`r params$author`'</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   date: '`r Sys.Date()`'</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   theme:</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;     light:</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;       - flatly</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;       - custom.scss</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;     dark:</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;       - darkly</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;       - custom.scss</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   toc-location: left</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   toc-title: Contents</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   smooth-scroll: true</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   anchor-sections: true</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   fontsize: 1rem</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   linestretch: 1.5</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   mainfont: Inter, system-ui, sans-serif</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   max-width: 860px</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   output-file: plsrri-scripted-report.html</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt;   </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; Output created: plsrri-scripted-report.html</span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; </span></span></span>
-<span><span class="co"><span style="color: #BB0000;">#&gt; </span></span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">inherits</a></span><span class="op">(</span><span class="va">result</span>, <span class="st">"pls_result"</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/is.finite.html" class="external-link">is.finite</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">s</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">out_root</span>, <span class="st">"pls"</span>, <span class="st">"pls_result.rds"</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">rendered</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/file.info.html" class="external-link">file.info</a></span><span class="op">(</span><span class="va">rendered</span><span class="op">)</span><span class="op">$</span><span class="va">size</span> <span class="op">&gt;</span> <span class="fl">0</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>  latent_variables <span class="op">=</span> <span class="fu"><a href="../reference/n_lv.html">n_lv</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span>,</span>
-<span>  features <span class="op">=</span> <span class="fu"><a href="../reference/n_features.html">n_features</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span><span class="co">#&gt; latent_variables         features </span></span>
-<span><span class="co">#&gt;                2                2</span></span></code></pre></div>
-<p>The saved result and the rendered report are part of the same
-artifact contract, so you can reopen them later without reconstructing
-the analysis state.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">summary_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">out_root</span>, <span class="st">"pls"</span>, <span class="st">"pls_summary.tsv"</span><span class="op">)</span></span>
-<span><span class="va">saved_summary</span> <span class="op">&lt;-</span> <span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.delim</a></span><span class="op">(</span><span class="va">summary_file</span>, sep <span class="op">=</span> <span class="st">"\t"</span>, stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">saved_summary</span><span class="op">)</span> <span class="op">&gt;=</span> <span class="fl">1L</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/is.finite.html" class="external-link">is.finite</a></span><span class="op">(</span><span class="va">saved_summary</span><span class="op">$</span><span class="va">singular_value</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">saved_summary</span></span>
-<span><span class="co">#&gt;   lv singular_value variance_explained</span></span>
-<span><span class="co">#&gt; 1  1   4.300000e+00       1.000000e+00</span></span>
-<span><span class="co">#&gt; 2  2   1.219228e-16       8.039569e-34</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="when-do-you-call-prepare_firstlevel">When do you call <code>prepare_firstlevel()</code>?<a class="anchor" aria-label="anchor" href="#when-do-you-call-prepare_firstlevel"></a>
-</h2>
-<p>Use <code><a href="../reference/prepare_firstlevel.html">prepare_firstlevel()</a></code> when you want the same R
-session to own BIDS discovery, first-level planning, and first-level
-execution before moving into PLS.</p>
-<p>That live path depends on the external first-level stack
-(<code>bidser</code>, <code>fmridataset</code>, <code>fmridesign</code>,
-<code>fmrireg</code>), so it is shown here as an execution pattern
-rather than as a vignette-evaluated chunk:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">prep</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_firstlevel.html">prepare_firstlevel</a></span><span class="op">(</span><span class="st">"study.yml"</span><span class="op">)</span></span>
-<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_pls.html">run_pls</a></span><span class="op">(</span><span class="va">prep</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/render_pls_report.html">render_pls_report</a></span><span class="op">(</span><span class="va">prep</span><span class="op">$</span><span class="va">spec</span><span class="op">)</span></span></code></pre></div>
-<p>For workstation use, that is often the cleanest end-to-end R
-workflow. For HPC use, the same YAML spec can be split into explicit
-stages.</p>
-</div>
-<div class="section level2">
-<h2 id="how-does-the-same-workflow-look-from-the-cli">How does the same workflow look from the CLI?<a class="anchor" aria-label="anchor" href="#how-does-the-same-workflow-look-from-the-cli"></a>
-</h2>
-<p>The CLI mirrors the same contract and the same stage boundaries.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="ex">plscli</span> validate <span class="at">--spec</span> study.yml</span>
-<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="ex">plscli</span> discover <span class="at">--spec</span> study.yml</span>
-<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="ex">plscli</span> firstlevel-plan <span class="at">--spec</span> study.yml</span>
-<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="ex">plscli</span> firstlevel-run <span class="at">--spec</span> study.yml <span class="at">--work-id</span> w0007</span>
-<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="ex">plscli</span> pls-plan <span class="at">--spec</span> study.yml</span>
-<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="ex">plscli</span> pls-run <span class="at">--spec</span> study.yml</span>
-<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="ex">plscli</span> report <span class="at">--input</span> study.yml <span class="at">--format</span> html</span></code></pre></div>
-<p>For array jobs, the only thing that changes is how you schedule
-<code>firstlevel-run</code>.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="ex">plscli</span> firstlevel-plan <span class="at">--spec</span> study.yml</span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="ex">plscli</span> firstlevel-run <span class="at">--spec</span> study.yml <span class="at">--work-id</span> <span class="st">"</span><span class="va">${SLURM_ARRAY_TASK_ID}</span><span class="st">"</span></span>
-<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="ex">plscli</span> pls-plan <span class="at">--spec</span> study.yml</span>
-<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="ex">plscli</span> pls-run <span class="at">--spec</span> study.yml</span>
-<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="ex">plscli</span> report <span class="at">--input</span> /path/to/artifact-root <span class="at">--format</span> pdf</span></code></pre></div>
-<p>The important design point is that <code>plscli report</code> reads
-the same artifacts that <code><a href="../reference/render_pls_report.html">render_pls_report()</a></code> reads in R, and
-<code><a href="../reference/prepare_pls.html">prepare_pls()</a></code> reads the same first-level manifests that the
-CLI writes.</p>
-</div>
-<div class="section level2">
-<h2 id="what-should-you-treat-as-the-public-contract">What should you treat as the public contract?<a class="anchor" aria-label="anchor" href="#what-should-you-treat-as-the-public-contract"></a>
-</h2>
-<p>For scripted analysis, the stable surfaces are:</p>
-<ul>
-<li><code><a href="../reference/prepare_firstlevel.html">prepare_firstlevel()</a></code></li>
-<li><code><a href="../reference/prepare_pls.html">prepare_pls()</a></code></li>
-<li><code><a href="../reference/run_pls.html">run_pls()</a></code></li>
-<li><code><a href="../reference/render_pls_report.html">render_pls_report()</a></code></li>
-</ul>
-<p>The stable on-disk contract is the artifact root containing:</p>
-<ul>
-<li><code>firstlevel/work_plan.tsv</code></li>
-<li><code>firstlevel/work/*/maps.tsv</code></li>
-<li><code>pls/pls_manifest.tsv</code></li>
-<li><code>pls/pls_result.rds</code></li>
-<li><code>pls/pls_summary.tsv</code></li>
-<li><code>reports/</code></li>
-</ul>
-<p>That is the contract the Shiny app is also expected to consume when
-it attaches to existing first-level outputs.</p>
-</div>
-<div class="section level2">
-<h2 id="where-should-you-go-next">Where should you go next?<a class="anchor" aria-label="anchor" href="#where-should-you-go-next"></a>
-</h2>
-<p>Use <code><a href="../articles/plsrri.html">vignette("plsrri")</a></code> for the main task-PLS workflow,
-<code><a href="../articles/behavior-pls.html">vignette("behavior-pls")</a></code> for behavior PLS, and
-<code><a href="../articles/multiblock-and-seed.html">vignette("multiblock-and-seed")</a></code> for multiblock and seed
-analyses.</p>
-<p>The most relevant help pages after this vignette are:</p>
-<ul>
-<li><code><a href="../reference/prepare_firstlevel.html">?prepare_firstlevel</a></code></li>
-<li><code><a href="../reference/prepare_pls.html">?prepare_pls</a></code></li>
-<li><code><a href="../reference/run_pls.html">?run_pls</a></code></li>
-<li><code><a href="../reference/render_pls_report.html">?render_pls_report</a></code></li>
-<li><code><a href="../reference/plscli_main.html">?plscli_main</a></code></li>
-</ul>
-</div>
-  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
-    </nav></aside>
+
+  </main>
 </div>
 
 
