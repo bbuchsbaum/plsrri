@@ -48,6 +48,13 @@ list of integer vectors giving subject counts per condition within group.}
 Required when \code{num_subj_lst} uses SSB/list form because subject-group
 membership cannot be recovered from per-condition counts alone.}
 
+\item{seed_labels}{Optional character vector naming the supplied seeds.}
+
+\item{layout}{Layout used to build the ws-seed data matrix. Use
+\code{"seed_condition"} (default) for one row per seed-condition cell, or
+\code{"stacked_seed_features"} to keep rows at the condition level and
+stack seed-specific voxel maps into the feature axis.}
+
 \item{fisher_z}{Logical; apply Fisher r-to-z transform (default \code{TRUE}).}
 
 \item{min_trials}{Minimum trials per condition for valid correlation
@@ -68,6 +75,19 @@ membership cannot be recovered from per-condition counts alone.}
 \item{nperm}{Number of permutations (default 1000).}
 
 \item{nboot}{Number of bootstrap samples (default 500).}
+
+\item{nsplit}{Number of split-half resamples.}
+
+\item{clim}{Confidence level for bootstrap confidence intervals.}
+
+\item{boot_type}{Bootstrap strategy passed through to \code{run()}.}
+
+\item{is_struct}{Logical; request structure coefficients where supported.}
+
+\item{progress}{Logical; show progress output while running the analysis.}
+
+\item{stacked_designdata}{Optional explicit design/contrast matrix for
+non-rotated analyses.}
 
 \item{...}{Additional arguments passed to \code{pls_analysis()}.}
 }

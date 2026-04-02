@@ -914,6 +914,8 @@ seed_pls <- function(datamat_lst, seed_data, num_subj_lst, num_cond,
 #' @param cormode Correlation mode (0=Pearson, 2=covariance, 4=cosine, 6=dot).
 #' @param nperm Number of permutations (default 1000).
 #' @param nboot Number of bootstrap samples (default 500).
+#' @param site Optional subject-level site labels used for multisite
+#'   diagnostics after fitting.
 #' @param ... Additional arguments passed to `pls_analysis()`.
 #'
 #' @return A `pls_result` object with class `pls_behavior`.
@@ -999,6 +1001,11 @@ behav_pls <- function(datamat_lst, behav_data, num_subj_lst, num_cond,
 #'   with the seed region's trial-level betas.
 #' @param condition_lst A list of integer vectors or factors (one per subject)
 #'   mapping trials to conditions.
+#' @param groups Optional subject-level group assignments for the trial inputs.
+#' @param seed_labels Optional seed names used when \code{seed_lst} contains
+#'   multiple seed columns.
+#' @param layout Layout for multi-seed ws-seed data. Use
+#'   \code{"seed_condition"} (default) or \code{"stacked_seed_features"}.
 #' @param fisher_z Logical; apply Fisher r-to-z transform (default \code{TRUE}).
 #' @param min_trials Minimum trials per condition for valid correlation
 #'   (default 3).

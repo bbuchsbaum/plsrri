@@ -264,7 +264,7 @@ prepare_pls <- function(x,
 #'   in-memory \code{\link{pls_spec}}.
 #' @param ... Additional arguments forwarded to \code{\link{run}}.
 #'
-#' @return A \code{\link{pls_result}} object.
+#' @return A fitted PLS result object.
 #' @export
 run_pls <- function(x,
                     pls_options = NULL,

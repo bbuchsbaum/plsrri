@@ -36,6 +36,7 @@ Suggests:
     fmridataset,
     fmridesign,
     fmrireg,
+    devtools,
     quarto,
     testthat (>= 3.0.0),
     future,
@@ -57,7 +58,8 @@ Suggests:
     mockery,
     pkgdown,
     knitr,
-    rmarkdown
+    rmarkdown,
+    withr
 VignetteBuilder: knitr
 LinkingTo:
     Rcpp,

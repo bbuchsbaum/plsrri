@@ -34,7 +34,7 @@ in-memory \code{\link{pls_spec}}.}
 \item{...}{Additional arguments forwarded to \code{\link{run}}.}
 }
 \value{
-A \code{\link{pls_result}} object.
+A fitted PLS result object.
 }
 \description{
 Run PLS from a Prepared or Saved Input

@@ -12,6 +12,11 @@
 ^\.git$
 ^\.gitignore$
 ^\.planning$
+^\.beads$
+^\.playwright-mcp$
+^\.covr_result\.rds$
+^\.rcmdcheck_result.*\.rds$
+^AGENTS\.md$
 ^\.claude$
 ^src/.*\.(o|so)$
 ^\.omc$

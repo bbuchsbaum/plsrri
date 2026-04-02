@@ -5,6 +5,18 @@
 #
 # MockSurfwidgetRenderer is available from fct_brain_renderer.R sourced by helper-shiny-modules.R
 
+skip_if_surface_modules_unavailable <- function() {
+  required_pkgs <- c("shiny", "shinyjs", "bslib", "bsicons", "shinyFiles")
+  missing_pkgs <- required_pkgs[!vapply(required_pkgs, requireNamespace, logical(1), quietly = TRUE)]
+  if (length(missing_pkgs) > 0) {
+    skip(paste("surface viewer module tests require:", paste(missing_pkgs, collapse = ", ")))
+  }
+  if (!exists("surface_viewer_server", mode = "function") ||
+      !exists("surface_viewer_ui", mode = "function")) {
+    skip("surface viewer Shiny modules are not available in this check environment")
+  }
+}
+
 # =============================================================================
 # UI Tests
 # =============================================================================
@@ -12,17 +24,20 @@
 describe("surface_viewer_ui", {
 
   it("returns a shiny.tag object", {
+    skip_if_surface_modules_unavailable()
     ui <- surface_viewer_ui("test")
     expect_s3_class(ui, "shiny.tag")
   })
 
   it("contains geometry selector with data-test attribute", {
+    skip_if_surface_modules_unavailable()
     ui <- surface_viewer_ui("test")
     html <- as.character(ui)
     expect_match(html, 'data-test="surface-geometry"', fixed = TRUE)
   })
 
   it("contains hemisphere containers with data-test attributes", {
+    skip_if_surface_modules_unavailable()
     ui <- surface_viewer_ui("test")
     html <- as.character(ui)
     expect_match(html, 'data-test="surface-lh"', fixed = TRUE)
@@ -30,24 +45,28 @@ describe("surface_viewer_ui", {
   })
 
   it("contains colorbar info with data-test attribute", {
+    skip_if_surface_modules_unavailable()
     ui <- surface_viewer_ui("test")
     html <- as.character(ui)
     expect_match(html, 'data-test="surface-colorbar"', fixed = TRUE)
   })
 
   it("contains hemisphere toggles with data-test attribute", {
+    skip_if_surface_modules_unavailable()
     ui <- surface_viewer_ui("test")
     html <- as.character(ui)
     expect_match(html, 'data-test="surface-hemispheres"', fixed = TRUE)
   })
 
   it("contains loading spinner with data-test attribute", {
+    skip_if_surface_modules_unavailable()
     ui <- surface_viewer_ui("test")
     html <- as.character(ui)
     expect_match(html, 'data-test="surface-loading"', fixed = TRUE)
   })
 
   it("has all geometry options available", {
+    skip_if_surface_modules_unavailable()
     ui <- surface_viewer_ui("test")
     html <- as.character(ui)
     expect_match(html, "inflated", fixed = TRUE)
@@ -66,6 +85,7 @@ describe("surface_viewer_ui", {
 describe("surface_viewer_server initialization", {
 
   it("returns a list with dispose function", {
+    skip_if_surface_modules_unavailable()
     mock_renderer <- MockSurfwidgetRenderer$new()
     mock_result <- make_mock_pls_result(include_mask = TRUE)
 
@@ -86,6 +106,7 @@ describe("surface_viewer_server initialization", {
   })
 
   it("initializes with default geometry as inflated", {
+    skip_if_surface_modules_unavailable()
     mock_renderer <- MockSurfwidgetRenderer$new()
     mock_result <- make_mock_pls_result(include_mask = TRUE)
 
@@ -103,6 +124,7 @@ describe("surface_viewer_server initialization", {
   })
 
   it("initializes with loading as FALSE", {
+    skip_if_surface_modules_unavailable()
     mock_renderer <- MockSurfwidgetRenderer$new()
     mock_result <- make_mock_pls_result(include_mask = TRUE)
 
@@ -124,6 +146,7 @@ describe("surface_viewer_server initialization", {
 describe("surface_viewer_server renderer integration", {
 
   it("calls renderer with filter values", {
+    skip_if_surface_modules_unavailable()
     mock_renderer <- MockSurfwidgetRenderer$new()
     mock_result <- make_mock_pls_result(include_mask = TRUE)
 
@@ -148,6 +171,7 @@ describe("surface_viewer_server renderer integration", {
   })
 
   it("passes updated LV to renderer", {
+    skip_if_surface_modules_unavailable()
     mock_renderer <- MockSurfwidgetRenderer$new()
     mock_result <- make_mock_pls_result(include_mask = TRUE, n_lv = 5)
 
@@ -168,6 +192,7 @@ describe("surface_viewer_server renderer integration", {
   })
 
   it("handles NULL result gracefully", {
+    skip_if_surface_modules_unavailable()
     mock_renderer <- MockSurfwidgetRenderer$new()
 
     shiny::testServer(surface_viewer_server, {
@@ -189,6 +214,7 @@ describe("surface_viewer_server renderer integration", {
   })
 
   it("handles result without mask gracefully", {
+    skip_if_surface_modules_unavailable()
     mock_renderer <- MockSurfwidgetRenderer$new()
     mock_result <- make_mock_pls_result(include_mask = FALSE)
 
@@ -214,6 +240,7 @@ describe("surface_viewer_server renderer integration", {
 describe("surface_viewer_server geometry selection", {
 
   it("updates local geometry state on input change", {
+    skip_if_surface_modules_unavailable()
     mock_renderer <- MockSurfwidgetRenderer$new()
     mock_result <- make_mock_pls_result(include_mask = TRUE)
 
@@ -238,6 +265,7 @@ describe("surface_viewer_server geometry selection", {
   })
 
   it("geometry can be toggled back and forth", {
+    skip_if_surface_modules_unavailable()
     mock_renderer <- MockSurfwidgetRenderer$new()
     mock_result <- make_mock_pls_result(include_mask = TRUE)
 
@@ -266,6 +294,7 @@ describe("surface_viewer_server geometry selection", {
 describe("surface_viewer_server filter integration", {
 
   it("accepts filter LV value", {
+    skip_if_surface_modules_unavailable()
     mock_renderer <- MockSurfwidgetRenderer$new()
     mock_result <- make_mock_pls_result(include_mask = TRUE, n_lv = 5)
 
@@ -284,6 +313,7 @@ describe("surface_viewer_server filter integration", {
   })
 
   it("accepts filter BSR threshold", {
+    skip_if_surface_modules_unavailable()
     mock_renderer <- MockSurfwidgetRenderer$new()
     mock_result <- make_mock_pls_result(include_mask = TRUE)
 
@@ -301,6 +331,7 @@ describe("surface_viewer_server filter integration", {
   })
 
   it("accepts filter what selection (bsr/salience)", {
+    skip_if_surface_modules_unavailable()
     mock_renderer <- MockSurfwidgetRenderer$new()
     mock_result <- make_mock_pls_result(include_mask = TRUE)
 
@@ -318,6 +349,7 @@ describe("surface_viewer_server filter integration", {
   })
 
   it("handles NULL filter values gracefully", {
+    skip_if_surface_modules_unavailable()
     mock_renderer <- MockSurfwidgetRenderer$new()
     mock_result <- make_mock_pls_result(include_mask = TRUE)
 
@@ -340,6 +372,7 @@ describe("surface_viewer_server filter integration", {
 describe("surface_viewer_server disposal", {
 
   it("returns dispose function for cleanup", {
+    skip_if_surface_modules_unavailable()
     mock_renderer <- MockSurfwidgetRenderer$new()
     mock_result <- make_mock_pls_result(include_mask = TRUE)
 
@@ -361,6 +394,7 @@ describe("surface_viewer_server disposal", {
   })
 
   it("dispose function can be called without error", {
+    skip_if_surface_modules_unavailable()
     mock_renderer <- MockSurfwidgetRenderer$new()
     mock_result <- make_mock_pls_result(include_mask = TRUE)
 
@@ -386,6 +420,7 @@ describe("surface_viewer_server disposal", {
 describe("surface_viewer_server with result variations", {
 
   it("handles result with mask", {
+    skip_if_surface_modules_unavailable()
     mock_renderer <- MockSurfwidgetRenderer$new()
     result <- make_mock_pls_result(include_mask = TRUE, include_boot = TRUE)
 
@@ -404,6 +439,7 @@ describe("surface_viewer_server with result variations", {
   })
 
   it("handles full result with all components", {
+    skip_if_surface_modules_unavailable()
     mock_renderer <- MockSurfwidgetRenderer$new()
     result <- load_fixture("pls_result_full")
 

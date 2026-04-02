@@ -5,6 +5,16 @@
 #
 # MockBrainRenderer is available from fct_brain_renderer.R sourced by helper-shiny-modules.R
 
+testthat::skip_if_not_installed("shiny")
+testthat::skip_if_not_installed("shinyjs")
+testthat::skip_if_not_installed("bslib")
+testthat::skip_if_not_installed("bsicons")
+testthat::skip_if_not_installed("shinyFiles")
+if (!exists("brain_viewer_server", mode = "function") ||
+    !exists("brain_mini_server", mode = "function")) {
+  testthat::skip("brain viewer Shiny modules are not available in this check environment")
+}
+
 describe("brain_viewer_server initialization", {
 
   it("initializes with default view_mode as montage", {

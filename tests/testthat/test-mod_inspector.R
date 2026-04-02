@@ -3,9 +3,21 @@
 # testServer() tests for mod_inspector.R covering LV details display,
 # conditional content based on result type, and export button handlers.
 
+skip_if_inspector_modules_unavailable <- function() {
+  required_pkgs <- c("shiny", "shinyjs", "bslib", "bsicons", "shinyFiles")
+  missing_pkgs <- required_pkgs[!vapply(required_pkgs, requireNamespace, logical(1), quietly = TRUE)]
+  if (length(missing_pkgs) > 0) {
+    skip(paste("inspector module tests require:", paste(missing_pkgs, collapse = ", ")))
+  }
+  if (!exists("inspector_server", mode = "function")) {
+    skip("inspector Shiny module sources are not available in this check environment")
+  }
+}
+
 describe("inspector_server initialization", {
 
   it("module accepts result_rv, selected_lv, and state_rv", {
+    skip_if_inspector_modules_unavailable()
     result <- make_mock_pls_result()
     shiny::testServer(inspector_server, {
       # Module should initialize without error
@@ -21,6 +33,7 @@ describe("inspector_server initialization", {
   })
 
   it("initializes without error when result is NULL", {
+    skip_if_inspector_modules_unavailable()
     shiny::testServer(inspector_server, {
       # Module should handle NULL result
       expect_true(TRUE)
@@ -35,6 +48,7 @@ describe("inspector_server initialization", {
   })
 
   it("initializes without error when selected_lv is NULL", {
+    skip_if_inspector_modules_unavailable()
     result <- make_mock_pls_result()
     shiny::testServer(inspector_server, {
       # Module should handle NULL selected_lv
@@ -54,6 +68,7 @@ describe("inspector_server initialization", {
 describe("inspector_server LV details", {
 
   it("displays correct variance explained for selected LV", {
+    skip_if_inspector_modules_unavailable()
     result <- make_mock_pls_result(n_lv = 3)
     shiny::testServer(inspector_server, {
       # Calculate expected variance
@@ -74,6 +89,7 @@ describe("inspector_server LV details", {
   })
 
   it("shows p-value when perm_result exists", {
+    skip_if_inspector_modules_unavailable()
     result <- make_mock_pls_result(include_perm = TRUE)
     shiny::testServer(inspector_server, {
       r <- result_rv()
@@ -94,6 +110,7 @@ describe("inspector_server LV details", {
   })
 
   it("handles result without perm_result (p-value is NA)", {
+    skip_if_inspector_modules_unavailable()
     result <- make_mock_pls_result(include_perm = FALSE)
     shiny::testServer(inspector_server, {
       r <- result_rv()
@@ -119,6 +136,7 @@ describe("inspector_server LV details", {
   })
 
   it("shows BSR summary when boot_result exists", {
+    skip_if_inspector_modules_unavailable()
     result <- make_mock_pls_result(include_boot = TRUE)
     shiny::testServer(inspector_server, {
       r <- result_rv()
@@ -146,6 +164,7 @@ describe("inspector_server LV details", {
   })
 
   it("cumulative variance is computed correctly", {
+    skip_if_inspector_modules_unavailable()
     result <- make_mock_pls_result(n_lv = 5)
     shiny::testServer(inspector_server, {
       r <- result_rv()
@@ -175,6 +194,7 @@ describe("inspector_server LV details", {
 describe("inspector_server with different results", {
 
   it("full result (boot + perm): all stats shown", {
+    skip_if_inspector_modules_unavailable()
     result <- load_fixture("pls_result_full")
     shiny::testServer(inspector_server, {
       r <- result_rv()
@@ -202,6 +222,7 @@ describe("inspector_server with different results", {
   })
 
   it("boot only: BSR stats shown, no p-value", {
+    skip_if_inspector_modules_unavailable()
     result <- load_fixture("pls_result_with_boot")
     shiny::testServer(inspector_server, {
       r <- result_rv()
@@ -227,6 +248,7 @@ describe("inspector_server with different results", {
   })
 
   it("perm only: p-value shown, no BSR stats", {
+    skip_if_inspector_modules_unavailable()
     result <- load_fixture("pls_result_with_perm")
     shiny::testServer(inspector_server, {
       r <- result_rv()
@@ -252,6 +274,7 @@ describe("inspector_server with different results", {
   })
 
   it("basic result: minimal display", {
+    skip_if_inspector_modules_unavailable()
     result <- load_fixture("pls_result_basic")
     shiny::testServer(inspector_server, {
       r <- result_rv()
@@ -273,6 +296,7 @@ describe("inspector_server with different results", {
   })
 
   it("handles single LV result", {
+    skip_if_inspector_modules_unavailable()
     result <- make_single_lv_result()
     shiny::testServer(inspector_server, {
       r <- result_rv()
@@ -293,6 +317,7 @@ describe("inspector_server with different results", {
   })
 
   it("handles many LV result", {
+    skip_if_inspector_modules_unavailable()
     result <- make_many_lv_result()
     shiny::testServer(inspector_server, {
       r <- result_rv()
@@ -320,6 +345,7 @@ describe("inspector_server with different results", {
 describe("inspector_server export buttons", {
 
   it("export NIfTI button input is accessible", {
+    skip_if_inspector_modules_unavailable()
     result <- make_mock_pls_result(include_mask = TRUE)
     shiny::testServer(inspector_server, {
       # Simulate button click
@@ -338,6 +364,7 @@ describe("inspector_server export buttons", {
   })
 
   it("export CSV button input is accessible", {
+    skip_if_inspector_modules_unavailable()
     result <- make_mock_pls_result()
     shiny::testServer(inspector_server, {
       session$setInputs(export_csv = 1L)
@@ -353,6 +380,7 @@ describe("inspector_server export buttons", {
   })
 
   it("export PDF button input is accessible", {
+    skip_if_inspector_modules_unavailable()
     result <- make_mock_pls_result()
     shiny::testServer(inspector_server, {
       session$setInputs(export_pdf = 1L)
@@ -368,6 +396,7 @@ describe("inspector_server export buttons", {
   })
 
   it("export report button input is accessible", {
+    skip_if_inspector_modules_unavailable()
     result <- make_mock_pls_result()
     shiny::testServer(inspector_server, {
       session$setInputs(export_report = 1L)
@@ -383,6 +412,7 @@ describe("inspector_server export buttons", {
   })
 
   it("multiple export button clicks increment counter", {
+    skip_if_inspector_modules_unavailable()
     result <- make_mock_pls_result()
     shiny::testServer(inspector_server, {
       session$setInputs(export_csv = 1L)
@@ -439,6 +469,7 @@ describe("inspector exports use downloadHandler()", {
 describe("inspector_server scores display", {
 
   it("scores can be extracted for valid result", {
+    skip_if_inspector_modules_unavailable()
     result <- make_mock_pls_result(n_obs = 30, n_lv = 3)
     shiny::testServer(inspector_server, {
       r <- result_rv()
@@ -459,6 +490,7 @@ describe("inspector_server scores display", {
   })
 
   it("handles NULL result gracefully for scores", {
+    skip_if_inspector_modules_unavailable()
     shiny::testServer(inspector_server, {
       r <- result_rv()
       expect_null(r)
@@ -479,6 +511,7 @@ describe("inspector_server scores display", {
   })
 
   it("handles NULL selected_lv gracefully for scores", {
+    skip_if_inspector_modules_unavailable()
     result <- make_mock_pls_result()
     shiny::testServer(inspector_server, {
       lv <- selected_lv()
@@ -504,6 +537,7 @@ describe("inspector_server scores display", {
 describe("inspector_server selected LV changes", {
 
   it("responds to different selected_lv values", {
+    skip_if_inspector_modules_unavailable()
     result <- make_mock_pls_result(n_lv = 5)
     shiny::testServer(inspector_server, {
       r <- result_rv()
@@ -527,6 +561,7 @@ describe("inspector_server selected LV changes", {
   })
 
   it("variance for each LV is positive", {
+    skip_if_inspector_modules_unavailable()
     result <- make_mock_pls_result(n_lv = 3)
     shiny::testServer(inspector_server, {
       r <- result_rv()

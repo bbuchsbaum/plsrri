@@ -32,6 +32,9 @@ datamat, columns are different behavioral measures.}
 
 \item{nboot}{Number of bootstrap samples (default 500).}
 
+\item{site}{Optional subject-level site labels used for multisite
+diagnostics after fitting.}
+
 \item{...}{Additional arguments passed to \code{pls_analysis()}.}
 }
 \value{

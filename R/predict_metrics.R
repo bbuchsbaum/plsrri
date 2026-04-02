@@ -38,7 +38,7 @@ NULL
                                         metrics = NULL) {
   metrics <- metrics %||% .prediction_metrics_default(task)
 
-  out <- setNames(numeric(length(metrics)), metrics)
+  out <- stats::setNames(numeric(length(metrics)), metrics)
   for (metric in metrics) {
     out[[metric]] <- switch(
       metric,

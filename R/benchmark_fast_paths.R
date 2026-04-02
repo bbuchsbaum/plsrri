@@ -46,7 +46,7 @@ benchmark_fast_paths <- function(operations = c("bootstrap", "permutation"),
 
   set.seed(seed)
   datamat_lst <- lapply(num_subj_lst, function(n) {
-    matrix(rnorm(as.integer(n) * as.integer(num_cond) * as.integer(n_features)),
+    matrix(stats::rnorm(as.integer(n) * as.integer(num_cond) * as.integer(n_features)),
            nrow = as.integer(n) * as.integer(num_cond),
            ncol = as.integer(n_features))
   })

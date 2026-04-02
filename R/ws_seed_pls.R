@@ -149,6 +149,11 @@ ws_seed_correlation <- function(beta_lst,
 #' @param groups Optional subject-level group assignments for trial inputs.
 #'   Required when \code{num_subj_lst} uses SSB/list form because subject-group
 #'   membership cannot be recovered from per-condition counts alone.
+#' @param seed_labels Optional character vector naming the supplied seeds.
+#' @param layout Layout used to build the ws-seed data matrix. Use
+#'   \code{"seed_condition"} (default) for one row per seed-condition cell, or
+#'   \code{"stacked_seed_features"} to keep rows at the condition level and
+#'   stack seed-specific voxel maps into the feature axis.
 #' @param fisher_z Logical; apply Fisher r-to-z transform (default \code{TRUE}).
 #' @param min_trials Minimum trials per condition for valid correlation
 #'   (default 3).
@@ -164,6 +169,13 @@ ws_seed_correlation <- function(beta_lst,
 #'   }
 #' @param nperm Number of permutations (default 1000).
 #' @param nboot Number of bootstrap samples (default 500).
+#' @param nsplit Number of split-half resamples.
+#' @param clim Confidence level for bootstrap confidence intervals.
+#' @param boot_type Bootstrap strategy passed through to \code{run()}.
+#' @param is_struct Logical; request structure coefficients where supported.
+#' @param progress Logical; show progress output while running the analysis.
+#' @param stacked_designdata Optional explicit design/contrast matrix for
+#'   non-rotated analyses.
 #' @param ... Additional arguments passed to \code{pls_analysis()}.
 #'
 #' @return A \code{pls_result} object (class \code{pls_task} or
@@ -477,7 +489,7 @@ ws_seed_pls <- function(beta_lst,
     betas_i <- prep$beta_lst[[i]]
     seeds_i <- prep$seed_lst[[i]]
     conds_i <- prep$condition_lst[[i]]
-    subj_rows <- setNames(vector("list", n_cond), cond_labels)
+  subj_rows <- stats::setNames(vector("list", n_cond), cond_labels)
 
     for (ci in seq_len(n_cond)) {
       cond_label <- cond_labels[ci]

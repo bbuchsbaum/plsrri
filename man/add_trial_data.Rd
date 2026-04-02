@@ -28,6 +28,14 @@ with the seed region's trial-level betas.}
 \item{condition_lst}{A list of integer vectors or factors (one per subject)
 mapping trials to conditions.}
 
+\item{groups}{Optional subject-level group assignments for the trial inputs.}
+
+\item{seed_labels}{Optional seed names used when \code{seed_lst} contains
+multiple seed columns.}
+
+\item{layout}{Layout for multi-seed ws-seed data. Use
+\code{"seed_condition"} (default) or \code{"stacked_seed_features"}.}
+
 \item{fisher_z}{Logical; apply Fisher r-to-z transform (default \code{TRUE}).}
 
 \item{min_trials}{Minimum trials per condition for valid correlation
