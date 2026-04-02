@@ -58,4 +58,4 @@ run_pls(
 
 ## Value
 
-A `pls_result` object.
+A fitted PLS result object.

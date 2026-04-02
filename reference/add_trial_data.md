@@ -40,6 +40,20 @@ add_trial_data(
   A list of integer vectors or factors (one per subject) mapping trials
   to conditions.
 
+- groups:
+
+  Optional subject-level group assignments for the trial inputs.
+
+- seed_labels:
+
+  Optional seed names used when `seed_lst` contains multiple seed
+  columns.
+
+- layout:
+
+  Layout for multi-seed ws-seed data. Use `"seed_condition"` (default)
+  or `"stacked_seed_features"`.
+
 - fisher_z:
 
   Logical; apply Fisher r-to-z transform (default `TRUE`).

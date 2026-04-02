@@ -67,6 +67,17 @@ ws_seed_pls(
   when `num_subj_lst` uses SSB/list form because subject-group
   membership cannot be recovered from per-condition counts alone.
 
+- seed_labels:
+
+  Optional character vector naming the supplied seeds.
+
+- layout:
+
+  Layout used to build the ws-seed data matrix. Use `"seed_condition"`
+  (default) for one row per seed-condition cell, or
+  `"stacked_seed_features"` to keep rows at the condition level and
+  stack seed-specific voxel maps into the feature axis.
+
 - fisher_z:
 
   Logical; apply Fisher r-to-z transform (default `TRUE`).
@@ -107,6 +118,31 @@ ws_seed_pls(
 - nboot:
 
   Number of bootstrap samples (default 500).
+
+- nsplit:
+
+  Number of split-half resamples.
+
+- clim:
+
+  Confidence level for bootstrap confidence intervals.
+
+- boot_type:
+
+  Bootstrap strategy passed through to
+  [`run()`](https://bbuchsbaum.github.io/plsrri/reference/run.md).
+
+- is_struct:
+
+  Logical; request structure coefficients where supported.
+
+- progress:
+
+  Logical; show progress output while running the analysis.
+
+- stacked_designdata:
+
+  Optional explicit design/contrast matrix for non-rotated analyses.
 
 - ...:
 
