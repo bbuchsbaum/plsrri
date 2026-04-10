@@ -1,0 +1,326 @@
+---
+title: "Group by Covariate Designs"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Group by Covariate Designs}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 6,
+  fig.height = 4
+)
+
+ensure_local_plsrri <- function(required_exports) {
+  pkg_root <- if (file.exists("DESCRIPTION")) "." else ".."
+  if (!file.exists(file.path(pkg_root, "DESCRIPTION")) ||
+      !requireNamespace("devtools", quietly = TRUE)) {
+    return(invisible(FALSE))
+  }
+
+  installed_exports <- if (requireNamespace("plsrri", quietly = TRUE)) {
+    getNamespaceExports("plsrri")
+  } else {
+    character(0)
+  }
+
+  if (!all(required_exports %in% installed_exports)) {
+    devtools::load_all(pkg_root, quiet = TRUE)
+    return(invisible(TRUE))
+  }
+
+  invisible(FALSE)
+}
+
+ensure_local_plsrri(c("pls_spec", "add_subjects", "add_conditions",
+                      "add_behavior", "add_design", "configure", "run"))
+```
+
+```{r load-package}
+library(plsrri)
+```
+
+You have one brain map per subject, two between-subject groups, and a
+trait-level continuous covariate. In formula notation, the motivating
+model is often written as:
+
+```text
+brain map ~ group * trait
+```
+
+In `plsrri`, this is not fit as a voxelwise formula model. The PLS version
+asks for multivariate brain patterns associated with the trait, and for
+whether that trait-brain pattern is shared by the groups or differs between
+them.
+
+## What is the PLS translation?
+
+With one map per subject, use a single condition:
+
+- the two groups are the two entries of `datamat_lst`
+- `num_cond = 1`
+- the trait is a one-column behavior matrix
+- the behavior matrix rows are stacked in the same order as the brain data
+
+Behavior PLS computes a trait-brain association separately within each
+group. With two groups, one condition, and one trait, the behavior side has
+two rows:
+
+```text
+group 1 : trait-brain association
+group 2 : trait-brain association
+```
+
+Contrasts over these two rows let you ask for the common trait association
+and the group difference in that association.
+
+## What data shape do we need?
+
+Here is a compact simulated example. `Y_g1` and `Y_g2` are subject-by-feature
+matrices. In a real analysis, the columns would be voxels, parcels, surface
+vertices, or another common feature space.
+
+```{r simulate-data}
+set.seed(42)
+
+n1 <- 28
+n2 <- 20
+n_features <- 120
+
+trait_g1 <- as.numeric(scale(rnorm(n1)))
+trait_g2 <- as.numeric(scale(rnorm(n2)))
+
+Y_g1 <- matrix(rnorm(n1 * n_features, sd = 0.7), nrow = n1)
+Y_g2 <- matrix(rnorm(n2 * n_features, sd = 0.7), nrow = n2)
+```
+
+```{r add-signal, include = FALSE}
+shared_pattern <- c(rep(1.0, 30), rep(-0.8, 30), rep(0, n_features - 60))
+interaction_pattern <- c(rep(0, 60), rep(1.1, 25), rep(-0.9, 25),
+                         rep(0, n_features - 110))
+group_pattern <- c(rep(0, 90), rep(0.8, 30))
+
+Y_g1 <- Y_g1 + trait_g1 %o% shared_pattern - 0.35 * trait_g1 %o% interaction_pattern
+Y_g2 <- Y_g2 + trait_g2 %o% shared_pattern + 0.35 * trait_g2 %o% interaction_pattern
+Y_g2 <- sweep(Y_g2, 2, group_pattern, "+")
+
+trait <- matrix(c(trait_g1, trait_g2), ncol = 1)
+colnames(trait) <- "trait"
+
+stopifnot(
+  nrow(Y_g1) == n1,
+  nrow(Y_g2) == n2,
+  nrow(trait) == n1 + n2,
+  all(is.finite(Y_g1)),
+  all(is.finite(Y_g2)),
+  all(is.finite(trait))
+)
+```
+
+The trait matrix is stacked as group 1 followed by group 2:
+
+```{r inspect-trait}
+head(trait, 4)
+tail(trait, 4)
+```
+
+## How do we test the trait effect and the interaction?
+
+Use non-rotated Behavior PLS when the hypothesis is explicit. The design
+matrix has one row per group-specific trait association. The first column
+asks for a shared trait-brain association; the second asks whether the
+association differs by group.
+
+```{r behavior-contrasts}
+trait_design <- cbind(
+  common_trait = c(1, 1),
+  group_by_trait = c(-1, 1)
+)
+
+trait_design
+```
+
+```{r fit-behavior-nonrotated}
+trait_result <- pls_spec() |>
+  add_subjects(list(Y_g1, Y_g2), groups = c(n1, n2)) |>
+  add_conditions(1) |>
+  add_behavior(trait) |>
+  add_design(trait_design) |>
+  configure(
+    method = "behavior_nonrotated",
+    cormode = "pearson",
+    nperm = 199,
+    nboot = 199
+  ) |>
+  run(progress = FALSE)
+```
+
+```{r check-trait-result, include = FALSE}
+trait_p <- significance(trait_result)
+trait_var <- singular_values(trait_result, normalize = TRUE)
+stopifnot(
+  inherits(trait_result, "pls_result"),
+  length(trait_p) == 2,
+  all(is.finite(trait_p)),
+  all(trait_p >= 0 & trait_p <= 1),
+  all(is.finite(trait_var))
+)
+```
+
+The two requested contrasts become two latent variables:
+
+```{r trait-summary}
+cbind(
+  pvalue = round(significance(trait_result), 3),
+  variance = round(singular_values(trait_result, normalize = TRUE), 1)
+)
+```
+
+The design loadings show the hypothesis weights used for each latent
+variable:
+
+```{r trait-loadings}
+loadings(trait_result, type = "design")
+```
+
+Interpret the rows as:
+
+- `common_trait`: the trait-brain association pooled across groups
+- `group_by_trait`: the difference in trait-brain association between groups
+
+The sign of `group_by_trait` follows the contrast coding. With `c(-1, 1)`,
+positive brain saliences are more strongly associated with the trait in
+group 2 than in group 1.
+
+## Where is the group main effect?
+
+The trait model above targets the covariate part of `group * trait`. It
+does not estimate the mean group difference. For the main group effect, use
+non-rotated Task PLS with one condition and a group contrast:
+
+```{r fit-group-main}
+group_result <- pls_spec() |>
+  add_subjects(list(Y_g1, Y_g2), groups = c(n1, n2)) |>
+  add_conditions(1) |>
+  add_design(cbind(group_2_minus_1 = c(-1, 1))) |>
+  configure(
+    method = "task_nonrotated",
+    nperm = 199,
+    nboot = 199
+  ) |>
+  run(progress = FALSE)
+```
+
+```{r check-group-result, include = FALSE}
+group_p <- significance(group_result)
+group_var <- singular_values(group_result, normalize = TRUE)
+stopifnot(
+  inherits(group_result, "pls_result"),
+  length(group_p) == 1,
+  all(is.finite(group_p)),
+  all(group_p >= 0 & group_p <= 1),
+  all(is.finite(group_var))
+)
+```
+
+```{r group-summary}
+cbind(
+  pvalue = round(significance(group_result), 3),
+  variance = round(singular_values(group_result, normalize = TRUE), 1)
+)
+```
+
+This is usually the clearest workflow: fit the group mean effect and the
+trait interaction question as separate, targeted analyses.
+
+## Can this be one multiblock analysis?
+
+Yes. Non-rotated Multiblock PLS combines the task block and behavior block.
+For this design, the multiblock design rows are:
+
+```text
+group 1 mean
+group 2 mean
+group 1 trait association
+group 2 trait association
+```
+
+That gives a single analysis with columns for the group main effect, common
+trait effect, and group-by-trait effect.
+
+```{r multiblock-design}
+multiblock_design <- cbind(
+  group_2_minus_1 = c(-1, 1, 0, 0),
+  common_trait = c(0, 0, 1, 1),
+  group_by_trait = c(0, 0, -1, 1)
+)
+
+multiblock_design
+```
+
+```{r fit-multiblock}
+multiblock_result <- pls_spec() |>
+  add_subjects(list(Y_g1, Y_g2), groups = c(n1, n2)) |>
+  add_conditions(1) |>
+  add_behavior(trait) |>
+  add_design(multiblock_design) |>
+  configure(
+    method = "multiblock_nonrotated",
+    cormode = "pearson",
+    nperm = 199,
+    nboot = 199
+  ) |>
+  run(progress = FALSE)
+```
+
+```{r check-multiblock-result, include = FALSE}
+multiblock_p <- significance(multiblock_result)
+multiblock_var <- singular_values(multiblock_result, normalize = TRUE)
+stopifnot(
+  inherits(multiblock_result, "pls_result"),
+  length(multiblock_p) == 3,
+  all(is.finite(multiblock_p)),
+  all(multiblock_p >= 0 & multiblock_p <= 1),
+  all(is.finite(multiblock_var))
+)
+```
+
+```{r multiblock-summary}
+cbind(
+  pvalue = round(significance(multiblock_result), 3),
+  variance = round(singular_values(multiblock_result, normalize = TRUE), 1)
+)
+```
+
+Use the multiblock version when you want the mean group difference and the
+trait associations represented in one decomposition. Use the separate
+non-rotated analyses when you want the most direct test of each term.
+
+## What should you report?
+
+For the trait analysis, report:
+
+- the row order and contrast coding
+- whether the covariate was centered or scaled before analysis
+- the permutation p-values for the requested LVs
+- the bootstrap ratios or confidence intervals for stable brain features
+- the sign convention for the interaction contrast
+
+For unbalanced groups, pass the actual group sizes in `groups = c(n1, n2)`.
+The bootstrap and permutation routines use those group sizes when resampling.
+
+## Where to go next
+
+| Goal | Resource |
+|:-----|:---------|
+| Behavior PLS with continuous measures | `vignette("behavior-pls")` |
+| Group and condition effects | `vignette("plsrri")` |
+| Multiblock PLS | `vignette("multiblock-and-seed")` |
+| Predictive validation from PLS scores | `vignette("predictive-measures")` |
+| Full engine options | `?pls_analysis` |

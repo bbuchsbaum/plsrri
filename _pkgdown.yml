@@ -23,6 +23,8 @@ navbar:
           href: articles/predictive-measures.html
         - text: Behavior PLS
           href: articles/behavior-pls.html
+        - text: Group by Covariate Designs
+          href: articles/group-covariate-design.html
         - text: Within-Subject Seed PLS
           href: articles/ws-seed-pls.html
         - text: Multiblock and Seed
@@ -38,5 +40,6 @@ articles:
       - site-pooling
       - predictive-measures
       - behavior-pls
+      - group-covariate-design
       - ws-seed-pls
       - multiblock-and-seed
