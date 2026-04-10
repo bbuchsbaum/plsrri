@@ -16,6 +16,40 @@ A modern R implementation of Partial Least Squares (PLS) for neuroimaging analys
 remotes::install_github("bbuchsbaum/plsrri")
 ```
 
+## Command Line
+
+Install the package:
+
+```r
+remotes::install_github("bbuchsbaum/plsrri")
+```
+
+Install the `plscli` wrapper:
+
+```r
+plsrri::install_cli("~/.local/bin", overwrite = TRUE)
+```
+
+If needed, add the directory to `PATH`:
+
+```sh
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+Check the command:
+
+```sh
+plscli --help
+```
+
+Run common workflows:
+
+```sh
+plscli template --out study.yml
+plscli validate --spec study.yml
+plscli report --input study.yml --format html
+```
+
 ## Quick Start
 
 ```r

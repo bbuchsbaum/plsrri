@@ -1,110 +1,132 @@
-# Tests for R/plscli.R
+test_that(".plscli_usage returns global and command-specific help", {
+  global <- plsrri:::.plscli_usage()
+  report <- plsrri:::.plscli_usage("report")
 
-test_that(".plscli_usage returns a non-empty character string", {
-  result <- plsrri:::.plscli_usage()
-  expect_type(result, "character")
-  expect_true(nzchar(result))
-  expect_true(grepl("Usage", result))
-  expect_true(grepl("Commands", result))
+  expect_type(global, "character")
+  expect_match(global, "Usage:")
+  expect_match(global, "plscli help \\[command\\]")
+  expect_match(report, "plscli report")
+  expect_match(report, "--no-open", fixed = TRUE)
 })
 
-test_that(".plscli_parse_args returns help for --help flag", {
-  result <- plsrri:::.plscli_parse_args(c("--help"))
-  expect_equal(result$command, "help")
+test_that(".plscli_parse_args supports help forms and key=value options", {
+  expect_equal(plsrri:::.plscli_parse_args(character(0))$command, "help")
+  expect_equal(plsrri:::.plscli_parse_args(c("--help"))$command, "help")
+  expect_equal(plsrri:::.plscli_parse_args(c("help", "report"))$topic, "report")
+  expect_equal(plsrri:::.plscli_parse_args(c("report", "--help"))$topic, "report")
+
+  parsed <- plsrri:::.plscli_parse_args(c(
+    "report",
+    "--input=/tmp/artifacts",
+    "--format=pdf",
+    "--json",
+    "--no-open"
+  ))
+
+  expect_equal(parsed$command, "report")
+  expect_equal(parsed$options$input, "/tmp/artifacts")
+  expect_equal(parsed$options$format, "pdf")
+  expect_true(parsed$options$json)
+  expect_false(parsed$options$open)
 })
 
-test_that(".plscli_parse_args returns help for -h flag", {
-  result <- plsrri:::.plscli_parse_args(c("-h"))
-  expect_equal(result$command, "help")
-})
-
-test_that(".plscli_parse_args returns help for empty args", {
-  result <- plsrri:::.plscli_parse_args(character(0))
-  expect_equal(result$command, "help")
-})
-
-test_that(".plscli_parse_args parses command with --spec option", {
-  result <- plsrri:::.plscli_parse_args(c("validate", "--spec", "spec.yml"))
-  expect_equal(result$command, "validate")
-  expect_equal(result$options$spec, "spec.yml")
-})
-
-test_that(".plscli_parse_args parses discover command", {
-  result <- plsrri:::.plscli_parse_args(c("discover", "--spec", "spec.yml"))
-  expect_equal(result$command, "discover")
-  expect_equal(result$options$spec, "spec.yml")
-})
-
-test_that(".plscli_parse_args parses multiple options", {
-  result <- plsrri:::.plscli_parse_args(
-    c("report", "--spec", "spec.yml", "--format", "pdf", "--title", "My Report")
-  )
-  expect_equal(result$command, "report")
-  expect_equal(result$options$spec, "spec.yml")
-  expect_equal(result$options$format, "pdf")
-  expect_equal(result$options$title, "My Report")
-})
-
-test_that(".plscli_parse_args treats --help anywhere in args as help command", {
-  # --help anywhere in the argument vector triggers the help path
-  result <- plsrri:::.plscli_parse_args(c("validate", "--help"))
-  expect_equal(result$command, "help")
-})
-
-test_that(".plscli_parse_args errors on unexpected positional argument", {
+test_that(".plscli_parse_args rejects unknown options and missing values", {
   expect_error(
-    plsrri:::.plscli_parse_args(c("validate", "unexpected_positional")),
+    plsrri:::.plscli_parse_args(c("validate", "--bogus")),
+    "Unknown option"
+  )
+
+  expect_error(
+    plsrri:::.plscli_parse_args(c("template", "--out")),
+    "Option requires a value"
+  )
+
+  expect_error(
+    plsrri:::.plscli_parse_args(c("validate", "unexpected")),
     "Unexpected positional argument"
   )
 })
 
-test_that(".plscli_parse_args errors when option has no value", {
-  expect_error(
-    plsrri:::.plscli_parse_args(c("validate", "--spec")),
-    "Option requires a value"
-  )
-})
-
-test_that(".plscli_print_table prints a data.frame without error", {
+test_that(".plscli_print_table prints common result shapes", {
   df <- data.frame(x = 1:3, y = letters[1:3], stringsAsFactors = FALSE)
-  out <- capture.output(plsrri:::.plscli_print_table(df))
-  expect_true(length(out) > 0)
+
+  expect_true(length(capture.output(plsrri:::.plscli_print_table(df))) > 0L)
+  expect_true(length(capture.output(plsrri:::.plscli_print_table(42L))) > 0L)
+  expect_identical(plsrri:::.plscli_print_table(df), df)
 })
 
-test_that(".plscli_print_table prints a scalar without error", {
-  out <- capture.output(plsrri:::.plscli_print_table(42L))
-  expect_true(length(out) > 0)
+test_that("plscli_main returns status 0 for help and template", {
+  out <- capture.output(status <- plscli_main(c("--help")))
+  expect_identical(status, 0L)
+  expect_true(any(grepl("Usage:", out)))
+
+  template_path <- tempfile(fileext = ".yml")
+  status <- plscli_main(c("template", "--out", template_path))
+  expect_identical(status, 0L)
+  expect_true(file.exists(template_path))
 })
 
-test_that(".plscli_print_table returns input invisibly for data.frame", {
-  df <- data.frame(x = 1:3)
-  result <- plsrri:::.plscli_print_table(df)
-  expect_identical(result, df)
+test_that("plscli_main returns usage error status for parser and dispatch failures", {
+  expect_identical(plscli_main(c("validate")), 2L)
+  expect_identical(plscli_main(c("nonexistent-command", "--spec", "dummy.yml")), 2L)
+  expect_identical(plscli_main(c("report")), 2L)
 })
 
-test_that("plscli_main with --help prints usage and returns NULL invisibly", {
-  out <- capture.output(result <- plscli_main(c("--help")))
-  expect_null(result)
-  expect_true(any(grepl("Usage", out)))
+test_that("plscli_main returns domain failure status for invalid specs", {
+  skip_if_not_installed("yaml")
+
+  spec_path <- tempfile(fileext = ".yml")
+  yaml::write_yaml(
+    list(
+      dataset = list(
+        bids_dir = tempfile("missing-bids-")
+      )
+    ),
+    spec_path
+  )
+
+  expect_identical(plscli_main(c("validate", "--spec", spec_path)), 1L)
 })
 
-test_that("plscli_main with unknown command errors", {
+test_that("plscli_main emits parseable json output", {
+  skip_if_not_installed("jsonlite")
+
+  template_path <- tempfile(fileext = ".yml")
+  out <- capture.output(status <- plscli_main(c("template", "--out", template_path, "--json")))
+
+  expect_identical(status, 0L)
+  payload <- jsonlite::fromJSON(paste(out, collapse = "\n"))
+  expect_identical(payload$command, "template")
+  expect_identical(basename(payload$output), basename(template_path))
+})
+
+test_that("install_cli copies wrapper and refuses overwrite by default", {
+  dest <- tempfile("plsrri-cli-")
+  dir.create(dest)
+
+  installed <- install_cli(dest_dir = dest)
+  wrapper <- file.path(dest, "plscli")
+
+  expect_length(installed, 1L)
+  expect_true(file.exists(wrapper))
+  expect_match(paste(readLines(wrapper, warn = FALSE), collapse = "\n"), "plsrri::plscli_main", fixed = TRUE)
+
   expect_error(
-    plscli_main(c("nonexistent-command", "--spec", "dummy.yml")),
-    "Unknown plscli command"
+    install_cli(dest_dir = dest),
+    "Refusing to overwrite existing command"
   )
 })
 
-test_that("plscli_main errors when --spec missing for spec-requiring commands", {
-  expect_error(
-    plscli_main(c("validate")),
-    "--spec is required"
+test_that("exec/plscli wrapper runs help successfully", {
+  wrapper <- normalizePath(
+    file.path(testthat::test_path("..", ".."), "exec", "plscli"),
+    winslash = "/",
+    mustWork = TRUE
   )
-})
+  cmd <- file.path(R.home("bin"), "Rscript")
+  out <- system2(cmd, c(wrapper, "--help"), stdout = TRUE, stderr = TRUE)
+  status <- attr(out, "status") %||% 0L
 
-test_that("plscli_main errors when --input missing for report command", {
-  expect_error(
-    plscli_main(c("report")),
-    "--input or --spec is required"
-  )
+  expect_identical(as.integer(status), 0L)
+  expect_true(any(grepl("Usage:", out)))
 })

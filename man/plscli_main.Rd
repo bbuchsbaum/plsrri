@@ -10,7 +10,7 @@ plscli_main(args = commandArgs(trailingOnly = TRUE))
 \item{args}{Character vector of command-line arguments.}
 }
 \value{
-Invisibly returns the stage result.
+Invisibly returns an integer exit status.
 }
 \description{
 Run the \code{plscli} Dispatcher

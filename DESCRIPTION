@@ -25,11 +25,13 @@ Imports:
     Matrix,
     cli,
     ggplot2,
+    jsonlite,
     methods,
     R6,
     Rcpp,
     stats,
-    utils
+    utils,
+    yaml
 Suggests:
     neuroim2,
     bidser,
@@ -47,7 +49,6 @@ Suggests:
     R.utils,
     patchwork,
     scales,
-    yaml,
     shiny (>= 1.8.0),
     bslib (>= 0.6.0),
     bsicons,

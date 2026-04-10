@@ -66,10 +66,23 @@ From R:
 write_pipeline_template("study.yml")
 ```
 
-From the CLI:
+Install the wrapper once from R:
+
+```r
+plsrri::install_cli("~/.local/bin", overwrite = TRUE)
+```
+
+Then use the CLI:
 
 ```bash
 plscli template --out study.yml
+```
+
+If `~/.local/bin` is not already on `PATH`, add it before running the shell
+command:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
 ```
 
 The resulting scaffold is the same contract used by `prepare_firstlevel()`,
@@ -293,7 +306,7 @@ plscli firstlevel-plan --spec study.yml
 plscli firstlevel-run --spec study.yml --work-id w0007
 plscli pls-plan --spec study.yml
 plscli pls-run --spec study.yml
-plscli report --input study.yml --format html
+plscli report --input study.yml --format html --json
 ```
 
 For array jobs, the only thing that changes is how you schedule `firstlevel-run`.
