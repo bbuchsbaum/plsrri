@@ -16,4 +16,4 @@ plscli_main(args = commandArgs(trailingOnly = TRUE))
 
 ## Value
 
-Invisibly returns the stage result.
+Invisibly returns an integer exit status.
