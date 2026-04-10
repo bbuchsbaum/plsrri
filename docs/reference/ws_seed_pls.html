@@ -35,6 +35,7 @@ standard across-subject seed PLS."></head><body>
     <li><a class="dropdown-item" href="../articles/site-pooling.html">Multisite Behavioral PLS</a></li>
     <li><a class="dropdown-item" href="../articles/predictive-measures.html">Predictive Measures</a></li>
     <li><a class="dropdown-item" href="../articles/behavior-pls.html">Behavior PLS</a></li>
+    <li><a class="dropdown-item" href="../articles/group-covariate-design.html">Group by Covariate Designs</a></li>
     <li><a class="dropdown-item" href="../articles/ws-seed-pls.html">Within-Subject Seed PLS</a></li>
     <li><a class="dropdown-item" href="../articles/multiblock-and-seed.html">Multiblock and Seed</a></li>
   </ul></li>
@@ -126,6 +127,17 @@ Required when <code>num_subj_lst</code> uses SSB/list form because subject-group
 membership cannot be recovered from per-condition counts alone.</p></dd>
 
 
+<dt id="arg-seed-labels">seed_labels<a class="anchor" aria-label="anchor" href="#arg-seed-labels"></a></dt>
+<dd><p>Optional character vector naming the supplied seeds.</p></dd>
+
+
+<dt id="arg-layout">layout<a class="anchor" aria-label="anchor" href="#arg-layout"></a></dt>
+<dd><p>Layout used to build the ws-seed data matrix. Use
+<code>"seed_condition"</code> (default) for one row per seed-condition cell, or
+<code>"stacked_seed_features"</code> to keep rows at the condition level and
+stack seed-specific voxel maps into the feature axis.</p></dd>
+
+
 <dt id="arg-fisher-z">fisher_z<a class="anchor" aria-label="anchor" href="#arg-fisher-z"></a></dt>
 <dd><p>Logical; apply Fisher r-to-z transform (default <code>TRUE</code>).</p></dd>
 
@@ -164,6 +176,31 @@ membership cannot be recovered from per-condition counts alone.</p></dd>
 
 <dt id="arg-nboot">nboot<a class="anchor" aria-label="anchor" href="#arg-nboot"></a></dt>
 <dd><p>Number of bootstrap samples (default 500).</p></dd>
+
+
+<dt id="arg-nsplit">nsplit<a class="anchor" aria-label="anchor" href="#arg-nsplit"></a></dt>
+<dd><p>Number of split-half resamples.</p></dd>
+
+
+<dt id="arg-clim">clim<a class="anchor" aria-label="anchor" href="#arg-clim"></a></dt>
+<dd><p>Confidence level for bootstrap confidence intervals.</p></dd>
+
+
+<dt id="arg-boot-type">boot_type<a class="anchor" aria-label="anchor" href="#arg-boot-type"></a></dt>
+<dd><p>Bootstrap strategy passed through to <code><a href="run.html">run()</a></code>.</p></dd>
+
+
+<dt id="arg-is-struct">is_struct<a class="anchor" aria-label="anchor" href="#arg-is-struct"></a></dt>
+<dd><p>Logical; request structure coefficients where supported.</p></dd>
+
+
+<dt id="arg-progress">progress<a class="anchor" aria-label="anchor" href="#arg-progress"></a></dt>
+<dd><p>Logical; show progress output while running the analysis.</p></dd>
+
+
+<dt id="arg-stacked-designdata">stacked_designdata<a class="anchor" aria-label="anchor" href="#arg-stacked-designdata"></a></dt>
+<dd><p>Optional explicit design/contrast matrix for
+non-rotated analyses.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>

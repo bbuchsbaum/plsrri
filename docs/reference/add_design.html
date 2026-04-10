@@ -25,6 +25,7 @@ Design contrasts specify hypotheses about condition/group differences."></head><
     <li><a class="dropdown-item" href="../articles/site-pooling.html">Multisite Behavioral PLS</a></li>
     <li><a class="dropdown-item" href="../articles/predictive-measures.html">Predictive Measures</a></li>
     <li><a class="dropdown-item" href="../articles/behavior-pls.html">Behavior PLS</a></li>
+    <li><a class="dropdown-item" href="../articles/group-covariate-design.html">Group by Covariate Designs</a></li>
     <li><a class="dropdown-item" href="../articles/ws-seed-pls.html">Within-Subject Seed PLS</a></li>
     <li><a class="dropdown-item" href="../articles/multiblock-and-seed.html">Multiblock and Seed</a></li>
   </ul></li>
@@ -102,7 +103,7 @@ Design contrasts specify hypotheses about condition/group differences.</p>
 <span class="r-in"><span>  <span class="fu"><a href="add_subjects.html">add_subjects</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">d1</span>, <span class="va">d2</span><span class="op">)</span>, groups <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">20</span>, <span class="fl">18</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="add_conditions.html">add_conditions</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
 <span class="r-in"><span>  <span class="fu">add_design</span><span class="op">(</span><span class="va">contrasts</span>, labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"task_vs_baseline"</span>, <span class="st">"task1_vs_task2"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">i</span> Contrasts are not orthogonal. LV effects may overlap.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Contrasts are not orthogonal. LV effects may overlap.</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

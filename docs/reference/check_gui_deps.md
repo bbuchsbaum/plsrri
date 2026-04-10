@@ -16,19 +16,19 @@ Logical indicating whether all required GUI dependencies are installed.
 
 ``` r
 check_gui_deps()
-#> 
-#> -- PLS GUI Dependency Check --
-#> 
-#> -- Required packages 
-#> v shiny
-#> v bslib
-#> x bsicons - NOT INSTALLED
-#> x shinyjs - NOT INSTALLED
-#> x shinyFiles - NOT INSTALLED
-#> v R6
-#> 
-#> -- Suggested packages (for async execution) 
-#> v future
-#> v promises
-#> i Install missing packages with:
+#>
+#> ── PLS GUI Dependency Check ──
+#>
+#> ── Required packages
+#> ✔ shiny
+#> ✔ bslib
+#> ✖ bsicons - NOT INSTALLED
+#> ✖ shinyjs - NOT INSTALLED
+#> ✖ shinyFiles - NOT INSTALLED
+#> ✔ R6
+#>
+#> ── Suggested packages (for async execution)
+#> ✔ future
+#> ✔ promises
+#> ℹ Install missing packages with:
 ```

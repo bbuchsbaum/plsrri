@@ -14,6 +14,8 @@
   Inference](https://bbuchsbaum.github.io/plsrri/articles/predictive-measures.md):
 - [Behavior PLS
   Workflow](https://bbuchsbaum.github.io/plsrri/articles/behavior-pls.md):
+- [Group by Covariate
+  Designs](https://bbuchsbaum.github.io/plsrri/articles/group-covariate-design.md):
 - [Within-Subject Seed PLS
   Workflow](https://bbuchsbaum.github.io/plsrri/articles/ws-seed-pls.md):
 - [Multiblock and Seed PLS

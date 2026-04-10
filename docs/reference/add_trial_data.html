@@ -25,6 +25,7 @@ to a PLS specification for use with method = "ws_seed".'></head><body>
     <li><a class="dropdown-item" href="../articles/site-pooling.html">Multisite Behavioral PLS</a></li>
     <li><a class="dropdown-item" href="../articles/predictive-measures.html">Predictive Measures</a></li>
     <li><a class="dropdown-item" href="../articles/behavior-pls.html">Behavior PLS</a></li>
+    <li><a class="dropdown-item" href="../articles/group-covariate-design.html">Group by Covariate Designs</a></li>
     <li><a class="dropdown-item" href="../articles/ws-seed-pls.html">Within-Subject Seed PLS</a></li>
     <li><a class="dropdown-item" href="../articles/multiblock-and-seed.html">Multiblock and Seed</a></li>
   </ul></li>
@@ -87,6 +88,20 @@ with the seed region's trial-level betas.</p></dd>
 <dt id="arg-condition-lst">condition_lst<a class="anchor" aria-label="anchor" href="#arg-condition-lst"></a></dt>
 <dd><p>A list of integer vectors or factors (one per subject)
 mapping trials to conditions.</p></dd>
+
+
+<dt id="arg-groups">groups<a class="anchor" aria-label="anchor" href="#arg-groups"></a></dt>
+<dd><p>Optional subject-level group assignments for the trial inputs.</p></dd>
+
+
+<dt id="arg-seed-labels">seed_labels<a class="anchor" aria-label="anchor" href="#arg-seed-labels"></a></dt>
+<dd><p>Optional seed names used when <code>seed_lst</code> contains
+multiple seed columns.</p></dd>
+
+
+<dt id="arg-layout">layout<a class="anchor" aria-label="anchor" href="#arg-layout"></a></dt>
+<dd><p>Layout for multi-seed ws-seed data. Use
+<code>"seed_condition"</code> (default) or <code>"stacked_seed_features"</code>.</p></dd>
 
 
 <dt id="arg-fisher-z">fisher_z<a class="anchor" aria-label="anchor" href="#arg-fisher-z"></a></dt>

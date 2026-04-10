@@ -51,6 +51,11 @@ behav_pls(
 
   Number of bootstrap samples (default 500).
 
+- site:
+
+  Optional subject-level site labels used for multisite diagnostics
+  after fitting.
+
 - ...:
 
   Additional arguments passed to
