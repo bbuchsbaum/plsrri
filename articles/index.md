@@ -4,6 +4,8 @@
 
 - [Getting Started with
   plsrri](https://bbuchsbaum.github.io/plsrri/articles/plsrri.md):
+- [Command Line
+  Interface](https://bbuchsbaum.github.io/plsrri/articles/cli.md):
 - [Scripted End-to-End
   Workflows](https://bbuchsbaum.github.io/plsrri/articles/scripted-workflows.md):
 - [Pipeline YAML
