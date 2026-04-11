@@ -101,6 +101,11 @@
 - [`importance()`](https://bbuchsbaum.github.io/plsrri/reference/importance.md)
   : Extract Component Importance
 
+- [`install_cli()`](https://bbuchsbaum.github.io/plsrri/reference/install_cli.md)
+  :
+
+  Install `plsrri` Command Wrappers
+
 - [`launch_pls_gui()`](https://bbuchsbaum.github.io/plsrri/reference/launch_pls_gui.md)
   : Launch PLS GUI
 

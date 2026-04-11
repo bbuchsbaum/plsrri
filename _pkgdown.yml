@@ -13,6 +13,8 @@ navbar:
       menu:
         - text: Getting Started
           href: articles/plsrri.html
+        - text: Command Line Interface
+          href: articles/cli.html
         - text: Scripted Workflows
           href: articles/scripted-workflows.html
         - text: Pipeline YAML Specification
@@ -35,6 +37,7 @@ articles:
     navbar: Core Workflows
     contents:
       - plsrri
+      - cli
       - scripted-workflows
       - pipeline-yaml-spec
       - site-pooling

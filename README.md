@@ -84,6 +84,7 @@ bsr_map <- bsr(result, lv = 1, threshold = 2)
 See the [pkgdown site](https://bbuchsbaum.github.io/plsrri/) for full documentation, including:
 
 - [Getting Started](https://bbuchsbaum.github.io/plsrri/articles/plsrri.html)
+- [Command Line Interface](https://bbuchsbaum.github.io/plsrri/articles/cli.html)
 - [Scripted Workflows](https://bbuchsbaum.github.io/plsrri/articles/scripted-workflows.html)
 - [Behavior PLS](https://bbuchsbaum.github.io/plsrri/articles/behavior-pls.html)
 - [Predictive Measures](https://bbuchsbaum.github.io/plsrri/articles/predictive-measures.html)
