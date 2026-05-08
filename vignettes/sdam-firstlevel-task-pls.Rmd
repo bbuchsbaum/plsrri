@@ -113,6 +113,15 @@ lv_summary <- summarise_sdam_result(result)
 lv_summary
 ```
 
+```{r choose-lv, include = FALSE}
+lv_to_show <- if (any(lv_summary$significant)) {
+  lv_summary$lv[which(lv_summary$significant)[[1]]]
+} else {
+  1L
+}
+condition_key <- sdam_condition_key()
+```
+
 ## Which latent variables are reliable?
 
 The singular-value plot shows variance explained and highlights permutation
@@ -126,15 +135,53 @@ For an interpretable latent variable, inspect the design scores first. They
 show which group-by-condition cells sit at opposite ends of the multivariate
 pattern.
 
-```{r plot-design-scores, fig.cap = "Design scores for LV1 across group-by-condition cells."}
-plot_scores(result, lv = 1, type = "design", plot_type = "bar")
+```{r plot-design-scores, fig.cap = "Design scores for the selected reliable LV across group-by-condition cells."}
+plot_scores(result, lv = lv_to_show, type = "design", plot_type = "bar")
+```
+
+When the design has several crossed factors, the flattened bar plot is only
+the starting point. Add a condition key to restore the task and level factors,
+then view the same LV scores as a small factorial table.
+
+```{r plot-design-heatmap, fig.cap = "The same design scores rehydrated as task-by-level heatmaps within group."}
+plot_design_heatmap(
+  result,
+  lv = lv_to_show,
+  condition_key = condition_key,
+  row = "level",
+  column = "task",
+  facet = "group"
+)
+```
+
+The interaction view is often easier to read when a latent variable mixes
+group, task, and level effects.
+
+```{r plot-design-interaction, fig.cap = "Design-score interaction plot for the selected LV."}
+plot_design_interaction(
+  result,
+  lv = lv_to_show,
+  condition_key = condition_key,
+  x_axis = "task",
+  trace = "level",
+  facet = "group"
+)
+```
+
+Finally, decompose the design vector into effect-coded factorial terms. The
+largest bars show which main effects or interactions dominate the LV design
+pattern. The LV sign is arbitrary, so use signs to connect the score plot to
+the brain map, and use magnitudes to rank the terms.
+
+```{r plot-design-contrasts, fig.cap = "Effect-coded decomposition of the selected LV design scores."}
+plot_design_contrasts(result, lv = lv_to_show, condition_key = condition_key)
 ```
 
 Brain scores show how consistently individual subject-condition observations
 express the same latent pattern.
 
-```{r plot-brain-scores, fig.cap = "Brain scores for LV1. Each point is one subject-condition observation."}
-plot_scores(result, lv = 1, type = "brain", plot_type = "violin")
+```{r plot-brain-scores, fig.cap = "Brain scores for the selected LV. Each point is one subject-condition observation."}
+plot_scores(result, lv = lv_to_show, type = "brain", plot_type = "violin")
 ```
 
 ## Where is the reliable brain pattern?
@@ -143,8 +190,8 @@ Bootstrap ratios divide saliences by their bootstrap standard errors. The
 first thresholded map keeps voxels with large absolute bootstrap ratios in the
 original volume space.
 
-```{r plot-bsr-volume, fig.cap = "LV1 bootstrap-ratio map thresholded at |BSR| > 3 in volume space."}
-plot_sdam_bsr_volume(result, lv = 1, threshold = 3)
+```{r plot-bsr-volume, fig.cap = "Bootstrap-ratio map for the selected LV thresholded at |BSR| > 3 in volume space."}
+plot_sdam_bsr_volume(result, lv = lv_to_show, threshold = 3)
 ```
 
 For a surface-oriented view, the same thresholded bootstrap-ratio map can be
@@ -154,8 +201,8 @@ projection of the voxel map, not a different statistical test. The helper uses
 a neutral grey base surface so the colours encode only the projected
 bootstrap-ratio overlay.
 
-```{r plot-bsr-surface, fig.cap = "LV1 bootstrap-ratio map projected to an fsaverage6 surface with neuroatlas."}
-plot_sdam_bsr_surface(result, lv = 1, threshold = 3)
+```{r plot-bsr-surface, fig.cap = "Bootstrap-ratio map for the selected LV projected to an fsaverage6 surface with neuroatlas."}
+plot_sdam_bsr_surface(result, lv = lv_to_show, threshold = 3)
 ```
 
 You can save the fitted object, a latent-variable summary, and the figures with

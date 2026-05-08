@@ -31,6 +31,12 @@ sdam_condition_table <- function() {
     transform(condition = paste(task, measure, sep = "_"))
 }
 
+sdam_condition_key <- function() {
+  key <- sdam_condition_table()[, c("condition", "task", "measure")]
+  names(key)[names(key) == "measure"] <- "level"
+  key
+}
+
 read_sdam_participants <- function(root = sdam_testdata_root()) {
   participants_file <- file.path(root, "participants.tsv")
   participants <- utils::read.table(
@@ -353,6 +359,46 @@ save_sdam_plots <- function(result, output_dir, lv = 1L, bsr_threshold = 3) {
   ggplot2::ggsave(
     file.path(output_dir, sprintf("lv%d-design-scores.png", lv)),
     plsrri::plot_scores(result, lv = lv, type = "design", plot_type = "bar"),
+    width = 7,
+    height = 4,
+    dpi = 150
+  )
+  condition_key <- sdam_condition_key()
+  ggplot2::ggsave(
+    file.path(output_dir, sprintf("lv%d-design-heatmap.png", lv)),
+    plsrri::plot_design_heatmap(
+      result,
+      lv = lv,
+      condition_key = condition_key,
+      row = "level",
+      column = "task",
+      facet = "group"
+    ),
+    width = 7,
+    height = 4,
+    dpi = 150
+  )
+  ggplot2::ggsave(
+    file.path(output_dir, sprintf("lv%d-design-interaction.png", lv)),
+    plsrri::plot_design_interaction(
+      result,
+      lv = lv,
+      condition_key = condition_key,
+      x_axis = "task",
+      trace = "level",
+      facet = "group"
+    ),
+    width = 7,
+    height = 4,
+    dpi = 150
+  )
+  ggplot2::ggsave(
+    file.path(output_dir, sprintf("lv%d-design-contrasts.png", lv)),
+    plsrri::plot_design_contrasts(
+      result,
+      lv = lv,
+      condition_key = condition_key
+    ),
     width = 7,
     height = 4,
     dpi = 150

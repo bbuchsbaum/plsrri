@@ -20,6 +20,10 @@ test_that("SDAM first-level tutorial manifest and smoke fit are valid", {
   )
   expect_true(all(file.exists(manifest$file)))
 
+  condition_key <- example_env$sdam_condition_key()
+  expect_equal(condition_key$condition, levels(manifest$condition))
+  expect_equal(names(condition_key), c("condition", "task", "level"))
+
   design <- example_env$summarise_sdam_design(manifest)
   expect_equal(design$n_subjects, 32L)
   expect_equal(design$n_maps, 128L)
@@ -41,6 +45,14 @@ test_that("SDAM first-level tutorial manifest and smoke fit are valid", {
   expect_equal(n_features(result), 32L)
   expect_equal(result$groups, c("control", "sdam"))
   expect_equal(result$conditions, levels(manifest$condition))
+
+  design_scores <- as_design_scores(result, lv = 1, condition_key = condition_key)
+  expect_equal(nrow(design_scores), 8L)
+  expect_true(all(c("task", "level", "mean", "se") %in% names(design_scores)))
+
+  design_contrasts <- as_design_contrasts(result, lv = 1, condition_key = condition_key)
+  expect_equal(nrow(design_contrasts), 7L)
+  expect_true(all(is.finite(design_contrasts$magnitude)))
 
   lv_summary <- example_env$summarise_sdam_result(result)
   expect_equal(nrow(lv_summary), length(result$s))
