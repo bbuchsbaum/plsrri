@@ -4,22 +4,39 @@
 \alias{write_results}
 \title{Write Results to File}
 \usage{
-write_results(x, file, format = "rds", what = "all", lv = NULL)
+write_results(
+  x,
+  file,
+  format = "rds",
+  what = "all",
+  lv = NULL,
+  compression = 4L
+)
 }
 \arguments{
 \item{x}{A \code{pls_result} object}
 
 \item{file}{Output file path}
 
-\item{format}{Export format: "rds", "csv", "mat"}
+\item{format}{Export format: \code{"rds"} (default, native R), \code{"hdf5"}
+(portable, lossless plsrri-native HDF5; see \code{?plsrri-hdf5}),
+\code{"csv"}, or \code{"mat"} (MATLAB-readable, partial fields only).}
 
-\item{what}{What to export: "all", "salience", "bsr", "scores"}
+\item{what}{What to export: "all", "salience", "bsr", "scores".
+Only honored for \code{"rds"} and \code{"csv"} formats; \code{"hdf5"} always writes
+the full result.}
 
 \item{lv}{LV indices to export (NULL = all)}
+
+\item{compression}{Integer 0-9 gzip level for \code{"hdf5"} (default 4).
+Higher values produce smaller files at write-time cost.}
 }
 \value{
 Path to exported file (invisibly)
 }
 \description{
 Exports PLS results to various file formats.
+}
+\seealso{
+\code{\link[=read_results]{read_results()}}
 }

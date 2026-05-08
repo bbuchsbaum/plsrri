@@ -25,7 +25,8 @@ pls_permutation_test(
   permsamp = NULL,
   Tpermsamp = NULL,
   Bpermsamp = NULL,
-  progress = TRUE
+  progress = TRUE,
+  keep_distribution = FALSE
 )
 }
 \arguments{

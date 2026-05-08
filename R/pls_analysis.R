@@ -67,6 +67,11 @@ NULL
 #'   `backend` (`"future"` or `"sequential"`) and `workers`. This affects
 #'   permutation testing and task-only bootstrap execution.
 #' @param progress Logical, show progress messages.
+#' @param keep_perm_distribution Logical. When `TRUE`, the returned
+#'   `perm_result$perm_singval` retains the full `n_lv x num_perm` matrix of
+#'   permuted singular values for null-distribution diagnostic plots and
+#'   reproducibility. Adds a few KB to the result for typical sizes. Defaults
+#'   to `FALSE` to preserve historical result-object size.
 #'
 #' @return A `pls_result` object containing:
 #' \describe{
@@ -116,7 +121,8 @@ pls_analysis <- function(datamat_lst,
                           bootsamp = NULL,
                           bootsamp_4beh = NULL,
                           parallel_config = NULL,
-                          progress = TRUE) {
+                          progress = TRUE,
+                          keep_perm_distribution = FALSE) {
 
   # --- Input Validation ---
   assert_that(is.list(datamat_lst), length(datamat_lst) >= 1)
@@ -526,7 +532,8 @@ pls_analysis <- function(datamat_lst,
       Tpermsamp = Tpermsamp,
       Bpermsamp = Bpermsamp,
       parallel_config = parallel_config,
-      progress = progress
+      progress = progress,
+      keep_distribution = isTRUE(keep_perm_distribution)
     )
   }
 

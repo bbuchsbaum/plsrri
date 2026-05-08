@@ -327,11 +327,15 @@ summary.pls_result <- function(object, ...) {
 #' @param permsamp Permutation sample matrix
 #' @param Tpermsamp Task permutation samples (multiblock)
 #' @param Bpermsamp Behavior permutation samples (multiblock)
+#' @param perm_singval Optional `n_lv x num_perm` numeric matrix holding the
+#'   full permutation null distribution of singular values (kept when
+#'   `pls_analysis(..., keep_perm_distribution = TRUE)`). `NULL` by default.
 #'
 #' @return A `pls_perm_result` object
 #' @keywords internal
 new_pls_perm_result <- function(num_perm, sp, sprob, permsamp = NULL,
-                                 Tpermsamp = NULL, Bpermsamp = NULL) {
+                                 Tpermsamp = NULL, Bpermsamp = NULL,
+                                 perm_singval = NULL) {
   structure(
     list(
       num_perm = num_perm,
@@ -339,7 +343,8 @@ new_pls_perm_result <- function(num_perm, sp, sprob, permsamp = NULL,
       sprob = sprob,
       permsamp = permsamp,
       Tpermsamp = Tpermsamp,
-      Bpermsamp = Bpermsamp
+      Bpermsamp = Bpermsamp,
+      perm_singval = perm_singval
     ),
     class = "pls_perm_result"
   )

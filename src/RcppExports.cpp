@@ -75,8 +75,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // perm_test_task_cpp
-arma::ivec perm_test_task_cpp(const arma::mat& stacked_datamat, const arma::imat& permsamp, const arma::vec& observed_s, int num_groups, const arma::ivec& num_subj_lst, int num_cond, int meancentering_type);
-RcppExport SEXP _plsrri_perm_test_task_cpp(SEXP stacked_datamatSEXP, SEXP permsampSEXP, SEXP observed_sSEXP, SEXP num_groupsSEXP, SEXP num_subj_lstSEXP, SEXP num_condSEXP, SEXP meancentering_typeSEXP) {
+Rcpp::List perm_test_task_cpp(const arma::mat& stacked_datamat, const arma::imat& permsamp, const arma::vec& observed_s, int num_groups, const arma::ivec& num_subj_lst, int num_cond, int meancentering_type, bool keep_distribution);
+RcppExport SEXP _plsrri_perm_test_task_cpp(SEXP stacked_datamatSEXP, SEXP permsampSEXP, SEXP observed_sSEXP, SEXP num_groupsSEXP, SEXP num_subj_lstSEXP, SEXP num_condSEXP, SEXP meancentering_typeSEXP, SEXP keep_distributionSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -87,7 +87,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::ivec& >::type num_subj_lst(num_subj_lstSEXP);
     Rcpp::traits::input_parameter< int >::type num_cond(num_condSEXP);
     Rcpp::traits::input_parameter< int >::type meancentering_type(meancentering_typeSEXP);
-    rcpp_result_gen = Rcpp::wrap(perm_test_task_cpp(stacked_datamat, permsamp, observed_s, num_groups, num_subj_lst, num_cond, meancentering_type));
+    Rcpp::traits::input_parameter< bool >::type keep_distribution(keep_distributionSEXP);
+    rcpp_result_gen = Rcpp::wrap(perm_test_task_cpp(stacked_datamat, permsamp, observed_s, num_groups, num_subj_lst, num_cond, meancentering_type, keep_distribution));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -234,7 +235,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_plsrri_boot_test_task_cpp", (DL_FUNC) &_plsrri_boot_test_task_cpp, 7},
     {"_plsrri_compute_bsr_cpp", (DL_FUNC) &_plsrri_compute_bsr_cpp, 4},
     {"_plsrri_boot_test_task_reduced_cpp", (DL_FUNC) &_plsrri_boot_test_task_reduced_cpp, 10},
-    {"_plsrri_perm_test_task_cpp", (DL_FUNC) &_plsrri_perm_test_task_cpp, 7},
+    {"_plsrri_perm_test_task_cpp", (DL_FUNC) &_plsrri_perm_test_task_cpp, 8},
     {"_plsrri_perm_test_fast_cpp", (DL_FUNC) &_plsrri_perm_test_fast_cpp, 3},
     {"_plsrri_procrustes_cpp", (DL_FUNC) &_plsrri_procrustes_cpp, 3},
     {"_plsrri_procrustes_boot_cpp", (DL_FUNC) &_plsrri_procrustes_boot_cpp, 4},

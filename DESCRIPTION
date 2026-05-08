@@ -47,6 +47,7 @@ Suggests:
     neurosurf,
     R.matlab,
     R.utils,
+    hdf5r,
     patchwork,
     scales,
     shiny (>= 1.8.0),

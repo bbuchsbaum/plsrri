@@ -85,12 +85,17 @@ boot_test_task_reduced_cpp <- function(task_scores, task_loadings, stacked_datam
 #' @param num_subj_lst Subjects per group
 #' @param num_cond Number of conditions
 #' @param meancentering_type Mean-centering type
+#' @param keep_distribution When TRUE, also return the (n_lv x num_perm)
+#'   matrix of permuted singular values for diagnostic plots.
 #'
-#' @return Vector of counts (permuted s >= observed s)
+#' @return List with elements:
+#'   * `sp` (integer vector, length `n_lv`): counts of permuted s >= observed s.
+#'   * `perm_singval` (numeric matrix `n_lv x num_perm`, or `NULL`): full null
+#'     distribution when `keep_distribution = TRUE`; `NULL` otherwise.
 #'
 #' @keywords internal
-perm_test_task_cpp <- function(stacked_datamat, permsamp, observed_s, num_groups, num_subj_lst, num_cond, meancentering_type) {
-    .Call(`_plsrri_perm_test_task_cpp`, stacked_datamat, permsamp, observed_s, num_groups, num_subj_lst, num_cond, meancentering_type)
+perm_test_task_cpp <- function(stacked_datamat, permsamp, observed_s, num_groups, num_subj_lst, num_cond, meancentering_type, keep_distribution = FALSE) {
+    .Call(`_plsrri_perm_test_task_cpp`, stacked_datamat, permsamp, observed_s, num_groups, num_subj_lst, num_cond, meancentering_type, keep_distribution)
 }
 
 #' Fast Permutation Test with Pre-computed Cross-block Matrices

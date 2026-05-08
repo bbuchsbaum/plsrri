@@ -351,7 +351,8 @@ pls_permutation_test <- function(stacked_datamat,
                                   permsamp = NULL,
                                   Tpermsamp = NULL,
                                   Bpermsamp = NULL,
-                                  progress = TRUE) {
+                                  progress = TRUE,
+                                  keep_distribution = FALSE) {
 
   total_rows <- nrow(stacked_datamat)
   n_lv <- length(observed_s)
@@ -430,16 +431,35 @@ pls_permutation_test <- function(stacked_datamat,
         num_groups = as.integer(num_groups),
         num_subj_lst = as.integer(num_subj_lst),
         num_cond = as.integer(num_cond),
-        meancentering_type = as.integer(meancentering_type)
+        meancentering_type = as.integer(meancentering_type),
+        keep_distribution = isTRUE(keep_distribution)
       )
+    }
+
+    perm_singval <- if (isTRUE(keep_distribution)) {
+      matrix(0, nrow = n_lv, ncol = num_perm)
+    } else {
+      NULL
     }
 
     if (parallel_cfg$enabled) {
       chunks <- .plsrri_split_indices(num_perm, parallel_cfg$workers)
       sp_parts <- .plsrri_parallel_lapply(chunks, perm_chunk_counts, parallel_cfg)
-      sp <- Reduce(`+`, lapply(sp_parts, as.integer))
+      sp <- Reduce(`+`, lapply(sp_parts, function(part) as.integer(part$sp)))
+      if (isTRUE(keep_distribution)) {
+        for (i in seq_along(chunks)) {
+          dist_i <- sp_parts[[i]]$perm_singval
+          if (!is.null(dist_i)) {
+            perm_singval[, chunks[[i]]] <- dist_i
+          }
+        }
+      }
     } else {
-      sp <- as.integer(perm_chunk_counts(seq_len(num_perm)))
+      result <- perm_chunk_counts(seq_len(num_perm))
+      sp <- as.integer(result$sp)
+      if (isTRUE(keep_distribution) && !is.null(result$perm_singval)) {
+        perm_singval <- result$perm_singval
+      }
     }
 
     return(new_pls_perm_result(
@@ -448,14 +468,19 @@ pls_permutation_test <- function(stacked_datamat,
       sprob = as.integer(sp) / num_perm,
       permsamp = permsamp,
       Tpermsamp = Tpermsamp,
-      Bpermsamp = Bpermsamp
+      Bpermsamp = Bpermsamp,
+      perm_singval = perm_singval
     ))
   }
 
+  keep_dist <- isTRUE(keep_distribution)
+
   perm_chunk_counts <- function(cols) {
     sp_chunk <- rep(0L, n_lv)
+    dist_chunk <- if (keep_dist) matrix(0, nrow = n_lv, ncol = length(cols)) else NULL
 
-    for (p in cols) {
+    for (k in seq_along(cols)) {
+      p <- cols[k]
       datamat_reorder <- seq_len(total_rows)
       behavdata_reorder <- NULL
       datamat_reorder_4beh <- NULL
@@ -538,15 +563,26 @@ pls_permutation_test <- function(stacked_datamat,
       }
 
       sp_chunk <- sp_chunk + as.integer(s_perm >= observed_s_local)
+      if (keep_dist) dist_chunk[, k] <- s_perm
     }
 
-    sp_chunk
+    list(sp = sp_chunk, perm_singval = dist_chunk)
   }
+
+  perm_singval <- if (keep_dist) matrix(0, nrow = n_lv, ncol = num_perm) else NULL
 
   if (parallel_cfg$enabled) {
     chunks <- .plsrri_split_indices(num_perm, parallel_cfg$workers)
     sp_parts <- .plsrri_parallel_lapply(chunks, perm_chunk_counts, parallel_cfg)
-    sp <- Reduce(`+`, lapply(sp_parts, as.integer))
+    sp <- Reduce(`+`, lapply(sp_parts, function(part) as.integer(part$sp)))
+    if (keep_dist) {
+      for (i in seq_along(chunks)) {
+        dist_i <- sp_parts[[i]]$perm_singval
+        if (!is.null(dist_i)) {
+          perm_singval[, chunks[[i]]] <- dist_i
+        }
+      }
+    }
   } else {
     sp <- rep(0L, n_lv)
 
@@ -555,7 +591,11 @@ pls_permutation_test <- function(stacked_datamat,
     }
 
     for (p in seq_len(num_perm)) {
-      sp <- sp + perm_chunk_counts(p)
+      part <- perm_chunk_counts(p)
+      sp <- sp + part$sp
+      if (keep_dist && !is.null(part$perm_singval)) {
+        perm_singval[, p] <- part$perm_singval[, 1L]
+      }
 
       if (progress) {
         cli::cli_progress_update(id = pb)
@@ -574,6 +614,7 @@ pls_permutation_test <- function(stacked_datamat,
     num_perm = num_perm,
     sp = sp,
     sprob = sprob,
+    perm_singval = perm_singval,
     permsamp = if (!is.null(permsamp)) permsamp else Bpermsamp,
     Tpermsamp = Tpermsamp,
     Bpermsamp = Bpermsamp

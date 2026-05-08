@@ -10,7 +10,8 @@ new_pls_perm_result(
   sprob,
   permsamp = NULL,
   Tpermsamp = NULL,
-  Bpermsamp = NULL
+  Bpermsamp = NULL,
+  perm_singval = NULL
 )
 }
 \arguments{
@@ -25,6 +26,10 @@ new_pls_perm_result(
 \item{Tpermsamp}{Task permutation samples (multiblock)}
 
 \item{Bpermsamp}{Behavior permutation samples (multiblock)}
+
+\item{perm_singval}{Optional \verb{n_lv x num_perm} numeric matrix holding the
+full permutation null distribution of singular values (kept when
+\code{pls_analysis(..., keep_perm_distribution = TRUE)}). \code{NULL} by default.}
 }
 \value{
 A \code{pls_perm_result} object

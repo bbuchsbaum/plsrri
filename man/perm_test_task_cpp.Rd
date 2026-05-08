@@ -11,7 +11,8 @@ perm_test_task_cpp(
   num_groups,
   num_subj_lst,
   num_cond,
-  meancentering_type
+  meancentering_type,
+  keep_distribution = FALSE
 )
 }
 \arguments{
@@ -28,9 +29,17 @@ perm_test_task_cpp(
 \item{num_cond}{Number of conditions}
 
 \item{meancentering_type}{Mean-centering type}
+
+\item{keep_distribution}{When TRUE, also return the (n_lv x num_perm)
+matrix of permuted singular values for diagnostic plots.}
 }
 \value{
-Vector of counts (permuted s >= observed s)
+List with elements:
+\itemize{
+\item \code{sp} (integer vector, length \code{n_lv}): counts of permuted s >= observed s.
+\item \code{perm_singval} (numeric matrix \verb{n_lv x num_perm}, or \code{NULL}): full null
+distribution when \code{keep_distribution = TRUE}; \code{NULL} otherwise.
+}
 }
 \description{
 Runs the inner loop of permutation testing for task PLS.

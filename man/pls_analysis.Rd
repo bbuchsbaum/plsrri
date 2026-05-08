@@ -26,7 +26,8 @@ pls_analysis(
   bootsamp = NULL,
   bootsamp_4beh = NULL,
   parallel_config = NULL,
-  progress = TRUE
+  progress = TRUE,
+  keep_perm_distribution = FALSE
 )
 }
 \arguments{
@@ -103,6 +104,12 @@ for behavior/multiblock methods.}
 permutation testing and task-only bootstrap execution.}
 
 \item{progress}{Logical, show progress messages.}
+
+\item{keep_perm_distribution}{Logical. When \code{TRUE}, the returned
+\code{perm_result$perm_singval} retains the full \verb{n_lv x num_perm} matrix of
+permuted singular values for null-distribution diagnostic plots and
+reproducibility. Adds a few KB to the result for typical sizes. Defaults
+to \code{FALSE} to preserve historical result-object size.}
 }
 \value{
 A \code{pls_result} object containing:

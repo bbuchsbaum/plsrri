@@ -402,20 +402,38 @@ pipeline_render_report <- function(spec,
 #'
 #' @param x A `pls_result` object
 #' @param file Output file path
-#' @param format Export format: "rds", "csv", "mat"
-#' @param what What to export: "all", "salience", "bsr", "scores"
+#' @param format Export format: `"rds"` (default, native R), `"hdf5"`
+#'   (portable, lossless plsrri-native HDF5; see `?plsrri-hdf5`),
+#'   `"csv"`, or `"mat"` (MATLAB-readable, partial fields only).
+#' @param what What to export: "all", "salience", "bsr", "scores".
+#'   Only honored for `"rds"` and `"csv"` formats; `"hdf5"` always writes
+#'   the full result.
 #' @param lv LV indices to export (NULL = all)
+#' @param compression Integer 0-9 gzip level for `"hdf5"` (default 4).
+#'   Higher values produce smaller files at write-time cost.
 #'
 #' @return Path to exported file (invisibly)
+#' @seealso [read_results()]
 #' @export
-write_results <- function(x, file, format = "rds", what = "all", lv = NULL) {
+write_results <- function(x, file, format = "rds", what = "all", lv = NULL,
+                          compression = 4L) {
   UseMethod("write_results")
 }
 
 #' @export
-write_results.pls_result <- function(x, file, format = "rds", what = "all", lv = NULL) {
+write_results.pls_result <- function(x, file, format = "rds", what = "all",
+                                     lv = NULL, compression = 4L) {
 
-  format <- match.arg(format, c("rds", "csv", "mat"))
+  format <- match.arg(format, c("rds", "hdf5", "csv", "mat"))
+
+  if (format == "hdf5") {
+    if (!identical(what, "all")) {
+      cli::cli_alert_info("'what' is ignored for hdf5 format; writing full result")
+    }
+    .plsrri_write_pls_hdf5(x, file, compression = compression)
+    cli::cli_alert_success("Results exported to: {file}")
+    return(invisible(file))
+  }
 
   if (format == "rds") {
     if (what == "all") {

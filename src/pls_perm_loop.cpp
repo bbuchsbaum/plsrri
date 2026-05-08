@@ -18,24 +18,35 @@ using namespace arma;
 //' @param num_subj_lst Subjects per group
 //' @param num_cond Number of conditions
 //' @param meancentering_type Mean-centering type
+//' @param keep_distribution When TRUE, also return the (n_lv x num_perm)
+//'   matrix of permuted singular values for diagnostic plots.
 //'
-//' @return Vector of counts (permuted s >= observed s)
+//' @return List with elements:
+//'   * `sp` (integer vector, length `n_lv`): counts of permuted s >= observed s.
+//'   * `perm_singval` (numeric matrix `n_lv x num_perm`, or `NULL`): full null
+//'     distribution when `keep_distribution = TRUE`; `NULL` otherwise.
 //'
 //' @keywords internal
 // [[Rcpp::export]]
-arma::ivec perm_test_task_cpp(const arma::mat& stacked_datamat,
+Rcpp::List perm_test_task_cpp(const arma::mat& stacked_datamat,
                                const arma::imat& permsamp,
                                const arma::vec& observed_s,
                                int num_groups,
                                const arma::ivec& num_subj_lst,
                                int num_cond,
-                               int meancentering_type) {
+                               int meancentering_type,
+                               bool keep_distribution = false) {
 
   int num_perm = permsamp.n_cols;
   int n_lv = observed_s.n_elem;
   int n_features = stacked_datamat.n_cols;
 
   arma::ivec sp = arma::zeros<arma::ivec>(n_lv);
+  arma::mat perm_singval;
+  if (keep_distribution) {
+    perm_singval.set_size(n_lv, num_perm);
+    perm_singval.zeros();
+  }
 
   for (int p = 0; p < num_perm; p++) {
     // Apply permutation
@@ -83,9 +94,26 @@ arma::ivec perm_test_task_cpp(const arma::mat& stacked_datamat,
         sp(i)++;
       }
     }
+
+    if (keep_distribution) {
+      // Pad with zeros if s_perm is shorter than n_lv (rare).
+      for (int i = 0; i < n_compare; i++) {
+        perm_singval(i, p) = s_perm(i);
+      }
+    }
   }
 
-  return sp;
+  if (keep_distribution) {
+    return Rcpp::List::create(
+      Rcpp::Named("sp") = sp,
+      Rcpp::Named("perm_singval") = perm_singval
+    );
+  } else {
+    return Rcpp::List::create(
+      Rcpp::Named("sp") = sp,
+      Rcpp::Named("perm_singval") = R_NilValue
+    );
+  }
 }
 
 //' Fast Permutation Test with Pre-computed Cross-block Matrices
