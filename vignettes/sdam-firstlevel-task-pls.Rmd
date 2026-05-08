@@ -1,0 +1,168 @@
+---
+title: "Mean-Centered Task PLS for First-Level SDAM Maps"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Mean-Centered Task PLS for First-Level SDAM Maps}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE
+)
+
+run_full <- identical(Sys.getenv("PLSRRI_RUN_SDAM_VIGNETTE"), "true")
+knitr::opts_chunk$set(eval = run_full)
+```
+
+This example starts from first-level image maps that are already organized by
+subject, task, and measure. The goal is to test whether a mean-centered Task
+PLS can find reliable multivariate patterns across two tasks (`recog`,
+`nback`), two map measures (`low_mid`, `high_sem`), and two participant groups
+(`control`, `sdam`).
+
+The maps are pre-masked. Instead of pretending that zeros are valid signal, we
+derive a common finite nonzero mask across all maps and use that mask for image
+ingestion, bootstrap-ratio maps, and plotting.
+
+## What do the inputs look like?
+
+The complete runnable code is installed with the package as an example script.
+It defines small helpers for the manifest, mask, model specification, and
+figures.
+
+```{r load-example}
+library(plsrri)
+
+source(system.file(
+  "examples",
+  "sdam_firstlevel_task_pls.R",
+  package = "plsrri"
+))
+```
+
+Build one row per subject-condition map. Here, "condition" means the
+combination of task and measure.
+
+```{r build-manifest}
+root <- sdam_testdata_root("testdata")
+manifest <- build_sdam_manifest(root)
+
+summarise_sdam_design(manifest)
+```
+
+The manifest has 128 image rows: 32 subjects, four task-by-measure conditions,
+and two groups. The order is stored explicitly with factor levels so that PLS
+scores and loadings use stable labels.
+
+## How do we handle the missing mask?
+
+The files are already pre-masked, so zero-valued voxels outside the usable data
+region should not enter the analysis. The helper below keeps voxels that are
+finite and nonzero in every map.
+
+```{r derive-mask}
+mask <- derive_common_nonzero_mask(manifest)
+
+sum(as.array(mask) > 0)
+```
+
+Using the common mask gives a conservative feature space shared by all
+subjects, tasks, and measures.
+
+## How do we specify the PLS?
+
+The model is a mean-centered Task PLS. Rows are grouped by participant group,
+and each group has four conditions:
+
+```{r configure-pls}
+spec <- make_sdam_task_pls_spec(
+  manifest = manifest,
+  mask = mask,
+  nperm = 1000,
+  nboot = 500,
+  meancentering = "within_group"
+)
+
+spec
+```
+
+`nperm` controls component-level inference for latent variables. `nboot`
+controls voxel-level reliability estimates through bootstrap ratios.
+
+## How do we run the analysis?
+
+Set the random seed before fitting so the permutation and bootstrap samples are
+reproducible.
+
+```{r fit-pls}
+set.seed(SDAM_SEED)
+result <- run(spec, progress = TRUE)
+```
+
+Start with the latent-variable summary. A latent variable is worth
+interpreting when it combines meaningful variance with a small permutation
+p-value.
+
+```{r summarize-result}
+lv_summary <- summarise_sdam_result(result)
+lv_summary
+```
+
+## Which latent variables are reliable?
+
+The singular-value plot shows variance explained and highlights permutation
+significance.
+
+```{r plot-singular-values, fig.cap = "Variance explained by latent variable, with permutation significance from the mean-centered Task PLS."}
+plot_singular_values(result)
+```
+
+For an interpretable latent variable, inspect the design scores first. They
+show which group-by-condition cells sit at opposite ends of the multivariate
+pattern.
+
+```{r plot-design-scores, fig.cap = "Design scores for LV1 across group-by-condition cells."}
+plot_scores(result, lv = 1, type = "design", plot_type = "bar")
+```
+
+Brain scores show how consistently individual subject-condition observations
+express the same latent pattern.
+
+```{r plot-brain-scores, fig.cap = "Brain scores for LV1. Each point is one subject-condition observation."}
+plot_scores(result, lv = 1, type = "brain", plot_type = "violin")
+```
+
+## Where is the reliable brain pattern?
+
+Bootstrap ratios divide saliences by their bootstrap standard errors. The
+first thresholded map keeps voxels with large absolute bootstrap ratios in the
+original volume space.
+
+```{r plot-bsr-volume, fig.cap = "LV1 bootstrap-ratio map thresholded at |BSR| > 3 in volume space."}
+plot_sdam_bsr_volume(result, lv = 1, threshold = 3)
+```
+
+For a surface-oriented view, the same thresholded bootstrap-ratio map can be
+projected onto an fsaverage6 Schaefer surface atlas with
+`neuroatlas::plot_brain()`. This is useful for visual comparison, but it is a
+projection of the voxel map, not a different statistical test.
+
+```{r plot-bsr-surface, fig.cap = "LV1 bootstrap-ratio map projected to an fsaverage6 surface with neuroatlas."}
+plot_sdam_bsr_surface(result, lv = 1, threshold = 3)
+```
+
+You can save the fitted object, a latent-variable summary, and the figures with
+the standalone script:
+
+```sh
+Rscript inst/examples/sdam_firstlevel_task_pls.R
+```
+
+By default the script writes to `artifacts/sdam-firstlevel-task-pls/`. Use
+`PLSRRI_SDAM_TESTDATA`, `PLSRRI_SDAM_NPERM`, and `PLSRRI_SDAM_NBOOT` to point at
+a different data directory or adjust inference counts.

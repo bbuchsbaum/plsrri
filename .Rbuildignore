@@ -13,6 +13,8 @@
 ^\.gitignore$
 ^\.planning$
 ^\.beads$
+^\.mote$
+^artifacts$
 ^\.playwright-mcp$
 ^\.covr_result\.rds$
 ^\.rcmdcheck_result.*\.rds$
