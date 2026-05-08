@@ -138,6 +138,75 @@ as_design_contrasts.pls_result <- function(x,
   do.call(rbind, rows)
 }
 
+#' Two-LV Design Score Space
+#'
+#' @description
+#' Extract group-condition design-score centroids for two latent variables.
+#' This is useful for seeing how the flattened design pattern separates across
+#' more than one interpretable LV.
+#'
+#' @param x A `pls_result` object.
+#' @param lv Integer vector of two latent variables.
+#' @param condition_key Optional data frame with one row per condition and a
+#'   `condition` column.
+#' @param block Optional score block to keep for multiblock results.
+#'
+#' @return A data frame with one row per group-condition cell.
+#' @export
+as_design_score_space <- function(x,
+                                  lv = c(1L, 2L),
+                                  condition_key = NULL,
+                                  block = NULL) {
+  UseMethod("as_design_score_space")
+}
+
+#' @export
+as_design_score_space.pls_result <- function(x,
+                                             lv = c(1L, 2L),
+                                             condition_key = NULL,
+                                             block = NULL) {
+  lv <- as.integer(lv)
+  if (length(lv) != 2L) {
+    stop("lv must contain exactly two latent-variable indices.", call. = FALSE)
+  }
+
+  sc <- scores(x, type = "design", lv = lv)
+  df <- data.frame(
+    .lv_x = as.numeric(sc[, 1L]),
+    .lv_y = as.numeric(sc[, 2L]),
+    .build_score_metadata(x, "design"),
+    stringsAsFactors = FALSE
+  )
+
+  df <- .filter_score_block(df, block)
+  df <- .join_condition_key(df, condition_key)
+  grouping <- setdiff(names(df), c(".lv_x", ".lv_y", "subject"))
+  formula <- stats::as.formula(
+    paste("cbind(.lv_x, .lv_y) ~", paste(grouping, collapse = " + "))
+  )
+
+  means <- stats::aggregate(formula, data = df, FUN = mean)
+  sds <- stats::aggregate(formula, data = df, FUN = stats::sd)
+  ns <- stats::aggregate(
+    stats::as.formula(paste(".lv_x ~", paste(grouping, collapse = " + "))),
+    data = df,
+    FUN = length
+  )
+
+  means$x <- means$.lv_x
+  means$y <- means$.lv_y
+  means$x_se <- sds$.lv_x / sqrt(ns$.lv_x)
+  means$y_se <- sds$.lv_y / sqrt(ns$.lv_x)
+  means$x_se[!is.finite(means$x_se)] <- 0
+  means$y_se[!is.finite(means$y_se)] <- 0
+  means$lv_x <- lv[[1L]]
+  means$lv_y <- lv[[2L]]
+  means$.lv_x <- NULL
+  means$.lv_y <- NULL
+
+  means
+}
+
 #' Plot Design Scores as a Heatmap
 #'
 #' @description
@@ -349,6 +418,113 @@ plot_design_contrasts <- function(x,
     )
 }
 
+#' Plot a Two-LV Design Score Space
+#'
+#' @description
+#' Plot group-condition design-score centroids with one latent variable on each
+#' axis. Labels identify the design cells, while colors or shapes can encode
+#' grouping factors.
+#'
+#' @param x A `pls_result` object.
+#' @param lv Integer vector of two latent variables.
+#' @param condition_key Optional condition metadata.
+#' @param label Character vector of columns to paste into point labels. Defaults
+#'   to `group` and `condition` when a group column is available.
+#' @param label_sep Separator used when `label` has multiple columns.
+#' @param color Optional column name for point color. Defaults to `group` when
+#'   available.
+#' @param shape Optional column name for point shape.
+#' @param show_origin Logical; draw zero reference lines.
+#' @param show_segments Logical; draw segments from the origin to each centroid.
+#' @param show_se Logical; draw standard-error bars in both LV dimensions.
+#' @param title Optional plot title.
+#' @param block Optional score block to keep for multiblock results.
+#'
+#' @return A ggplot object.
+#' @export
+plot_design_score_space <- function(x,
+                                    lv = c(1L, 2L),
+                                    condition_key = NULL,
+                                    label = NULL,
+                                    label_sep = "\n",
+                                    color = NULL,
+                                    shape = NULL,
+                                    show_origin = TRUE,
+                                    show_segments = TRUE,
+                                    show_se = FALSE,
+                                    title = NULL,
+                                    block = NULL) {
+  df <- as_design_score_space(
+    x,
+    lv = lv,
+    condition_key = condition_key,
+    block = block
+  )
+
+  if (is.null(label)) {
+    label <- if ("group" %in% names(df)) c("group", "condition") else "condition"
+  }
+  if (is.null(color) && "group" %in% names(df)) {
+    color <- "group"
+  }
+  .validate_design_columns(df, c(label, color, shape))
+  df$.label <- .make_design_label(df, label, label_sep)
+
+  p <- ggplot2::ggplot(df, .design_space_mapping(color = color, shape = shape))
+
+  if (isTRUE(show_origin)) {
+    p <- p +
+      ggplot2::geom_hline(yintercept = 0, color = "#666666", linewidth = 0.35) +
+      ggplot2::geom_vline(xintercept = 0, color = "#666666", linewidth = 0.35)
+  }
+
+  if (isTRUE(show_segments)) {
+    p <- p + ggplot2::geom_segment(
+      mapping = .design_space_segment_mapping(color = color),
+      alpha = 0.35,
+      linewidth = 0.4,
+      show.legend = FALSE
+    )
+  }
+
+  if (isTRUE(show_se)) {
+    p <- p +
+      ggplot2::geom_errorbar(
+        ggplot2::aes(ymin = y - y_se, ymax = y + y_se),
+        width = 0.03,
+        linewidth = 0.3,
+        alpha = 0.65
+      ) +
+      ggplot2::geom_segment(
+        ggplot2::aes(x = x - x_se, xend = x + x_se, y = y, yend = y),
+        linewidth = 0.3,
+        alpha = 0.65
+      )
+  }
+
+  p +
+    ggplot2::geom_point(size = 2.8, alpha = 0.95) +
+    ggplot2::geom_label(
+      ggplot2::aes(label = .data$.label),
+      size = 3,
+      linewidth = 0.2,
+      label.padding = ggplot2::unit(0.12, "lines"),
+      fill = "white",
+      alpha = 0.86,
+      show.legend = FALSE
+    ) +
+    ggplot2::coord_equal() +
+    ggplot2::labs(
+      title = title %||% sprintf("Design Score Space (LV%d vs LV%d)", lv[[1L]], lv[[2L]]),
+      x = sprintf("LV%d design score", lv[[1L]]),
+      y = sprintf("LV%d design score", lv[[2L]]),
+      color = if (is.null(color)) NULL else tools::toTitleCase(color),
+      shape = if (is.null(shape)) NULL else tools::toTitleCase(shape)
+    ) +
+    theme_pls() +
+    scale_color_pls_discrete()
+}
+
 .filter_score_block <- function(df, block = NULL) {
   if (!"block" %in% names(df)) {
     return(df)
@@ -453,6 +629,44 @@ plot_design_contrasts <- function(x,
   }
 
   list(row = row, column = column, facet = facet)
+}
+
+.validate_design_columns <- function(df, columns) {
+  columns <- columns[!is.null(columns) & !is.na(columns)]
+  missing <- setdiff(columns, names(df))
+  if (length(missing)) {
+    stop("Unknown design-score column(s): ", paste(missing, collapse = ", "), call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+.make_design_label <- function(df, columns, sep = "\n") {
+  if (!length(columns)) {
+    return(rep("", nrow(df)))
+  }
+
+  pieces <- lapply(columns, function(nm) as.character(df[[nm]]))
+  do.call(paste, c(pieces, sep = sep))
+}
+
+.design_space_mapping <- function(color = NULL, shape = NULL) {
+  if (!is.null(color) && !is.null(shape)) {
+    return(ggplot2::aes(x = x, y = y, color = .data[[color]], shape = .data[[shape]]))
+  }
+  if (!is.null(color)) {
+    return(ggplot2::aes(x = x, y = y, color = .data[[color]]))
+  }
+  if (!is.null(shape)) {
+    return(ggplot2::aes(x = x, y = y, shape = .data[[shape]]))
+  }
+  ggplot2::aes(x = x, y = y)
+}
+
+.design_space_segment_mapping <- function(color = NULL) {
+  if (!is.null(color)) {
+    return(ggplot2::aes(x = 0, y = 0, xend = x, yend = y, color = .data[[color]]))
+  }
+  ggplot2::aes(x = 0, y = 0, xend = x, yend = y)
 }
 
 .symmetric_limits <- function(x) {

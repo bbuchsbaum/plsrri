@@ -9,6 +9,7 @@ make_factorial_design_result <- function() {
 
   cell_means <- c(0.6, 0.0, -0.4, -0.2, -0.1, -0.5, 0.2, 0.4)
   result$vsc[, 1L] <- rep(cell_means, each = 2L)
+  result$vsc[, 2L] <- rep(rev(cell_means), each = 2L)
   result
 }
 
@@ -45,6 +46,18 @@ test_that("as_design_contrasts decomposes a full two-by-two-by-two design", {
   expect_true(all(contrasts$proportion >= 0 & contrasts$proportion <= 1))
 })
 
+test_that("as_design_score_space summarizes cells across two latent variables", {
+  result <- make_factorial_design_result()
+  space <- as_design_score_space(result, lv = c(1, 2), condition_key = factorial_condition_key())
+
+  expect_equal(nrow(space), 8L)
+  expect_true(all(c("x", "y", "x_se", "y_se", "lv_x", "lv_y") %in% names(space)))
+  expect_equal(unique(space$lv_x), 1L)
+  expect_equal(unique(space$lv_y), 2L)
+  expect_true(all(is.finite(space$x)))
+  expect_true(all(is.finite(space$y)))
+})
+
 test_that("design interpretation plots return ggplot objects", {
   skip_if_not_installed("ggplot2")
 
@@ -54,6 +67,7 @@ test_that("design interpretation plots return ggplot objects", {
   expect_s3_class(plot_design_heatmap(result, lv = 1, condition_key = key), "gg")
   expect_s3_class(plot_design_interaction(result, lv = 1, condition_key = key), "gg")
   expect_s3_class(plot_design_contrasts(result, lv = 1, condition_key = key), "gg")
+  expect_s3_class(plot_design_score_space(result, lv = c(1, 2), condition_key = key), "gg")
 })
 
 test_that("condition keys must cover all PLS condition labels", {

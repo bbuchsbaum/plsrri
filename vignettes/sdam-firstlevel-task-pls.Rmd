@@ -177,6 +177,20 @@ the brain map, and use magnitudes to rank the terms.
 plot_design_contrasts(result, lv = lv_to_show, condition_key = condition_key)
 ```
 
+A complementary view is to plot two latent variables as axes. Here each point
+is a group-by-condition centroid in the LV1/LV2 design-score space. Points that
+separate horizontally mainly differ on LV1; points that separate vertically
+mainly differ on LV2.
+
+```{r plot-design-score-space, fig.cap = "Group-condition centroids projected into the LV1/LV2 design-score space."}
+plot_design_score_space(
+  result,
+  lv = c(1, 2),
+  condition_key = condition_key,
+  label = c("group", "condition")
+)
+```
+
 Brain scores show how consistently individual subject-condition observations
 express the same latent pattern.
 

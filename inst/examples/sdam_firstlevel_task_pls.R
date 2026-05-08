@@ -403,6 +403,20 @@ save_sdam_plots <- function(result, output_dir, lv = 1L, bsr_threshold = 3) {
     height = 4,
     dpi = 150
   )
+  if (length(result$s) >= 2L) {
+    ggplot2::ggsave(
+      file.path(output_dir, "lv1-lv2-design-space.png"),
+      plsrri::plot_design_score_space(
+        result,
+        lv = c(1L, 2L),
+        condition_key = condition_key,
+        label = c("group", "condition")
+      ),
+      width = 7,
+      height = 5,
+      dpi = 150
+    )
+  }
   ggplot2::ggsave(
     file.path(output_dir, sprintf("lv%d-brain-scores.png", lv)),
     plsrri::plot_scores(result, lv = lv, type = "brain", plot_type = "violin"),
