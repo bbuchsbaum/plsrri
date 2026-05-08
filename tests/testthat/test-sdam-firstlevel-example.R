@@ -50,4 +50,10 @@ test_that("SDAM first-level tutorial manifest and smoke fit are valid", {
   bsr_vol <- example_env$sdam_bsr_neurovol(result, lv = 1, threshold = 3)
   expect_s4_class(bsr_vol, "NeuroVol")
   expect_equal(dim(bsr_vol), dim(mask))
+
+  overlay_lim <- example_env$sdam_bsr_overlay_limits(result, lv = 1, threshold = 3)
+  expect_equal(length(overlay_lim), 2L)
+  expect_true(all(is.finite(overlay_lim)))
+  expect_lt(overlay_lim[[1]], 0)
+  expect_gt(overlay_lim[[2]], 0)
 })

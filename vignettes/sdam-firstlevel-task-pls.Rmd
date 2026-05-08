@@ -150,7 +150,9 @@ plot_sdam_bsr_volume(result, lv = 1, threshold = 3)
 For a surface-oriented view, the same thresholded bootstrap-ratio map can be
 projected onto an fsaverage6 Schaefer surface atlas with
 `neuroatlas::plot_brain()`. This is useful for visual comparison, but it is a
-projection of the voxel map, not a different statistical test.
+projection of the voxel map, not a different statistical test. The helper uses
+a neutral grey base surface so the colours encode only the projected
+bootstrap-ratio overlay.
 
 ```{r plot-bsr-surface, fig.cap = "LV1 bootstrap-ratio map projected to an fsaverage6 surface with neuroatlas."}
 plot_sdam_bsr_surface(result, lv = 1, threshold = 3)

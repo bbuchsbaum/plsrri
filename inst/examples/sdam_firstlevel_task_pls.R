@@ -218,11 +218,65 @@ plot_sdam_bsr_volume <- function(result, lv = 1L, threshold = 3) {
   )
 }
 
+sdam_bsr_overlay_limits <- function(result,
+                                    lv = 1L,
+                                    threshold = 3,
+                                    probs = 0.99) {
+  values <- abs(as.numeric(plsrri::bsr(result, lv = lv)))
+  values <- values[is.finite(values)]
+  if (!is.null(threshold)) {
+    values <- values[values >= threshold]
+  }
+
+  if (!length(values)) {
+    threshold_fallback <- if (is.null(threshold)) 1 else threshold
+    limit <- max(1, threshold_fallback)
+  } else {
+    limit <- as.numeric(stats::quantile(values, probs = probs, names = FALSE))
+    if (!is.finite(limit) || limit <= 0) {
+      threshold_fallback <- if (is.null(threshold)) 1 else threshold
+      limit <- max(values, threshold_fallback, na.rm = TRUE)
+    }
+  }
+
+  c(-limit, limit)
+}
+
+sdam_bsr_colorbar <- function(lim,
+                              palette = "vik",
+                              title = "Bootstrap ratio") {
+  if (!requireNamespace("scico", quietly = TRUE)) {
+    stop("Package 'scico' is required for the surface BSR colorbar.", call. = FALSE)
+  }
+
+  scale_df <- data.frame(
+    x = seq(lim[[1]], lim[[2]], length.out = 256L),
+    y = 1,
+    stringsAsFactors = FALSE
+  )
+
+  ggplot2::ggplot(scale_df, ggplot2::aes(x = x, y = y, fill = x)) +
+    ggplot2::geom_raster() +
+    scico::scale_fill_scico(palette = palette, limits = lim, guide = "none") +
+    ggplot2::scale_x_continuous(breaks = pretty(lim, n = 5)) +
+    ggplot2::labs(x = title, y = NULL) +
+    ggplot2::theme_void(base_size = 10) +
+    ggplot2::theme(
+      axis.text.x = ggplot2::element_text(color = "grey20"),
+      axis.title.x = ggplot2::element_text(color = "grey20", margin = ggplot2::margin(t = 4)),
+      axis.ticks.x = ggplot2::element_line(color = "grey45"),
+      plot.margin = ggplot2::margin(t = 0, r = 18, b = 4, l = 18)
+    )
+}
+
 plot_sdam_bsr_surface <- function(result,
                                   lv = 1L,
                                   threshold = 3,
                                   surface_atlas = NULL,
-                                  views = c("lateral", "medial")) {
+                                  views = c("lateral", "medial"),
+                                  overlay_lim = NULL,
+                                  overlay_palette = "vik",
+                                  base_color = "#e8e8e8") {
   if (!requireNamespace("neuroatlas", quietly = TRUE)) {
     stop("Package 'neuroatlas' is required for the surface BSR plot.", call. = FALSE)
   }
@@ -236,19 +290,36 @@ plot_sdam_bsr_surface <- function(result,
     )
   }
 
-  neuroatlas::plot_brain(
+  if (is.null(overlay_lim)) {
+    overlay_lim <- sdam_bsr_overlay_limits(result, lv = lv, threshold = threshold)
+  }
+
+  base_colors <- stats::setNames(
+    rep(base_color, length(surface_atlas$ids)),
+    as.character(surface_atlas$ids)
+  )
+
+  surface_plot <- neuroatlas::plot_brain(
     surface_atlas,
-    overlay = sdam_bsr_neurovol(result, lv = lv, threshold = threshold),
+    colors = base_colors,
+    overlay = sdam_bsr_neurovol(result, lv = lv, threshold = NULL),
     overlay_threshold = threshold,
-    overlay_palette = "vik",
-    overlay_alpha = 0.65,
+    overlay_palette = overlay_palette,
+    overlay_lim = overlay_lim,
+    overlay_alpha = 0.9,
     views = views,
     interactive = FALSE,
     style = "ggseg_like",
-    colorbar = "bottom",
-    colorbar_title = "Bootstrap ratio",
+    colorbar = FALSE,
     title = sprintf("LV%d bootstrap ratio on fsaverage6", lv),
-    subtitle = sprintf("Volume-to-surface overlay, |BSR| > %g", threshold),
+    subtitle = sprintf(
+      "neuroatlas vol_to_surf overlay, |projected BSR| > %g",
+      threshold
+    ),
+    caption = sprintf(
+      "Neutral surface shows coverage; overlay colours are clipped to [%0.2f, %0.2f].",
+      overlay_lim[[1]], overlay_lim[[2]]
+    ),
     panel_labels = c(
       "Left Lateral" = "LH lateral",
       "Right Lateral" = "RH lateral",
@@ -256,6 +327,13 @@ plot_sdam_bsr_surface <- function(result,
       "Right Medial" = "RH medial"
     )
   )
+
+  if (!requireNamespace("patchwork", quietly = TRUE)) {
+    return(surface_plot)
+  }
+
+  surface_plot / sdam_bsr_colorbar(overlay_lim, palette = overlay_palette) +
+    patchwork::plot_layout(heights = c(1, 0.08))
 }
 
 save_sdam_plots <- function(result, output_dir, lv = 1L, bsr_threshold = 3) {
