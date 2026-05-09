@@ -9,7 +9,7 @@ design_projectors(
   design = NULL,
   formula = NULL,
   condition_key = NULL,
-  weights = c("cell_equal", "subject_count"),
+  weights = c("cell_equal", "subject_count", "row_weights"),
   include_matrix = FALSE
 )
 }
@@ -22,7 +22,8 @@ design_projectors(
 
 \item{condition_key}{Optional condition metadata.}
 
-\item{weights}{\code{"cell_equal"} or \code{"subject_count"}.}
+\item{weights}{\code{"cell_equal"}, \code{"subject_count"}, or \code{"row_weights"} to
+use stored \code{result$task_pls$row_weights}.}
 
 \item{include_matrix}{Logical; include dense projection matrices.}
 }

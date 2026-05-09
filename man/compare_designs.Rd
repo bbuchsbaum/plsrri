@@ -11,7 +11,7 @@ compare_designs(
   design = NULL,
   condition_key = NULL,
   statistic = c("trace", "largest_root"),
-  weights = c("cell_equal", "subject_count"),
+  weights = c("cell_equal", "subject_count", "row_weights"),
   nperm = 0L
 )
 }
@@ -30,7 +30,8 @@ compare_designs(
 
 \item{statistic}{\code{"trace"} or \code{"largest_root"}.}
 
-\item{weights}{\code{"cell_equal"} or \code{"subject_count"}.}
+\item{weights}{\code{"cell_equal"}, \code{"subject_count"}, or \code{"row_weights"} to
+use stored \code{result$task_pls$row_weights}.}
 
 \item{nperm}{Number of permutations. Values greater than zero error until a
 reduced-model-respecting null is implemented.}

@@ -10,7 +10,7 @@ decompose_design_terms(
   design = NULL,
   formula = NULL,
   condition_key = NULL,
-  weights = c("cell_equal", "subject_count")
+  weights = c("cell_equal", "subject_count", "row_weights")
 )
 }
 \arguments{
@@ -24,7 +24,8 @@ decompose_design_terms(
 
 \item{condition_key}{Optional condition metadata.}
 
-\item{weights}{\code{"cell_equal"} or \code{"subject_count"}.}
+\item{weights}{\code{"cell_equal"}, \code{"subject_count"}, or \code{"row_weights"} to
+use stored \code{result$task_pls$row_weights}.}
 }
 \value{
 A data frame with LV energy and fraction by factorial term.
@@ -32,4 +33,8 @@ A data frame with LV energy and fraction by factorial term.
 \description{
 Descriptively attributes a design-side latent variable to centered
 factorial subspaces. This is not an inferential test.
+}
+\details{
+Term fractions are independent projections. They sum to one only when the
+centered term subspaces are orthogonal under the requested weights.
 }

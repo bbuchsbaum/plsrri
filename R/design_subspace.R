@@ -95,7 +95,9 @@ design_cell_table <- function(x, design = NULL, condition_key = NULL) {
 
   out$group <- factor(out$group, levels = groups)
   out$condition <- factor(out$condition, levels = conditions)
-  .factorize_design_columns(out)
+  out <- .factorize_design_columns(out)
+  .assert_task_pls_cell_info(x, out)
+  out
 }
 
 #' Build Centered Design Projectors
@@ -109,7 +111,8 @@ design_cell_table <- function(x, design = NULL, condition_key = NULL) {
 #' @param design Optional `pls_design` object.
 #' @param formula Optional one-sided formula overriding `design$formula`.
 #' @param condition_key Optional condition metadata.
-#' @param weights `"cell_equal"` or `"subject_count"`.
+#' @param weights `"cell_equal"`, `"subject_count"`, or `"row_weights"` to
+#'   use stored `result$task_pls$row_weights`.
 #' @param include_matrix Logical; include dense projection matrices.
 #'
 #' @return A named list of projector descriptors.
@@ -118,7 +121,7 @@ design_projectors <- function(result,
                               design = NULL,
                               formula = NULL,
                               condition_key = NULL,
-                              weights = c("cell_equal", "subject_count"),
+                              weights = c("cell_equal", "subject_count", "row_weights"),
                               include_matrix = FALSE) {
   weights <- match.arg(weights)
   ctx <- .design_subspace_context(
@@ -166,7 +169,8 @@ design_projectors <- function(result,
 #' @param condition_key Optional condition metadata.
 #' @param statistic `"trace"` for total subspace covariance energy, or
 #'   `"largest_root"` for the dominant singular-root statistic.
-#' @param weights `"cell_equal"` or `"subject_count"`.
+#' @param weights `"cell_equal"`, `"subject_count"`, or `"row_weights"` to
+#'   use stored `result$task_pls$row_weights`.
 #' @param nperm Number of permutations. Permutation inference is not yet
 #'   implemented for design-subspace tests; values greater than zero error.
 #' @param correction Multiple-testing correction label. Present for API
@@ -180,7 +184,7 @@ test_design_terms <- function(result,
                               formula = NULL,
                               condition_key = NULL,
                               statistic = c("trace", "largest_root"),
-                              weights = c("cell_equal", "subject_count"),
+                              weights = c("cell_equal", "subject_count", "row_weights"),
                               nperm = 0L,
                               correction = c("none", "maxT")) {
   statistic <- match.arg(statistic)
@@ -237,7 +241,8 @@ test_design_terms <- function(result,
 #' @param design Optional `pls_design` object.
 #' @param condition_key Optional condition metadata.
 #' @param statistic `"trace"` or `"largest_root"`.
-#' @param weights `"cell_equal"` or `"subject_count"`.
+#' @param weights `"cell_equal"`, `"subject_count"`, or `"row_weights"` to
+#'   use stored `result$task_pls$row_weights`.
 #' @param nperm Number of permutations. Values greater than zero error until a
 #'   reduced-model-respecting null is implemented.
 #'
@@ -249,7 +254,7 @@ compare_designs <- function(result,
                             design = NULL,
                             condition_key = NULL,
                             statistic = c("trace", "largest_root"),
-                            weights = c("cell_equal", "subject_count"),
+                            weights = c("cell_equal", "subject_count", "row_weights"),
                             nperm = 0L) {
   statistic <- match.arg(statistic)
   weights <- match.arg(weights)
@@ -277,13 +282,14 @@ compare_designs <- function(result,
   x_reduced <- .design_model_matrix(reduced, ctx$cell_table, contrasts = ctx$contrasts)
   x_full_c <- ctx$centering_operator %*% x_full
   x_reduced_c <- ctx$centering_operator %*% x_reduced
+  .assert_nested_design(full = x_full_c, reduced = x_reduced_c, weights = ctx$weights)
   basis <- .nested_weighted_basis(full = x_full_c, reduced = x_reduced_c, weights = ctx$weights)
 
   full_terms <- attr(stats::terms(full), "term.labels")
   reduced_terms <- attr(stats::terms(reduced), "term.labels")
-  added_terms <- setdiff(full_terms, reduced_terms)
+  added_terms <- .added_terms(full_terms, reduced_terms)
   if (!length(added_terms)) {
-    added_terms <- "residualized_full"
+    added_terms <- if (basis$rank == 0L) "none" else "residualized_full"
   }
 
   data.frame(
@@ -309,7 +315,12 @@ compare_designs <- function(result,
 #' @param design Optional `pls_design` object.
 #' @param formula Optional one-sided formula overriding `design$formula`.
 #' @param condition_key Optional condition metadata.
-#' @param weights `"cell_equal"` or `"subject_count"`.
+#' @param weights `"cell_equal"`, `"subject_count"`, or `"row_weights"` to
+#'   use stored `result$task_pls$row_weights`.
+#'
+#' @details
+#' Term fractions are independent projections. They sum to one only when the
+#' centered term subspaces are orthogonal under the requested weights.
 #'
 #' @return A data frame with LV energy and fraction by factorial term.
 #' @export
@@ -318,7 +329,7 @@ decompose_design_terms <- function(result,
                                    design = NULL,
                                    formula = NULL,
                                    condition_key = NULL,
-                                   weights = c("cell_equal", "subject_count")) {
+                                   weights = c("cell_equal", "subject_count", "row_weights")) {
   weights <- match.arg(weights)
   lv <- as.integer(lv)
   if (length(lv) != 1L || lv < 1L || lv > ncol(result$v)) {
@@ -409,7 +420,7 @@ decompose_design_terms <- function(result,
     centered_model = centering_operator %*% model,
     centering_operator = centering_operator,
     crossblock = crossblock,
-    weights = .resolve_design_weights(weights, cell_table),
+    weights = .resolve_design_weights(weights, cell_table, result),
     contrasts = contrasts
   )
 }
@@ -511,6 +522,10 @@ decompose_design_terms <- function(result,
     residual <- full_w - reduced_basis$q %*% crossprod(reduced_basis$q, full_w)
   }
 
+  if (max(abs(residual), na.rm = TRUE) <= tol) {
+    return(list(q = matrix(0, nrow = nrow(full), ncol = 0L), rank = 0L))
+  }
+
   qr_resid <- qr(residual, tol = tol)
   rank <- as.integer(qr_resid$rank)
   if (rank == 0L) {
@@ -518,6 +533,31 @@ decompose_design_terms <- function(result,
   }
 
   list(q = qr.Q(qr_resid)[, seq_len(rank), drop = FALSE], rank = rank)
+}
+
+.assert_nested_design <- function(full, reduced, weights, tol = 1e-8) {
+  full_basis <- .weighted_basis(full, weights)
+  reduced_w <- reduced * sqrt(weights)
+  residual <- reduced_w
+  if (full_basis$rank > 0L) {
+    residual <- reduced_w - full_basis$q %*% crossprod(full_basis$q, reduced_w)
+  }
+  if (max(abs(residual), na.rm = TRUE) > tol) {
+    stop("reduced design is not nested in full design after Task PLS centering.", call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+.added_terms <- function(full_terms, reduced_terms) {
+  full_canonical <- .canonical_terms(full_terms)
+  reduced_canonical <- .canonical_terms(reduced_terms)
+  full_terms[!full_canonical %in% reduced_canonical]
+}
+
+.canonical_terms <- function(terms) {
+  vapply(strsplit(terms, ":", fixed = TRUE), function(parts) {
+    paste(sort(parts), collapse = ":")
+  }, character(1))
 }
 
 .design_subspace_stat <- function(crossblock, basis, weights, statistic) {
@@ -536,14 +576,26 @@ decompose_design_terms <- function(result,
   if (!length(d)) 0 else d[[1L]]^2
 }
 
-.resolve_design_weights <- function(weights, cell_table) {
+.resolve_design_weights <- function(weights, cell_table, result) {
   if (identical(weights, "cell_equal")) {
     return(rep(1, nrow(cell_table)))
   }
 
-  out <- as.numeric(cell_table$cell_n)
+  out <- if (identical(weights, "subject_count")) {
+    as.numeric(cell_table$cell_n)
+  } else {
+    result$task_pls$row_weights %||% NULL
+  }
+
+  if (is.null(out)) {
+    stop("weights = \"row_weights\" requires result$task_pls$row_weights.", call. = FALSE)
+  }
+  out <- as.numeric(out)
+  if (length(out) != nrow(cell_table)) {
+    stop("Design weights must have one value per design cell.", call. = FALSE)
+  }
   if (any(!is.finite(out)) || any(out <= 0)) {
-    stop("subject_count weights require positive cell_n values.", call. = FALSE)
+    stop("Design weights must be positive finite values.", call. = FALSE)
   }
   out
 }
@@ -613,11 +665,40 @@ decompose_design_terms <- function(result,
 }
 
 .task_pls_cell_info <- function(num_subj_lst, num_cond) {
+  num_cond <- as.integer(num_cond)
+  num_groups <- length(num_subj_lst)
   data.frame(
-    row_index = seq_len(length(num_subj_lst) * as.integer(num_cond)),
+    row_index = seq_len(num_groups * num_cond),
+    group_index = rep(seq_len(num_groups), each = num_cond),
+    condition_index = rep(seq_len(num_cond), times = num_groups),
     cell_n = .task_pls_cell_counts(num_subj_lst, num_cond),
     stringsAsFactors = FALSE
   )
+}
+
+.assert_task_pls_cell_info <- function(result, cell_table) {
+  info <- result$task_pls$cell_info %||% NULL
+  if (is.null(info)) {
+    return(invisible(TRUE))
+  }
+  if (nrow(info) != nrow(cell_table)) {
+    stop("Stored Task PLS cell_info does not match the design cell table.", call. = FALSE)
+  }
+  if ("row_index" %in% names(info) && !identical(as.integer(info$row_index), as.integer(cell_table$row_index))) {
+    stop("Stored Task PLS cell_info row_index does not match the design cell table.", call. = FALSE)
+  }
+  if ("cell_n" %in% names(info) && !identical(as.integer(info$cell_n), as.integer(cell_table$cell_n))) {
+    stop("Stored Task PLS cell_info cell_n does not match the design cell table.", call. = FALSE)
+  }
+  if (all(c("group_index", "condition_index") %in% names(info))) {
+    expected_group <- as.integer(cell_table$group)
+    expected_condition <- as.integer(cell_table$condition)
+    if (!identical(as.integer(info$group_index), expected_group) ||
+        !identical(as.integer(info$condition_index), expected_condition)) {
+      stop("Stored Task PLS cell_info ordering does not match group-condition cell order.", call. = FALSE)
+    }
+  }
+  invisible(TRUE)
 }
 
 .validate_condition_key <- function(condition_key, conditions = NULL) {

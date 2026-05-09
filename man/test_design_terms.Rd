@@ -10,7 +10,7 @@ test_design_terms(
   formula = NULL,
   condition_key = NULL,
   statistic = c("trace", "largest_root"),
-  weights = c("cell_equal", "subject_count"),
+  weights = c("cell_equal", "subject_count", "row_weights"),
   nperm = 0L,
   correction = c("none", "maxT")
 )
@@ -29,7 +29,8 @@ test_design_terms(
 \item{statistic}{\code{"trace"} for total subspace covariance energy, or
 \code{"largest_root"} for the dominant singular-root statistic.}
 
-\item{weights}{\code{"cell_equal"} or \code{"subject_count"}.}
+\item{weights}{\code{"cell_equal"}, \code{"subject_count"}, or \code{"row_weights"} to
+use stored \code{result$task_pls$row_weights}.}
 
 \item{nperm}{Number of permutations. Permutation inference is not yet
 implemented for design-subspace tests; values greater than zero error.}
