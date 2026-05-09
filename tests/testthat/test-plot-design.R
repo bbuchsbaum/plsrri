@@ -68,6 +68,27 @@ test_that("design interpretation plots return ggplot objects", {
   expect_s3_class(plot_design_interaction(result, lv = 1, condition_key = key), "gg")
   expect_s3_class(plot_design_contrasts(result, lv = 1, condition_key = key), "gg")
   expect_s3_class(plot_design_score_space(result, lv = c(1, 2), condition_key = key), "gg")
+  expect_s3_class(plot_design_score_space(result, lv = c(1, 2), condition_key = key, aspect = "free"), "gg")
+})
+
+test_that("design score space uses padded symmetric fixed-aspect limits", {
+  skip_if_not_installed("ggplot2")
+
+  result <- make_factorial_design_result()
+  p <- plot_design_score_space(
+    result,
+    lv = c(1, 2),
+    condition_key = factorial_condition_key(),
+    padding = 0.25
+  )
+  built <- ggplot2::ggplot_build(p)
+  xlim <- built$layout$coord$limits$x
+  ylim <- built$layout$coord$limits$y
+  space <- as_design_score_space(result, lv = c(1, 2), condition_key = factorial_condition_key())
+
+  expect_equal(xlim, ylim)
+  expect_lt(xlim[[1]], min(c(space$x, space$y)))
+  expect_gt(xlim[[2]], max(c(space$x, space$y)))
 })
 
 test_that("condition keys must cover all PLS condition labels", {

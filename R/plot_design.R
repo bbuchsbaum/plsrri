@@ -437,6 +437,10 @@ plot_design_contrasts <- function(x,
 #' @param show_origin Logical; draw zero reference lines.
 #' @param show_segments Logical; draw segments from the origin to each centroid.
 #' @param show_se Logical; draw standard-error bars in both LV dimensions.
+#' @param aspect Aspect handling. `"fixed"` uses the same numeric scale for
+#'   both axes; `"free"` lets the panel fill the available device.
+#' @param padding Fractional padding added around the joint x/y range. This
+#'   keeps labels visible when points sit near the edge of the score space.
 #' @param title Optional plot title.
 #' @param block Optional score block to keep for multiblock results.
 #'
@@ -452,8 +456,11 @@ plot_design_score_space <- function(x,
                                     show_origin = TRUE,
                                     show_segments = TRUE,
                                     show_se = FALSE,
+                                    aspect = c("fixed", "free"),
+                                    padding = 0.2,
                                     title = NULL,
                                     block = NULL) {
+  aspect <- match.arg(aspect)
   df <- as_design_score_space(
     x,
     lv = lv,
@@ -469,6 +476,7 @@ plot_design_score_space <- function(x,
   }
   .validate_design_columns(df, c(label, color, shape))
   df$.label <- .make_design_label(df, label, label_sep)
+  limits <- .score_space_limits(df$x, df$y, padding = padding, symmetric = aspect == "fixed")
 
   p <- ggplot2::ggplot(df, .design_space_mapping(color = color, shape = shape))
 
@@ -502,7 +510,7 @@ plot_design_score_space <- function(x,
       )
   }
 
-  p +
+  p <- p +
     ggplot2::geom_point(size = 2.8, alpha = 0.95) +
     ggplot2::geom_label(
       ggplot2::aes(label = .data$.label),
@@ -513,7 +521,8 @@ plot_design_score_space <- function(x,
       alpha = 0.86,
       show.legend = FALSE
     ) +
-    ggplot2::coord_equal() +
+    ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = 0)) +
+    ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = 0)) +
     ggplot2::labs(
       title = title %||% sprintf("Design Score Space (LV%d vs LV%d)", lv[[1L]], lv[[2L]]),
       x = sprintf("LV%d design score", lv[[1L]]),
@@ -523,6 +532,14 @@ plot_design_score_space <- function(x,
     ) +
     theme_pls() +
     scale_color_pls_discrete()
+
+  if (aspect == "fixed") {
+    p <- p + ggplot2::coord_fixed(xlim = limits$x, ylim = limits$y, clip = "off")
+  } else {
+    p <- p + ggplot2::coord_cartesian(xlim = limits$x, ylim = limits$y, clip = "off")
+  }
+
+  p + ggplot2::theme(plot.margin = ggplot2::margin(12, 28, 12, 28))
 }
 
 .filter_score_block <- function(df, block = NULL) {
@@ -667,6 +684,36 @@ plot_design_score_space <- function(x,
     return(ggplot2::aes(x = 0, y = 0, xend = x, yend = y, color = .data[[color]]))
   }
   ggplot2::aes(x = 0, y = 0, xend = x, yend = y)
+}
+
+.score_space_limits <- function(x, y, padding = 0.2, symmetric = TRUE) {
+  values <- c(x, y)
+  values <- values[is.finite(values)]
+  if (!length(values)) {
+    return(list(x = c(-1, 1), y = c(-1, 1)))
+  }
+
+  padding <- max(as.numeric(padding)[[1L]], 0)
+  if (isTRUE(symmetric)) {
+    limit <- max(abs(values))
+    if (!is.finite(limit) || limit <= 0) {
+      limit <- 1
+    }
+    limit <- limit * (1 + padding)
+    return(list(x = c(-limit, limit), y = c(-limit, limit)))
+  }
+
+  expand_range <- function(z) {
+    rng <- range(z[is.finite(z)])
+    width <- diff(rng)
+    if (!is.finite(width) || width <= 0) {
+      center <- mean(rng)
+      return(center + c(-1, 1))
+    }
+    rng + c(-1, 1) * width * padding
+  }
+
+  list(x = expand_range(x), y = expand_range(y))
 }
 
 .symmetric_limits <- function(x) {

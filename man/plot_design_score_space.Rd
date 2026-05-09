@@ -15,6 +15,8 @@ plot_design_score_space(
   show_origin = TRUE,
   show_segments = TRUE,
   show_se = FALSE,
+  aspect = c("fixed", "free"),
+  padding = 0.2,
   title = NULL,
   block = NULL
 )
@@ -41,6 +43,12 @@ available.}
 \item{show_segments}{Logical; draw segments from the origin to each centroid.}
 
 \item{show_se}{Logical; draw standard-error bars in both LV dimensions.}
+
+\item{aspect}{Aspect handling. \code{"fixed"} uses the same numeric scale for
+both axes; \code{"free"} lets the panel fill the available device.}
+
+\item{padding}{Fractional padding added around the joint x/y range. This
+keeps labels visible when points sit near the edge of the score space.}
 
 \item{title}{Optional plot title.}
 
