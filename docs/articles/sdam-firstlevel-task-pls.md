@@ -1,0 +1,219 @@
+# Mean-Centered Task PLS for First-Level SDAM Maps
+
+This example starts from first-level image maps that are already
+organized by subject, task, and measure. The goal is to test whether a
+mean-centered Task PLS can find reliable multivariate patterns across
+two tasks (`recog`, `nback`), two map measures (`low_mid`, `high_sem`),
+and two participant groups (`control`, `sdam`).
+
+The maps are pre-masked. Instead of pretending that zeros are valid
+signal, we derive a common finite nonzero mask across all maps and use
+that mask for image ingestion, bootstrap-ratio maps, and plotting.
+
+## What do the inputs look like?
+
+The complete runnable code is installed with the package as an example
+script. It defines small helpers for the manifest, mask, model
+specification, and figures.
+
+``` r
+library(plsrri)
+
+source(system.file(
+  "examples",
+  "sdam_firstlevel_task_pls.R",
+  package = "plsrri"
+))
+```
+
+Build one row per subject-condition map. Here, “condition” means the
+combination of task and measure.
+
+``` r
+root <- sdam_testdata_root("testdata")
+manifest <- build_sdam_manifest(root)
+
+summarise_sdam_design(manifest)
+```
+
+The manifest has 128 image rows: 32 subjects, four task-by-measure
+conditions, and two groups. The order is stored explicitly with factor
+levels so that PLS scores and loadings use stable labels.
+
+## How do we handle the missing mask?
+
+The files are already pre-masked, so zero-valued voxels outside the
+usable data region should not enter the analysis. The helper below keeps
+voxels that are finite and nonzero in every map.
+
+``` r
+mask <- derive_common_nonzero_mask(manifest)
+
+sum(as.array(mask) > 0)
+```
+
+Using the common mask gives a conservative feature space shared by all
+subjects, tasks, and measures.
+
+## How do we specify the PLS?
+
+The model is a mean-centered Task PLS. Rows are grouped by participant
+group, and each group has four conditions:
+
+``` r
+spec <- make_sdam_task_pls_spec(
+  manifest = manifest,
+  mask = mask,
+  nperm = 1000,
+  nboot = 500,
+  meancentering = "within_group"
+)
+
+spec
+```
+
+`nperm` controls component-level inference for latent variables. `nboot`
+controls voxel-level reliability estimates through bootstrap ratios.
+
+## How do we run the analysis?
+
+Set the random seed before fitting so the permutation and bootstrap
+samples are reproducible.
+
+``` r
+set.seed(SDAM_SEED)
+result <- run(spec, progress = TRUE)
+```
+
+Start with the latent-variable summary. A latent variable is worth
+interpreting when it combines meaningful variance with a small
+permutation p-value.
+
+``` r
+lv_summary <- summarise_sdam_result(result)
+lv_summary
+```
+
+## Which latent variables are reliable?
+
+The singular-value plot shows variance explained and highlights
+permutation significance.
+
+``` r
+plot_singular_values(result)
+```
+
+For an interpretable latent variable, inspect the design scores first.
+They show which group-by-condition cells sit at opposite ends of the
+multivariate pattern.
+
+``` r
+plot_scores(result, lv = lv_to_show, type = "design", plot_type = "bar")
+```
+
+When the design has several crossed factors, the flattened bar plot is
+only the starting point. Add a condition key to restore the task and
+level factors, then view the same LV scores as a small factorial table.
+
+``` r
+plot_design_heatmap(
+  result,
+  lv = lv_to_show,
+  condition_key = condition_key,
+  row = "level",
+  column = "task",
+  facet = "group"
+)
+```
+
+The interaction view is often easier to read when a latent variable
+mixes group, task, and level effects.
+
+``` r
+plot_design_interaction(
+  result,
+  lv = lv_to_show,
+  condition_key = condition_key,
+  x_axis = "task",
+  trace = "level",
+  facet = "group"
+)
+```
+
+Finally, decompose the design vector into effect-coded factorial terms.
+The largest bars show which main effects or interactions dominate the LV
+design pattern. The LV sign is arbitrary, so use signs to connect the
+score plot to the brain map, and use magnitudes to rank the terms.
+
+``` r
+plot_design_contrasts(result, lv = lv_to_show, condition_key = condition_key)
+```
+
+A complementary view is to plot two latent variables as axes. Here each
+point is a group-by-condition centroid in the LV1/LV2 design-score
+space. Points that separate horizontally mainly differ on LV1; points
+that separate vertically mainly differ on LV2.
+
+``` r
+plot_design_score_space(
+  result,
+  lv = c(1, 2),
+  condition_key = condition_key,
+  label = c("group", "condition")
+)
+```
+
+Use the formula interface when you want to collapse over one factor or
+split the plot by another. Variables before `|` define the plotted
+centroids; variables after `|` define facets. Here the plot keeps group
+and level, splits by task, and averages over the original condition
+labels within each facet.
+
+``` r
+plot_design_score_space(
+  result,
+  lv = c(1, 2),
+  condition_key = condition_key,
+  formula = ~ group + level | task
+)
+```
+
+Brain scores show how consistently individual subject-condition
+observations express the same latent pattern.
+
+``` r
+plot_scores(result, lv = lv_to_show, type = "brain", plot_type = "violin")
+```
+
+## Where is the reliable brain pattern?
+
+Bootstrap ratios divide saliences by their bootstrap standard errors.
+The first thresholded map keeps voxels with large absolute bootstrap
+ratios in the original volume space.
+
+``` r
+plot_sdam_bsr_volume(result, lv = lv_to_show, threshold = 3)
+```
+
+For a surface-oriented view, the same thresholded bootstrap-ratio map
+can be projected onto an fsaverage6 Schaefer surface atlas with
+[`neuroatlas::plot_brain()`](https://bbuchsbaum.github.io/neuroatlas/reference/plot_brain.html).
+This is useful for visual comparison, but it is a projection of the
+voxel map, not a different statistical test. The helper uses a neutral
+grey base surface so the colours encode only the projected
+bootstrap-ratio overlay.
+
+``` r
+plot_sdam_bsr_surface(result, lv = lv_to_show, threshold = 3)
+```
+
+You can save the fitted object, a latent-variable summary, and the
+figures with the standalone script:
+
+``` sh
+Rscript inst/examples/sdam_firstlevel_task_pls.R
+```
+
+By default the script writes to `artifacts/sdam-firstlevel-task-pls/`.
+Use `PLSRRI_SDAM_TESTDATA`, `PLSRRI_SDAM_NPERM`, and `PLSRRI_SDAM_NBOOT`
+to point at a different data directory or adjust inference counts.

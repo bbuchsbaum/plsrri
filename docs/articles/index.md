@@ -8,6 +8,10 @@
   Interface](https://bbuchsbaum.github.io/plsrri/articles/cli.md):
 - [Scripted End-to-End
   Workflows](https://bbuchsbaum.github.io/plsrri/articles/scripted-workflows.md):
+- [Design-Subspace Summaries for Task
+  PLS](https://bbuchsbaum.github.io/plsrri/articles/task-design-subspace.md):
+- [Mean-Centered Task PLS for First-Level SDAM
+  Maps](https://bbuchsbaum.github.io/plsrri/articles/sdam-firstlevel-task-pls.md):
 - [Pipeline YAML
   Specification](https://bbuchsbaum.github.io/plsrri/articles/pipeline-yaml-spec.md):
 - [Multisite Behavioral PLS

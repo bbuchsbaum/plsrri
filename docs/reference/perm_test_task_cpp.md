@@ -13,7 +13,8 @@ perm_test_task_cpp(
   num_groups,
   num_subj_lst,
   num_cond,
-  meancentering_type
+  meancentering_type,
+  keep_distribution = FALSE
 )
 ```
 
@@ -47,6 +48,17 @@ perm_test_task_cpp(
 
   Mean-centering type
 
+- keep_distribution:
+
+  When TRUE, also return the (n_lv x num_perm) matrix of permuted
+  singular values for diagnostic plots.
+
 ## Value
 
-Vector of counts (permuted s \>= observed s)
+List with elements:
+
+- `sp` (integer vector, length `n_lv`): counts of permuted s \>=
+  observed s.
+
+- `perm_singval` (numeric matrix `n_lv x num_perm`, or `NULL`): full
+  null distribution when `keep_distribution = TRUE`; `NULL` otherwise.

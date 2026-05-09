@@ -38,6 +38,15 @@
 - [`analysis-api`](https://bbuchsbaum.github.io/plsrri/reference/analysis-api.md)
   : High-Level Analysis API
 
+- [`as_design_contrasts()`](https://bbuchsbaum.github.io/plsrri/reference/as_design_contrasts.md)
+  : Factorial Design Contrasts for a Latent Variable
+
+- [`as_design_score_space()`](https://bbuchsbaum.github.io/plsrri/reference/as_design_score_space.md)
+  : Two-LV Design Score Space
+
+- [`as_design_scores()`](https://bbuchsbaum.github.io/plsrri/reference/as_design_scores.md)
+  : Tidy Design Scores
+
 - [`behav_pls()`](https://bbuchsbaum.github.io/plsrri/reference/behav_pls.md)
   : Behavioral Correlates PLS
 
@@ -74,11 +83,29 @@
 - [`check_gui_deps()`](https://bbuchsbaum.github.io/plsrri/reference/check_gui_deps.md)
   : Check GUI Dependencies
 
+- [`compare_design_subspaces()`](https://bbuchsbaum.github.io/plsrri/reference/compare_design_subspaces.md)
+  : Compare Nested Task PLS Design Subspaces
+
+- [`compare_designs()`](https://bbuchsbaum.github.io/plsrri/reference/compare_designs.md)
+  : Compare Nested Task PLS Design Subspaces
+
 - [`confidence()`](https://bbuchsbaum.github.io/plsrri/reference/confidence.md)
   : Get Confidence Intervals
 
 - [`configure()`](https://bbuchsbaum.github.io/plsrri/reference/configure.md)
   : Configure PLS Analysis
+
+- [`decompose_design_terms()`](https://bbuchsbaum.github.io/plsrri/reference/decompose_design_terms.md)
+  : Decompose a Task PLS Design LV into Factorial Subspaces
+
+- [`design_cell_table()`](https://bbuchsbaum.github.io/plsrri/reference/design_cell_table.md)
+  : Cell Table for a Task PLS Factorial Design
+
+- [`design_projectors()`](https://bbuchsbaum.github.io/plsrri/reference/design_projectors.md)
+  : Build Centered Design Projectors
+
+- [`design_subspace_svd()`](https://bbuchsbaum.github.io/plsrri/reference/design_subspace_svd.md)
+  : Term-Specific Design-Subspace SVDs for Task PLS
 
 - [`design_weights()`](https://bbuchsbaum.github.io/plsrri/reference/design_weights.md)
   : Extract Design/Behavior Weights
@@ -242,6 +269,18 @@
 - [`plot_brain_summary()`](https://bbuchsbaum.github.io/plsrri/reference/plot_brain_summary.md)
   : Plot Brain Summary
 
+- [`plot_design_contrasts()`](https://bbuchsbaum.github.io/plsrri/reference/plot_design_contrasts.md)
+  : Plot Factorial Design Contrast Magnitudes
+
+- [`plot_design_heatmap()`](https://bbuchsbaum.github.io/plsrri/reference/plot_design_heatmap.md)
+  : Plot Design Scores as a Heatmap
+
+- [`plot_design_interaction()`](https://bbuchsbaum.github.io/plsrri/reference/plot_design_interaction.md)
+  : Plot Design Score Interactions
+
+- [`plot_design_score_space()`](https://bbuchsbaum.github.io/plsrri/reference/plot_design_score_space.md)
+  : Plot a Two-LV Design Score Space
+
 - [`plot_loadings()`](https://bbuchsbaum.github.io/plsrri/reference/plot_loadings.md)
   : Plot PLS Loadings
 
@@ -325,6 +364,9 @@
 
 - [`pls_corr_maps_notall()`](https://bbuchsbaum.github.io/plsrri/reference/pls_corr_maps_notall.md)
   : Correlation Maps for Subset of Conditions
+
+- [`pls_design()`](https://bbuchsbaum.github.io/plsrri/reference/pls_design.md)
+  : Factorial Design Object for Task PLS
 
 - [`pls_design_scores()`](https://bbuchsbaum.github.io/plsrri/reference/pls_design_scores.md)
   : Compute Design Scores
@@ -418,6 +460,9 @@
 
   Read a `plscli` Pipeline Specification
 
+- [`read_results()`](https://bbuchsbaum.github.io/plsrri/reference/read_results.md)
+  : Read a PLS Result From Disk
+
 - [`register_method()`](https://bbuchsbaum.github.io/plsrri/reference/register_method.md)
   : Register a Multivariate Analysis Method
 
@@ -471,6 +516,13 @@
 
 - [`task_mean_cpp()`](https://bbuchsbaum.github.io/plsrri/reference/task_mean_cpp.md)
   : Fast Task Mean Computation
+
+- [`test_design_subspaces()`](https://bbuchsbaum.github.io/plsrri/reference/test_design_subspaces.md)
+  : Test Task PLS Design Subspaces
+
+- [`test_design_terms()`](https://bbuchsbaum.github.io/plsrri/reference/test_design_terms.md)
+  : Observed or Global-Null Design-Subspace Statistics for Task PLS
+  Terms
 
 - [`theme_pls()`](https://bbuchsbaum.github.io/plsrri/reference/theme_pls.md)
   : PLS Plot Theme

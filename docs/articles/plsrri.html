@@ -36,6 +36,8 @@
 <li><a class="dropdown-item" href="../articles/plsrri.html">Getting Started</a></li>
     <li><a class="dropdown-item" href="../articles/cli.html">Command Line Interface</a></li>
     <li><a class="dropdown-item" href="../articles/scripted-workflows.html">Scripted Workflows</a></li>
+    <li><a class="dropdown-item" href="../articles/task-design-subspace.html">Task PLS Design Subspaces</a></li>
+    <li><a class="dropdown-item" href="../articles/sdam-firstlevel-task-pls.html">First-Level SDAM Task PLS</a></li>
     <li><a class="dropdown-item" href="../articles/pipeline-yaml-spec.html">Pipeline YAML Specification</a></li>
     <li><a class="dropdown-item" href="../articles/site-pooling.html">Multisite Behavioral PLS</a></li>
     <li><a class="dropdown-item" href="../articles/predictive-measures.html">Predictive Measures</a></li>
@@ -67,14 +69,14 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Getting Started with plsrri</h1>
-            
-      
+
+
       <small class="dont-index">Source: <a href="https://github.com/bbuchsbaum/plsrri/blob/HEAD/vignettes/plsrri.Rmd" class="external-link"><code>vignettes/plsrri.Rmd</code></a></small>
       <div class="d-none name"><code>plsrri.Rmd</code></div>
     </div>
 
-    
-    
+
+
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/plsrri/">plsrri</a></span><span class="op">)</span></span></code></pre></div>
 <blockquote>
@@ -321,42 +323,46 @@ runs, and Quarto reporting.</p>
 <td align="left"><code><a href="../articles/scripted-workflows.html">vignette("scripted-workflows")</a></code></td>
 </tr>
 <tr class="even">
+<td align="left">Factorial design-subspace summaries for Task PLS</td>
+<td align="left"><code><a href="../articles/task-design-subspace.html">vignette("task-design-subspace")</a></code></td>
+</tr>
+<tr class="odd">
 <td align="left">Behavior PLS with continuous measures</td>
 <td align="left"><code><a href="../articles/behavior-pls.html">vignette("behavior-pls")</a></code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Multisite pooled behavior PLS with site
 diagnostics</td>
 <td align="left"><code><a href="../articles/site-pooling.html">vignette("site-pooling")</a></code></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Within-subject seed connectivity from trial-level
 data</td>
 <td align="left"><code><a href="../articles/ws-seed-pls.html">vignette("ws-seed-pls")</a></code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Multiblock and seed connectivity PLS</td>
 <td align="left"><code><a href="../articles/multiblock-and-seed.html">vignette("multiblock-and-seed")</a></code></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Full engine parameters</td>
 <td align="left"><code><a href="../reference/pls_analysis.html">?pls_analysis</a></code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Builder verbs</td>
 <td align="left">
 <code><a href="../reference/pls_spec.html">?pls_spec</a></code>, <code><a href="../reference/configure.html">?configure</a></code>,
 <code><a href="../reference/run.html">?run</a></code>
 </td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Plotting functions</td>
 <td align="left">
 <code><a href="../reference/plot_scores.html">?plot_scores</a></code>, <code><a href="../reference/plot_loadings.html">?plot_loadings</a></code>,
 <code><a href="../reference/plot_singular_values.html">?plot_singular_values</a></code>
 </td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Bootstrap and permutation details</td>
 <td align="left">
 <code><a href="../reference/bsr.html">?bsr</a></code>, <code><a href="../reference/significance.html">?significance</a></code>,

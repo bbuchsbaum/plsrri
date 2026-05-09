@@ -241,6 +241,7 @@ artifacts, staged CLI runs, and Quarto reporting.
 | Goal | Resource |
 |:---|:---|
 | Scripted R API, CLI, and report workflow | [`vignette("scripted-workflows")`](https://bbuchsbaum.github.io/plsrri/articles/scripted-workflows.md) |
+| Factorial design-subspace summaries for Task PLS | [`vignette("task-design-subspace")`](https://bbuchsbaum.github.io/plsrri/articles/task-design-subspace.md) |
 | Behavior PLS with continuous measures | [`vignette("behavior-pls")`](https://bbuchsbaum.github.io/plsrri/articles/behavior-pls.md) |
 | Multisite pooled behavior PLS with site diagnostics | [`vignette("site-pooling")`](https://bbuchsbaum.github.io/plsrri/articles/site-pooling.md) |
 | Within-subject seed connectivity from trial-level data | [`vignette("ws-seed-pls")`](https://bbuchsbaum.github.io/plsrri/articles/ws-seed-pls.md) |
