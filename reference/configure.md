@@ -15,7 +15,8 @@ configure(
   meancentering = NULL,
   cormode = NULL,
   boot_type = NULL,
-  is_struct = NULL
+  is_struct = NULL,
+  inference = NULL
 )
 ```
 
@@ -95,6 +96,11 @@ configure(
 - is_struct:
 
   Logical, structure PLS (don't permute conditions)
+
+- inference:
+
+  Inference engine: "mcintosh" (default) or "multifer". The "multifer"
+  engine is optional and currently supports method 1 task PLS.
 
 ## Value
 

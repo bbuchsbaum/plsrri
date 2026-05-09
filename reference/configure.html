@@ -64,7 +64,8 @@
 <span>  meancentering <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  cormode <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  boot_type <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  is_struct <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  is_struct <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  inference <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -128,6 +129,11 @@ trial-level within-subject seed correlation maps</p></li>
 
 <dt id="arg-is-struct">is_struct<a class="anchor" aria-label="anchor" href="#arg-is-struct"></a></dt>
 <dd><p>Logical, structure PLS (don't permute conditions)</p></dd>
+
+
+<dt id="arg-inference">inference<a class="anchor" aria-label="anchor" href="#arg-inference"></a></dt>
+<dd><p>Inference engine: "mcintosh" (default) or "multifer".
+The "multifer" engine is optional and currently supports method 1 task PLS.</p></dd>
 
 </dl></div>
     <div class="section level2">
