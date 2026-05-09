@@ -561,6 +561,9 @@ decompose_design_terms <- function(result,
 }
 
 .design_subspace_stat <- function(crossblock, basis, weights, statistic) {
+  if (any(!is.finite(crossblock))) {
+    stop("Task PLS crossblock contains non-finite values.", call. = FALSE)
+  }
   if (ncol(basis) == 0L) {
     return(0)
   }
