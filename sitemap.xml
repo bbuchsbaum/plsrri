@@ -49,6 +49,7 @@
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/check_datamat.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/check_gui_deps.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/colwise_cor_cpp.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/compare_design_subspaces.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/compare_designs.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/compute_bsr_cpp.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/confidence.html</loc></url>
@@ -57,6 +58,7 @@
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/decompose_design_terms.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/design_cell_table.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/design_projectors.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/design_subspace_svd.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/design_weights.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/dot-add_conditions_events.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/dot-add_subjects_bids.html</loc></url>
@@ -263,6 +265,7 @@
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/stability.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/stack_datamats.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/task_mean_cpp.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/test_design_subspaces.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/test_design_terms.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/theme_pls.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/validate_pipeline_spec.html</loc></url>

@@ -1,17 +1,18 @@
-# Observed or Global-Null Design-Subspace Statistics for Task PLS Terms
+# Test Task PLS Design Subspaces
 
-Compatibility wrapper for
-[`test_design_subspaces()`](https://bbuchsbaum.github.io/plsrri/reference/test_design_subspaces.md).
-New code should prefer
-[`test_design_subspaces()`](https://bbuchsbaum.github.io/plsrri/reference/test_design_subspaces.md)
-to make clear that inference is over fitted design subspaces, not
-post-hoc LV annotations.
+Computes observed covariance energy in term-specific design subspaces
+and, when requested, compares those statistics to a global Task PLS
+permutation null. The permutation null asks whether term-aligned
+covariance is larger than expected under the package's ordinary global
+Task PLS row permutation.
 
 ## Usage
 
 ``` r
-test_design_terms(
-  result,
+test_design_subspaces(
+  x,
+  fit = NULL,
+  spec = NULL,
   design = NULL,
   formula = NULL,
   condition_key = NULL,
@@ -21,7 +22,6 @@ test_design_terms(
   nperm = 0L,
   permutation = c("none", "global_task_pls"),
   correction = c("none", "maxT"),
-  spec = NULL,
   permsamp = NULL,
   progress = FALSE
 )
@@ -29,9 +29,18 @@ test_design_terms(
 
 ## Arguments
 
-- result:
+- x:
 
-  A Task PLS `pls_result`.
+  A Task PLS `pls_result`, or a `pls_spec` when `fit` is supplied.
+
+- fit:
+
+  Optional fitted `pls_result` when `x` is a `pls_spec`.
+
+- spec:
+
+  Optional `pls_spec` used to recompute permuted cross-block matrices.
+  Required for `nperm > 0` when `x` is a `pls_result`.
 
 - design:
 
@@ -71,11 +80,6 @@ test_design_terms(
 
   `"none"` or `"maxT"` adjustment across tested terms.
 
-- spec:
-
-  Optional `pls_spec` used to recompute permuted cross-block matrices.
-  Required for `nperm > 0`.
-
 - permsamp:
 
   Optional permutation order matrix.
@@ -86,4 +90,4 @@ test_design_terms(
 
 ## Value
 
-A data frame with term, rank, statistic, and p-value columns.
+A data frame with term, rank, statistic, p-value, and null labels.

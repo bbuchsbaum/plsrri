@@ -43,12 +43,13 @@ with `keep_crossblock = TRUE`.
 
 ``` r
 
-fit <- pls_spec() |>
+spec <- pls_spec() |>
   add_subjects(list(control, sdam), groups = c(n_subjects, n_subjects)) |>
   add_conditions(nrow(condition_key), labels = condition_key$condition) |>
   add_group_labels(c("control", "sdam")) |>
-  configure(method = "task", meancentering = "grand_mean") |>
-  run(progress = FALSE, keep_crossblock = TRUE)
+  configure(method = "task", meancentering = "grand_mean")
+
+fit <- run(spec, progress = FALSE, keep_crossblock = TRUE)
 ```
 
 The ordinary Task PLS result is still a latent-variable model. The new
@@ -133,44 +134,125 @@ scores.](task-design-subspace_files/figure-html/plot-lv-terms-1.png)
 
 Effect-coded decomposition of the LV1 design scores.
 
-## How much covariance is in each design subspace?
+## How do we fit term-specific PLS components?
 
-[`test_design_terms()`](https://bbuchsbaum.github.io/plsrri/reference/test_design_terms.md)
-works on the stored Task PLS cross-block matrix, not just on one LV. The
-default statistic is `"trace"`, the total squared singular value energy
-in each centered term subspace.
+The ASCA-like step is
+[`design_subspace_svd()`](https://bbuchsbaum.github.io/plsrri/reference/design_subspace_svd.md).
+It projects the stored Task PLS cross-block matrix into each centered
+factorial subspace, then fits a separate SVD for each term. This is a
+fitted term-specific PLS decomposition, not a post-hoc label attached to
+a global LV.
 
 ``` r
 
-term_tests <- test_design_terms(
+term_fit <- design_subspace_svd(
   fit,
   design = design,
+  ncomp = 2,
   statistic = "trace"
+)
+
+term_fit$statistics[, c("term", "rank", "trace", "largest_root")]
+#>               term rank    trace largest_root
+#> 1            group    1 2.884746     2.884746
+#> 2             task    1 2.780662     2.780662
+#> 3            level    1 2.727144     2.727144
+#> 4       group:task    1 2.227952     2.227952
+#> 5      group:level    1 4.749049     4.749049
+#> 6       task:level    1 2.735260     2.735260
+#> 7 group:task:level    1 3.228667     3.228667
+```
+
+``` r
+
+components <- term_fit$components
+components$percent_term_covariance <- round(components$percent_term_covariance, 3)
+components[components$component == 1,
+           c("term", "component", "singular_value", "percent_term_covariance")]
+#>               term component singular_value percent_term_covariance
+#> 1            group         1       1.698454                       1
+#> 2             task         1       1.667532                       1
+#> 3            level         1       1.651407                       1
+#> 4       group:task         1       1.492632                       1
+#> 5      group:level         1       2.179231                       1
+#> 6       task:level         1       1.653862                       1
+#> 7 group:task:level         1       1.796849                       1
+```
+
+The term-level `trace` is the total squared singular-value energy in
+that subspace. `largest_root` is the dominant PLS-like component for the
+same projected matrix.
+
+## Can we get resampling p-values?
+
+Yes, against an explicitly named null.
+[`test_design_subspaces()`](https://bbuchsbaum.github.io/plsrri/reference/test_design_subspaces.md)
+recomputes each subspace statistic over permuted Task PLS cross-block
+matrices and returns a p-value per term.
+
+The only null currently implemented is `permutation = "global_task_pls"`
+— the same permutation scheme that ordinary Task PLS already uses for LV
+significance. Concretely, for each permutation the routine
+
+1.  permutes condition labels within each subject and permutes subjects
+    across groups
+    ([`pls_perm_order()`](https://bbuchsbaum.github.io/plsrri/reference/pls_perm_order.md)),
+2.  rebuilds the centered group-by-condition cross-block matrix from the
+    permuted subject rows
+    ([`pls_get_covcor()`](https://bbuchsbaum.github.io/plsrri/reference/pls_get_covcor.md)),
+    and
+3.  recomputes each term-subspace statistic on the permuted cross-block.
+
+Under this null **every factorial label is broken simultaneously** —
+there is no group structure, no task structure, no interaction
+structure. The question being asked for each term is therefore:
+
+> Is the covariance projected into this term’s subspace larger than what
+> we would see if subject-condition labels were exchangeable?
+
+That is the right null for an *omnibus* “is this term doing anything?”
+question, and it is the standard PLS permutation null restricted to a
+subspace. It is **not** a nested test: it cannot tell you whether
+`group:task` adds anything *beyond* `group`, because the same
+permutation that breaks `group:task` also breaks `group`. A
+reduced-model-preserving null (Freedman–Lane–style) is the right tool
+for nested questions and is filed as future work.
+
+The `correction = "maxT"` option compares each observed term statistic
+to the per-permutation maximum across all terms, giving family-wise
+adjusted p-values across the table.
+
+``` r
+
+set.seed(20260510)
+term_tests <- test_design_subspaces(
+  spec,
+  fit = fit,
+  design = design,
+  statistic = "trace",
+  nperm = 99,
+  permutation = "global_task_pls",
+  correction = "maxT"
 )
 term_tests$share <- round(term_tests$statistic / sum(term_tests$statistic), 3)
 term_tests$statistic <- round(term_tests$statistic, 2)
-term_tests[, c("term", "rank", "statistic", "share", "p_value")]
-#>               term rank statistic share p_value
-#> 1            group    1      2.88 0.135      NA
-#> 2             task    1      2.78 0.130      NA
-#> 3            level    1      2.73 0.128      NA
-#> 4       group:task    1      2.23 0.104      NA
-#> 5      group:level    1      4.75 0.223      NA
-#> 6       task:level    1      2.74 0.128      NA
-#> 7 group:task:level    1      3.23 0.151      NA
+term_tests[, c("term", "rank", "statistic", "share", "p_value", "p_adjusted")]
+#>               term rank statistic share   p_value p_adjusted
+#> 1            group    1      2.88 0.135 0.5454545  1.0000000
+#> 2             task    1      2.78 0.130 0.7979798  1.0000000
+#> 3            level    1      2.73 0.128 0.8080808  1.0000000
+#> 4       group:task    1      2.23 0.104 0.9797980  1.0000000
+#> 5      group:level    1      4.75 0.223 0.1616162  0.7272727
+#> 6       task:level    1      2.74 0.128 0.8080808  1.0000000
+#> 7 group:task:level    1      3.23 0.151 0.5858586  0.9898990
 ```
-
-The `p_value` column is intentionally `NA` here. The current
-implementation computes observed design-subspace summaries; permutation
-p-values for nested factorial questions require a
-reduced-model-respecting null and are not silently approximated.
 
 If you want the most PLS-like single-root statistic instead of omnibus
 energy, use `statistic = "largest_root"`.
 
 ``` r
 
-largest_root <- test_design_terms(
+largest_root <- test_design_subspaces(
   fit,
   design = design,
   statistic = "largest_root"
@@ -190,25 +272,32 @@ largest_root[, c("term", "rank", "statistic")]
 ## How do we ask a nested design question?
 
 Use
-[`compare_designs()`](https://bbuchsbaum.github.io/plsrri/reference/compare_designs.md)
+[`compare_design_subspaces()`](https://bbuchsbaum.github.io/plsrri/reference/compare_design_subspaces.md)
 when your question is “what is added by the full model beyond the
 reduced model?” The function residualizes the full design against the
-reduced design in the same centered Task PLS row space.
+reduced design in the same centered Task PLS row space, then fits the
+delta-subspace SVD.
 
 ``` r
 
-task_beyond_group <- compare_designs(
-  fit,
+task_beyond_group <- compare_design_subspaces(
+  spec,
+  fit = fit,
   design = design,
   reduced = ~ group,
-  full = ~ group * task
+  full = ~ group * task,
+  nperm = 99,
+  permutation = "global_task_pls"
 )
 
-interactions_beyond_main_effects <- compare_designs(
-  fit,
+interactions_beyond_main_effects <- compare_design_subspaces(
+  spec,
+  fit = fit,
   design = design,
   reduced = ~ group + task + level,
-  full = ~ group * task * level
+  full = ~ group * task * level,
+  nperm = 99,
+  permutation = "global_task_pls"
 )
 
 nested_tests <- rbind(task_beyond_group, interactions_beyond_main_effects)
@@ -219,20 +308,39 @@ nested_tests[, c("reduced", "full", "added_terms", "rank", "statistic", "p_value
 #> 2 ~group + task + level ~group * task * level
 #>                                                added_terms rank statistic
 #> 1                                        task + group:task    3      7.89
-#> 2 group:task + group:level + task:level + group:task:level    7     21.26
-#>   p_value
-#> 1      NA
-#> 2      NA
+#> 2 group:task + group:level + task:level + group:task:level    7     21.30
+#>     p_value
+#> 1 0.9696970
+#> 2 0.9494949
 ```
 
-The first comparison asks how much covariance is carried by task plus
-the group-by-task interaction after accounting for group. The second
-asks how much covariance is carried by all interactions after accounting
-for the three main effects.
+The `statistic` column is the *observed* covariance energy in the
+residualized delta subspace — i.e., the part of the full design that is
+orthogonal to the reduced design after centering. This part of the
+answer is purely descriptive and does not depend on the permutation
+null.
+
+The `p_value` column, however, again uses the `"global_task_pls"` null.
+That is, the delta statistic is compared to the distribution of delta
+statistics computed on cross-block matrices where *all*
+subject-condition labels have been permuted — not just the labels
+associated with the added terms. So the p-value answers:
+
+> Is the energy in the full-minus-reduced subspace larger than expected
+> when there is no design structure at all?
+
+That is informative and it is what classical Task PLS already gives you
+for an LV. It is **not** the same as testing “does adding `task` and
+`group:task` improve fit beyond `group` alone” in the strict nested
+sense: a true nested test would permute under a null that preserves the
+reduced model, and that null is not yet implemented. Use the descriptive
+`statistic` and `rank` columns when you want to compare the *size* of
+the added subspace, and treat the p-value as global-null evidence that
+*something* in the delta subspace is non-trivial.
 
 ## How should the summaries be interpreted?
 
-Keep three distinctions clear:
+Keep four distinctions clear:
 
 1.  [`plot_scores()`](https://bbuchsbaum.github.io/plsrri/reference/plot_scores.md)
     and
@@ -240,15 +348,37 @@ Keep three distinctions clear:
     help you interpret selected LVs.
 2.  [`decompose_design_terms()`](https://bbuchsbaum.github.io/plsrri/reference/decompose_design_terms.md)
     descriptively attributes one LV’s design vector to factorial terms.
-3.  [`test_design_terms()`](https://bbuchsbaum.github.io/plsrri/reference/test_design_terms.md)
+3.  [`design_subspace_svd()`](https://bbuchsbaum.github.io/plsrri/reference/design_subspace_svd.md)
+    fits term-specific PLS components from projected cross-block
+    matrices.
+4.  [`test_design_subspaces()`](https://bbuchsbaum.github.io/plsrri/reference/test_design_subspaces.md)
     and
-    [`compare_designs()`](https://bbuchsbaum.github.io/plsrri/reference/compare_designs.md)
-    summarize covariance energy in centered design subspaces of the Task
-    PLS cross-block matrix.
+    [`compare_design_subspaces()`](https://bbuchsbaum.github.io/plsrri/reference/compare_design_subspaces.md)
+    add observed statistics and, when a `pls_spec` is available, global
+    Task PLS permutation p-values.
 
 These are design-subspace summaries, not classical ANOVA tables and not
-voxelwise tests. They preserve the multivariate PLS object while making
-the factorial structure of the design explicit.
+voxelwise tests. They differ from classical ANOVA in three ways worth
+keeping in mind:
+
+- **The response is multivariate.** The statistic is squared
+  singular-value energy of a projected cross-block matrix, not a
+  univariate sum-of-squares. There is no F ratio and no residual mean
+  square; the reference distribution is built by permutation, not by
+  Gaussian-error theory.
+- **The null is exchangeability of subject-condition labels.** It is the
+  same null used for LV significance in ordinary Task PLS — labels are
+  permuted, cross-blocks are rebuilt, statistics are recomputed. There
+  is no independence or homoscedasticity assumption.
+- **Term tests are global, not sequential.** The currently implemented
+  null breaks all design structure at once. Each term’s p-value answers
+  “is this subspace doing anything?” against a no-design null, not “does
+  this term add anything beyond the others?” The latter is what nested
+  [`compare_design_subspaces()`](https://bbuchsbaum.github.io/plsrri/reference/compare_design_subspaces.md)
+  calls would ask once a reduced-model-preserving null is implemented.
+
+Treated this way, the table is a multivariate, design-aware companion to
+the LV table — not a substitute for ANOVA and not a voxelwise test.
 
 ## Where to go next
 
@@ -258,7 +388,8 @@ for a first-level image-map example with design-score heatmaps and
 contrast plots. Use
 [`?pls_design`](https://bbuchsbaum.github.io/plsrri/reference/pls_design.md),
 [`?decompose_design_terms`](https://bbuchsbaum.github.io/plsrri/reference/decompose_design_terms.md),
-[`?test_design_terms`](https://bbuchsbaum.github.io/plsrri/reference/test_design_terms.md),
+[`?design_subspace_svd`](https://bbuchsbaum.github.io/plsrri/reference/design_subspace_svd.md),
+[`?test_design_subspaces`](https://bbuchsbaum.github.io/plsrri/reference/test_design_subspaces.md),
 and
-[`?compare_designs`](https://bbuchsbaum.github.io/plsrri/reference/compare_designs.md)
+[`?compare_design_subspaces`](https://bbuchsbaum.github.io/plsrri/reference/compare_design_subspaces.md)
 for the function-level reference.

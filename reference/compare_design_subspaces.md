@@ -1,22 +1,26 @@
 # Compare Nested Task PLS Design Subspaces
 
-Compatibility wrapper for
-[`compare_design_subspaces()`](https://bbuchsbaum.github.io/plsrri/reference/compare_design_subspaces.md).
+Fits the delta design subspace from a full cell-level design after QR
+residualization against a reduced design. With
+`permutation = "global_task_pls"`, compares the delta statistic to the
+package's ordinary global Task PLS permutation null. This global null is
+not a reduced-model-preserving nested test.
 
 ## Usage
 
 ``` r
-compare_designs(
-  result,
+compare_design_subspaces(
+  x,
   reduced,
   full,
+  fit = NULL,
+  spec = NULL,
   design = NULL,
   condition_key = NULL,
   statistic = c("trace", "largest_root"),
   weights = c("cell_equal", "subject_count", "row_weights"),
   nperm = 0L,
   permutation = c("none", "global_task_pls", "reduced_model"),
-  spec = NULL,
   permsamp = NULL,
   progress = FALSE
 )
@@ -24,9 +28,9 @@ compare_designs(
 
 ## Arguments
 
-- result:
+- x:
 
-  A Task PLS `pls_result`.
+  A Task PLS `pls_result`, or a `pls_spec` when `fit` is supplied.
 
 - reduced:
 
@@ -35,6 +39,15 @@ compare_designs(
 - full:
 
   One-sided full formula.
+
+- fit:
+
+  Optional fitted `pls_result` when `x` is a `pls_spec`.
+
+- spec:
+
+  Optional `pls_spec` used to recompute permuted cross-block matrices.
+  Required for `nperm > 0` when `x` is a `pls_result`.
 
 - design:
 
@@ -60,11 +73,6 @@ compare_designs(
 - permutation:
 
   `"none"` or `"global_task_pls"`.
-
-- spec:
-
-  Optional `pls_spec` used to recompute permuted cross-block matrices.
-  Required for `nperm > 0`.
 
 - permsamp:
 

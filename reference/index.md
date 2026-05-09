@@ -83,6 +83,9 @@
 - [`check_gui_deps()`](https://bbuchsbaum.github.io/plsrri/reference/check_gui_deps.md)
   : Check GUI Dependencies
 
+- [`compare_design_subspaces()`](https://bbuchsbaum.github.io/plsrri/reference/compare_design_subspaces.md)
+  : Compare Nested Task PLS Design Subspaces
+
 - [`compare_designs()`](https://bbuchsbaum.github.io/plsrri/reference/compare_designs.md)
   : Compare Nested Task PLS Design Subspaces
 
@@ -100,6 +103,9 @@
 
 - [`design_projectors()`](https://bbuchsbaum.github.io/plsrri/reference/design_projectors.md)
   : Build Centered Design Projectors
+
+- [`design_subspace_svd()`](https://bbuchsbaum.github.io/plsrri/reference/design_subspace_svd.md)
+  : Term-Specific Design-Subspace SVDs for Task PLS
 
 - [`design_weights()`](https://bbuchsbaum.github.io/plsrri/reference/design_weights.md)
   : Extract Design/Behavior Weights
@@ -511,8 +517,12 @@
 - [`task_mean_cpp()`](https://bbuchsbaum.github.io/plsrri/reference/task_mean_cpp.md)
   : Fast Task Mean Computation
 
+- [`test_design_subspaces()`](https://bbuchsbaum.github.io/plsrri/reference/test_design_subspaces.md)
+  : Test Task PLS Design Subspaces
+
 - [`test_design_terms()`](https://bbuchsbaum.github.io/plsrri/reference/test_design_terms.md)
-  : Observed Design-Subspace Statistics for Task PLS Terms
+  : Observed or Global-Null Design-Subspace Statistics for Task PLS
+  Terms
 
 - [`theme_pls()`](https://bbuchsbaum.github.io/plsrri/reference/theme_pls.md)
   : PLS Plot Theme

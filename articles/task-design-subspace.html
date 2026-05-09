@@ -111,12 +111,13 @@ that created it.</p>
 by Task PLS before the singular value decomposition. Request it at fit
 time with <code>keep_crossblock = TRUE</code>.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pls_spec.html">pls_spec</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<code class="sourceCode R"><span><span class="va">spec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pls_spec.html">pls_spec</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/add_subjects.html">add_subjects</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">control</span>, <span class="va">sdam</span><span class="op">)</span>, groups <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">n_subjects</span>, <span class="va">n_subjects</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/add_conditions.html">add_conditions</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">condition_key</span><span class="op">)</span>, labels <span class="op">=</span> <span class="va">condition_key</span><span class="op">$</span><span class="va">condition</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/add_group_labels.html">add_group_labels</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="st">"sdam"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/configure.html">configure</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"task"</span>, meancentering <span class="op">=</span> <span class="st">"grand_mean"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/run.html">run</a></span><span class="op">(</span>progress <span class="op">=</span> <span class="cn">FALSE</span>, keep_crossblock <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<span>  <span class="fu"><a href="../reference/configure.html">configure</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"task"</span>, meancentering <span class="op">=</span> <span class="st">"grand_mean"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run.html">run</a></span><span class="op">(</span><span class="va">spec</span>, progress <span class="op">=</span> <span class="cn">FALSE</span>, keep_crossblock <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p>The ordinary Task PLS result is still a latent-variable model. The
 new field is only a compact summary object needed for design-subspace
 calculations; it does not store the original subject-level imaging
@@ -186,37 +187,111 @@ Effect-coded decomposition of the LV1 design scores.
 </div>
 </div>
 <div class="section level2">
-<h2 id="how-much-covariance-is-in-each-design-subspace">How much covariance is in each design subspace?<a class="anchor" aria-label="anchor" href="#how-much-covariance-is-in-each-design-subspace"></a>
+<h2 id="how-do-we-fit-term-specific-pls-components">How do we fit term-specific PLS components?<a class="anchor" aria-label="anchor" href="#how-do-we-fit-term-specific-pls-components"></a>
 </h2>
-<p><code><a href="../reference/test_design_terms.html">test_design_terms()</a></code> works on the stored Task PLS
-cross-block matrix, not just on one LV. The default statistic is
-<code>"trace"</code>, the total squared singular value energy in each
-centered term subspace.</p>
+<p>The ASCA-like step is <code><a href="../reference/design_subspace_svd.html">design_subspace_svd()</a></code>. It projects
+the stored Task PLS cross-block matrix into each centered factorial
+subspace, then fits a separate SVD for each term. This is a fitted
+term-specific PLS decomposition, not a post-hoc label attached to a
+global LV.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">term_tests</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/test_design_terms.html">test_design_terms</a></span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="va">term_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/design_subspace_svd.html">design_subspace_svd</a></span><span class="op">(</span></span>
 <span>  <span class="va">fit</span>,</span>
 <span>  design <span class="op">=</span> <span class="va">design</span>,</span>
+<span>  ncomp <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  statistic <span class="op">=</span> <span class="st">"trace"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">term_fit</span><span class="op">$</span><span class="va">statistics</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"term"</span>, <span class="st">"rank"</span>, <span class="st">"trace"</span>, <span class="st">"largest_root"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;               term rank    trace largest_root</span></span>
+<span><span class="co">#&gt; 1            group    1 2.884746     2.884746</span></span>
+<span><span class="co">#&gt; 2             task    1 2.780662     2.780662</span></span>
+<span><span class="co">#&gt; 3            level    1 2.727144     2.727144</span></span>
+<span><span class="co">#&gt; 4       group:task    1 2.227952     2.227952</span></span>
+<span><span class="co">#&gt; 5      group:level    1 4.749049     4.749049</span></span>
+<span><span class="co">#&gt; 6       task:level    1 2.735260     2.735260</span></span>
+<span><span class="co">#&gt; 7 group:task:level    1 3.228667     3.228667</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">components</span> <span class="op">&lt;-</span> <span class="va">term_fit</span><span class="op">$</span><span class="va">components</span></span>
+<span><span class="va">components</span><span class="op">$</span><span class="va">percent_term_covariance</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">components</span><span class="op">$</span><span class="va">percent_term_covariance</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="va">components</span><span class="op">[</span><span class="va">components</span><span class="op">$</span><span class="va">component</span> <span class="op">==</span> <span class="fl">1</span>,</span>
+<span>           <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"term"</span>, <span class="st">"component"</span>, <span class="st">"singular_value"</span>, <span class="st">"percent_term_covariance"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;               term component singular_value percent_term_covariance</span></span>
+<span><span class="co">#&gt; 1            group         1       1.698454                       1</span></span>
+<span><span class="co">#&gt; 2             task         1       1.667532                       1</span></span>
+<span><span class="co">#&gt; 3            level         1       1.651407                       1</span></span>
+<span><span class="co">#&gt; 4       group:task         1       1.492632                       1</span></span>
+<span><span class="co">#&gt; 5      group:level         1       2.179231                       1</span></span>
+<span><span class="co">#&gt; 6       task:level         1       1.653862                       1</span></span>
+<span><span class="co">#&gt; 7 group:task:level         1       1.796849                       1</span></span></code></pre></div>
+<p>The term-level <code>trace</code> is the total squared singular-value
+energy in that subspace. <code>largest_root</code> is the dominant
+PLS-like component for the same projected matrix.</p>
+</div>
+<div class="section level2">
+<h2 id="can-we-get-resampling-p-values">Can we get resampling p-values?<a class="anchor" aria-label="anchor" href="#can-we-get-resampling-p-values"></a>
+</h2>
+<p>Yes, against an explicitly named null.
+<code><a href="../reference/test_design_subspaces.html">test_design_subspaces()</a></code> recomputes each subspace statistic
+over permuted Task PLS cross-block matrices and returns a p-value per
+term.</p>
+<p>The only null currently implemented is
+<code>permutation = "global_task_pls"</code> — the same permutation
+scheme that ordinary Task PLS already uses for LV significance.
+Concretely, for each permutation the routine</p>
+<ol style="list-style-type: decimal">
+<li>permutes condition labels within each subject and permutes subjects
+across groups (<code><a href="../reference/pls_perm_order.html">pls_perm_order()</a></code>),</li>
+<li>rebuilds the centered group-by-condition cross-block matrix from the
+permuted subject rows (<code><a href="../reference/pls_get_covcor.html">pls_get_covcor()</a></code>), and</li>
+<li>recomputes each term-subspace statistic on the permuted
+cross-block.</li>
+</ol>
+<p>Under this null <strong>every factorial label is broken
+simultaneously</strong> — there is no group structure, no task
+structure, no interaction structure. The question being asked for each
+term is therefore:</p>
+<blockquote>
+<p>Is the covariance projected into this term’s subspace larger than
+what we would see if subject-condition labels were exchangeable?</p>
+</blockquote>
+<p>That is the right null for an <em>omnibus</em> “is this term doing
+anything?” question, and it is the standard PLS permutation null
+restricted to a subspace. It is <strong>not</strong> a nested test: it
+cannot tell you whether <code>group:task</code> adds anything
+<em>beyond</em> <code>group</code>, because the same permutation that
+breaks <code>group:task</code> also breaks <code>group</code>. A
+reduced-model-preserving null (Freedman–Lane–style) is the right tool
+for nested questions and is filed as future work.</p>
+<p>The <code>correction = "maxT"</code> option compares each observed
+term statistic to the per-permutation maximum across all terms, giving
+family-wise adjusted p-values across the table.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">20260510</span><span class="op">)</span></span>
+<span><span class="va">term_tests</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/test_design_subspaces.html">test_design_subspaces</a></span><span class="op">(</span></span>
+<span>  <span class="va">spec</span>,</span>
+<span>  fit <span class="op">=</span> <span class="va">fit</span>,</span>
+<span>  design <span class="op">=</span> <span class="va">design</span>,</span>
+<span>  statistic <span class="op">=</span> <span class="st">"trace"</span>,</span>
+<span>  nperm <span class="op">=</span> <span class="fl">99</span>,</span>
+<span>  permutation <span class="op">=</span> <span class="st">"global_task_pls"</span>,</span>
+<span>  correction <span class="op">=</span> <span class="st">"maxT"</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">term_tests</span><span class="op">$</span><span class="va">share</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">term_tests</span><span class="op">$</span><span class="va">statistic</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">term_tests</span><span class="op">$</span><span class="va">statistic</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="va">term_tests</span><span class="op">$</span><span class="va">statistic</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">term_tests</span><span class="op">$</span><span class="va">statistic</span>, <span class="fl">2</span><span class="op">)</span></span>
-<span><span class="va">term_tests</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"term"</span>, <span class="st">"rank"</span>, <span class="st">"statistic"</span>, <span class="st">"share"</span>, <span class="st">"p_value"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt;               term rank statistic share p_value</span></span>
-<span><span class="co">#&gt; 1            group    1      2.88 0.135      NA</span></span>
-<span><span class="co">#&gt; 2             task    1      2.78 0.130      NA</span></span>
-<span><span class="co">#&gt; 3            level    1      2.73 0.128      NA</span></span>
-<span><span class="co">#&gt; 4       group:task    1      2.23 0.104      NA</span></span>
-<span><span class="co">#&gt; 5      group:level    1      4.75 0.223      NA</span></span>
-<span><span class="co">#&gt; 6       task:level    1      2.74 0.128      NA</span></span>
-<span><span class="co">#&gt; 7 group:task:level    1      3.23 0.151      NA</span></span></code></pre></div>
-<p>The <code>p_value</code> column is intentionally <code>NA</code>
-here. The current implementation computes observed design-subspace
-summaries; permutation p-values for nested factorial questions require a
-reduced-model-respecting null and are not silently approximated.</p>
+<span><span class="va">term_tests</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"term"</span>, <span class="st">"rank"</span>, <span class="st">"statistic"</span>, <span class="st">"share"</span>, <span class="st">"p_value"</span>, <span class="st">"p_adjusted"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;               term rank statistic share   p_value p_adjusted</span></span>
+<span><span class="co">#&gt; 1            group    1      2.88 0.135 0.5454545  1.0000000</span></span>
+<span><span class="co">#&gt; 2             task    1      2.78 0.130 0.7979798  1.0000000</span></span>
+<span><span class="co">#&gt; 3            level    1      2.73 0.128 0.8080808  1.0000000</span></span>
+<span><span class="co">#&gt; 4       group:task    1      2.23 0.104 0.9797980  1.0000000</span></span>
+<span><span class="co">#&gt; 5      group:level    1      4.75 0.223 0.1616162  0.7272727</span></span>
+<span><span class="co">#&gt; 6       task:level    1      2.74 0.128 0.8080808  1.0000000</span></span>
+<span><span class="co">#&gt; 7 group:task:level    1      3.23 0.151 0.5858586  0.9898990</span></span></code></pre></div>
 <p>If you want the most PLS-like single-root statistic instead of
 omnibus energy, use <code>statistic = "largest_root"</code>.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">largest_root</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/test_design_terms.html">test_design_terms</a></span><span class="op">(</span></span>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">largest_root</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/test_design_subspaces.html">test_design_subspaces</a></span><span class="op">(</span></span>
 <span>  <span class="va">fit</span>,</span>
 <span>  design <span class="op">=</span> <span class="va">design</span>,</span>
 <span>  statistic <span class="op">=</span> <span class="st">"largest_root"</span></span>
@@ -235,23 +310,29 @@ omnibus energy, use <code>statistic = "largest_root"</code>.</p>
 <div class="section level2">
 <h2 id="how-do-we-ask-a-nested-design-question">How do we ask a nested design question?<a class="anchor" aria-label="anchor" href="#how-do-we-ask-a-nested-design-question"></a>
 </h2>
-<p>Use <code><a href="../reference/compare_designs.html">compare_designs()</a></code> when your question is “what is
-added by the full model beyond the reduced model?” The function
+<p>Use <code><a href="../reference/compare_design_subspaces.html">compare_design_subspaces()</a></code> when your question is
+“what is added by the full model beyond the reduced model?” The function
 residualizes the full design against the reduced design in the same
-centered Task PLS row space.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">task_beyond_group</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_designs.html">compare_designs</a></span><span class="op">(</span></span>
-<span>  <span class="va">fit</span>,</span>
+centered Task PLS row space, then fits the delta-subspace SVD.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">task_beyond_group</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_design_subspaces.html">compare_design_subspaces</a></span><span class="op">(</span></span>
+<span>  <span class="va">spec</span>,</span>
+<span>  fit <span class="op">=</span> <span class="va">fit</span>,</span>
 <span>  design <span class="op">=</span> <span class="va">design</span>,</span>
 <span>  reduced <span class="op">=</span> <span class="op">~</span> <span class="va">group</span>,</span>
-<span>  full <span class="op">=</span> <span class="op">~</span> <span class="va">group</span> <span class="op">*</span> <span class="va">task</span></span>
+<span>  full <span class="op">=</span> <span class="op">~</span> <span class="va">group</span> <span class="op">*</span> <span class="va">task</span>,</span>
+<span>  nperm <span class="op">=</span> <span class="fl">99</span>,</span>
+<span>  permutation <span class="op">=</span> <span class="st">"global_task_pls"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">interactions_beyond_main_effects</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_designs.html">compare_designs</a></span><span class="op">(</span></span>
-<span>  <span class="va">fit</span>,</span>
+<span><span class="va">interactions_beyond_main_effects</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_design_subspaces.html">compare_design_subspaces</a></span><span class="op">(</span></span>
+<span>  <span class="va">spec</span>,</span>
+<span>  fit <span class="op">=</span> <span class="va">fit</span>,</span>
 <span>  design <span class="op">=</span> <span class="va">design</span>,</span>
 <span>  reduced <span class="op">=</span> <span class="op">~</span> <span class="va">group</span> <span class="op">+</span> <span class="va">task</span> <span class="op">+</span> <span class="va">level</span>,</span>
-<span>  full <span class="op">=</span> <span class="op">~</span> <span class="va">group</span> <span class="op">*</span> <span class="va">task</span> <span class="op">*</span> <span class="va">level</span></span>
+<span>  full <span class="op">=</span> <span class="op">~</span> <span class="va">group</span> <span class="op">*</span> <span class="va">task</span> <span class="op">*</span> <span class="va">level</span>,</span>
+<span>  nperm <span class="op">=</span> <span class="fl">99</span>,</span>
+<span>  permutation <span class="op">=</span> <span class="st">"global_task_pls"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">nested_tests</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="va">task_beyond_group</span>, <span class="va">interactions_beyond_main_effects</span><span class="op">)</span></span>
@@ -262,19 +343,39 @@ centered Task PLS row space.</p>
 <span><span class="co">#&gt; 2 ~group + task + level ~group * task * level</span></span>
 <span><span class="co">#&gt;                                                added_terms rank statistic</span></span>
 <span><span class="co">#&gt; 1                                        task + group:task    3      7.89</span></span>
-<span><span class="co">#&gt; 2 group:task + group:level + task:level + group:task:level    7     21.26</span></span>
-<span><span class="co">#&gt;   p_value</span></span>
-<span><span class="co">#&gt; 1      NA</span></span>
-<span><span class="co">#&gt; 2      NA</span></span></code></pre></div>
-<p>The first comparison asks how much covariance is carried by task plus
-the group-by-task interaction after accounting for group. The second
-asks how much covariance is carried by all interactions after accounting
-for the three main effects.</p>
+<span><span class="co">#&gt; 2 group:task + group:level + task:level + group:task:level    7     21.30</span></span>
+<span><span class="co">#&gt;     p_value</span></span>
+<span><span class="co">#&gt; 1 0.9696970</span></span>
+<span><span class="co">#&gt; 2 0.9494949</span></span></code></pre></div>
+<p>The <code>statistic</code> column is the <em>observed</em> covariance
+energy in the residualized delta subspace — i.e., the part of the full
+design that is orthogonal to the reduced design after centering. This
+part of the answer is purely descriptive and does not depend on the
+permutation null.</p>
+<p>The <code>p_value</code> column, however, again uses the
+<code>"global_task_pls"</code> null. That is, the delta statistic is
+compared to the distribution of delta statistics computed on cross-block
+matrices where <em>all</em> subject-condition labels have been permuted
+— not just the labels associated with the added terms. So the p-value
+answers:</p>
+<blockquote>
+<p>Is the energy in the full-minus-reduced subspace larger than expected
+when there is no design structure at all?</p>
+</blockquote>
+<p>That is informative and it is what classical Task PLS already gives
+you for an LV. It is <strong>not</strong> the same as testing “does
+adding <code>task</code> and <code>group:task</code> improve fit beyond
+<code>group</code> alone” in the strict nested sense: a true nested test
+would permute under a null that preserves the reduced model, and that
+null is not yet implemented. Use the descriptive <code>statistic</code>
+and <code>rank</code> columns when you want to compare the <em>size</em>
+of the added subspace, and treat the p-value as global-null evidence
+that <em>something</em> in the delta subspace is non-trivial.</p>
 </div>
 <div class="section level2">
 <h2 id="how-should-the-summaries-be-interpreted">How should the summaries be interpreted?<a class="anchor" aria-label="anchor" href="#how-should-the-summaries-be-interpreted"></a>
 </h2>
-<p>Keep three distinctions clear:</p>
+<p>Keep four distinctions clear:</p>
 <ol style="list-style-type: decimal">
 <li>
 <code><a href="../reference/plot_scores.html">plot_scores()</a></code> and <code><a href="../reference/plot_design_contrasts.html">plot_design_contrasts()</a></code>
@@ -283,13 +384,41 @@ help you interpret selected LVs.</li>
 <code><a href="../reference/decompose_design_terms.html">decompose_design_terms()</a></code> descriptively attributes one
 LV’s design vector to factorial terms.</li>
 <li>
-<code><a href="../reference/test_design_terms.html">test_design_terms()</a></code> and <code><a href="../reference/compare_designs.html">compare_designs()</a></code>
-summarize covariance energy in centered design subspaces of the Task PLS
-cross-block matrix.</li>
+<code><a href="../reference/design_subspace_svd.html">design_subspace_svd()</a></code> fits term-specific PLS components
+from projected cross-block matrices.</li>
+<li>
+<code><a href="../reference/test_design_subspaces.html">test_design_subspaces()</a></code> and
+<code><a href="../reference/compare_design_subspaces.html">compare_design_subspaces()</a></code> add observed statistics and,
+when a <code>pls_spec</code> is available, global Task PLS permutation
+p-values.</li>
 </ol>
 <p>These are design-subspace summaries, not classical ANOVA tables and
-not voxelwise tests. They preserve the multivariate PLS object while
-making the factorial structure of the design explicit.</p>
+not voxelwise tests. They differ from classical ANOVA in three ways
+worth keeping in mind:</p>
+<ul>
+<li>
+<strong>The response is multivariate.</strong> The statistic is
+squared singular-value energy of a projected cross-block matrix, not a
+univariate sum-of-squares. There is no F ratio and no residual mean
+square; the reference distribution is built by permutation, not by
+Gaussian-error theory.</li>
+<li>
+<strong>The null is exchangeability of subject-condition
+labels.</strong> It is the same null used for LV significance in
+ordinary Task PLS — labels are permuted, cross-blocks are rebuilt,
+statistics are recomputed. There is no independence or homoscedasticity
+assumption.</li>
+<li>
+<strong>Term tests are global, not sequential.</strong> The
+currently implemented null breaks all design structure at once. Each
+term’s p-value answers “is this subspace doing anything?” against a
+no-design null, not “does this term add anything beyond the others?” The
+latter is what nested <code><a href="../reference/compare_design_subspaces.html">compare_design_subspaces()</a></code> calls
+would ask once a reduced-model-preserving null is implemented.</li>
+</ul>
+<p>Treated this way, the table is a multivariate, design-aware companion
+to the LV table — not a substitute for ANOVA and not a voxelwise
+test.</p>
 </div>
 <div class="section level2">
 <h2 id="where-to-go-next">Where to go next<a class="anchor" aria-label="anchor" href="#where-to-go-next"></a>
@@ -297,8 +426,10 @@ making the factorial structure of the design explicit.</p>
 <p>Use <code><a href="../articles/sdam-firstlevel-task-pls.html">vignette("sdam-firstlevel-task-pls")</a></code> for a
 first-level image-map example with design-score heatmaps and contrast
 plots. Use <code><a href="../reference/pls_design.html">?pls_design</a></code>,
-<code><a href="../reference/decompose_design_terms.html">?decompose_design_terms</a></code>, <code><a href="../reference/test_design_terms.html">?test_design_terms</a></code>,
-and <code><a href="../reference/compare_designs.html">?compare_designs</a></code> for the function-level reference.</p>
+<code><a href="../reference/decompose_design_terms.html">?decompose_design_terms</a></code>, <code><a href="../reference/design_subspace_svd.html">?design_subspace_svd</a></code>,
+<code><a href="../reference/test_design_subspaces.html">?test_design_subspaces</a></code>, and
+<code><a href="../reference/compare_design_subspaces.html">?compare_design_subspaces</a></code> for the function-level
+reference.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

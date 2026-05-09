@@ -66,7 +66,7 @@ The minimum viable spec is deliberately small. You need:
 
 cat(as.yaml(minimal_spec))
 #> dataset:
-#>   bids_dir: /tmp/RtmpofHWrB/plsrri-yaml-292742be2192/bids
+#>   bids_dir: /tmp/RtmptVKpOX/plsrri-yaml-281531a292b7/bids
 #>   task: stroop
 #> design:
 #>   formula: onset ~ hrf(condition, basis = 'spmg1')
@@ -79,7 +79,7 @@ cat(as.yaml(minimal_spec))
 #>   nperm: 0
 #>   nboot: 0
 #> outputs:
-#>   root: /tmp/RtmpofHWrB/plsrri-yaml-292742be2192/out
+#>   root: /tmp/RtmptVKpOX/plsrri-yaml-281531a292b7/out
 ```
 
 That small object already validates and picks up defaults for
@@ -203,7 +203,7 @@ encode basis functions such as FIR bins or tent functions:
 
 cat(as.yaml(basis_spec))
 #> dataset:
-#>   bids_dir: /tmp/RtmpofHWrB/plsrri-yaml-292742be2192/bids
+#>   bids_dir: /tmp/RtmptVKpOX/plsrri-yaml-281531a292b7/bids
 #>   task: stroop
 #> design:
 #>   formula: onset ~ hrf(condition, basis = 'fir', K = 4)
@@ -233,7 +233,7 @@ cat(as.yaml(basis_spec))
 #>   nperm: 0
 #>   nboot: 0
 #> outputs:
-#>   root: /tmp/RtmpofHWrB/plsrri-yaml-292742be2192/fir-out
+#>   root: /tmp/RtmptVKpOX/plsrri-yaml-281531a292b7/fir-out
 ```
 
 The important point is that basis handling belongs in both places:
