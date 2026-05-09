@@ -5,8 +5,29 @@ test_that("configure records the multifer inference engine", {
   expect_equal(spec$inference, "multifer")
 })
 
+test_that("plsrri task adapter declares true cross covariance geometry", {
+  testthat::skip_if_not_installed("multifer")
+  testthat::skip_if_not(
+    .plsrri_multifer_has_cross_adapter_execution(),
+    "multifer lacks cross adapter component execution"
+  )
+
+  adapter <- adapter_plsrri_task()
+
+  expect_equal(adapter$shape_kinds, "cross")
+  expect_true(any(
+    adapter$capabilities$geometry == "cross" &
+      adapter$capabilities$relation == "covariance"
+  ))
+  expect_equal(adapter$component_execution, "adapter")
+})
+
 test_that("method 1 task PLS can run through the optional multifer bridge", {
   testthat::skip_if_not_installed("multifer")
+  testthat::skip_if_not(
+    .plsrri_multifer_has_cross_adapter_execution(),
+    "multifer lacks cross adapter component execution"
+  )
 
   set.seed(2401)
   n_subj <- 8L
@@ -24,6 +45,10 @@ test_that("method 1 task PLS can run through the optional multifer bridge", {
   expect_equal(result$inference_engine, "multifer")
   expect_equal(result$multifer_adapter, "plsrri_task")
   expect_s3_class(result$multifer_result, "infer_result")
+  expect_match(
+    result$multifer_result$provenance$capabilities,
+    "^cross/covariance:"
+  )
 
   expect_s3_class(result$perm_result, "pls_perm_result")
   expect_equal(length(result$perm_result$sprob), length(result$s))

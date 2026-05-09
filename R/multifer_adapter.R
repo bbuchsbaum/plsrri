@@ -32,10 +32,10 @@ adapter_plsrri_task <- function() {
   multifer::infer_adapter(
     adapter_id = "plsrri_task",
     adapter_version = "0.1.0",
-    shape_kinds = "adapter",
+    shape_kinds = "cross",
     capabilities = multifer::capability_matrix(
       list(
-        geometry = "adapter",
+        geometry = "cross",
         relation = "covariance",
         targets = c(
           "component_significance",
@@ -78,7 +78,7 @@ adapter_plsrri_task <- function() {
     declared_assumptions = c(
       "conditions_within_subjects_exchangeable",
       "subjects_across_groups_exchangeable",
-      "adapter_geometry_used_until_multifer_cross_custom_null_is_available"
+      "adapter_owned_cross_component_execution"
     ),
     checked_assumptions = list(
       list(
@@ -96,6 +96,14 @@ adapter_plsrri_task <- function() {
     stop(
       "inference = 'multifer' requires package 'multifer'. ",
       "Install multifer or use inference = 'mcintosh'.",
+      call. = FALSE
+    )
+  }
+  if (!.plsrri_multifer_has_cross_adapter_execution()) {
+    stop(
+      "inference = 'multifer' requires a multifer build that supports ",
+      "component_execution = 'adapter' for geometry = 'cross'. ",
+      "Update multifer or use inference = 'mcintosh'.",
       call. = FALSE
     )
   }
@@ -145,7 +153,7 @@ adapter_plsrri_task <- function() {
   bundle <- multifer::infer(
     adapter = "plsrri_task",
     data = payload,
-    geometry = "adapter",
+    geometry = "cross",
     relation = "covariance",
     targets = targets,
     B = max(1L, as.integer(spec$num_perm)),
@@ -199,7 +207,7 @@ adapter_plsrri_task <- function() {
 }
 
 .plsrri_multifer_payload_from_spec <- function(spec) {
-  list(
+  .plsrri_multifer_sync_cross_payload(list(
     datamat_lst = spec$datamat_lst,
     num_subj_lst = spec$num_subj_lst,
     num_cond = spec$num_cond,
@@ -212,7 +220,7 @@ adapter_plsrri_task <- function() {
     boot_type = spec$boot_type,
     is_struct = isTRUE(spec$is_struct),
     clim = spec$clim
-  )
+  ))
 }
 
 .plsrri_multifer_fit_task <- function(data) {
@@ -278,7 +286,7 @@ adapter_plsrri_task <- function() {
   data$datamat_lst <- lapply(data$datamat_lst, function(datamat) {
     datamat - datamat %*% projector
   })
-  data
+  .plsrri_multifer_sync_cross_payload(data)
 }
 
 .plsrri_multifer_project_scores <- function(x, data, domain = c("X", "Y")) {
@@ -329,7 +337,51 @@ adapter_plsrri_task <- function() {
   reordered <- stacked[as.integer(order), , drop = FALSE]
   sizes <- .plsrri_group_row_counts(data$num_subj_lst, data$num_cond)
   data$datamat_lst <- .plsrri_split_stacked_datamat(reordered, sizes)
+  .plsrri_multifer_sync_cross_payload(data)
+}
+
+.plsrri_multifer_sync_cross_payload <- function(data) {
+  data$X <- stack_datamats(data$datamat_lst)
+  if (is.null(data$Y) || !is.matrix(data$Y) || nrow(data$Y) != nrow(data$X)) {
+    data$Y <- .plsrri_multifer_task_design_matrix(
+      data$num_subj_lst,
+      data$num_cond
+    )
+  }
+  data$relation <- "covariance"
   data
+}
+
+.plsrri_multifer_task_design_matrix <- function(num_subj_lst, num_cond) {
+  k <- as.integer(num_cond)
+  num_groups <- length(num_subj_lst)
+  n_rows <- count_observations(num_subj_lst, k)
+  out <- matrix(0, nrow = n_rows, ncol = num_groups * k)
+  colnames(out) <- unlist(lapply(seq_len(num_groups), function(g) {
+    paste0("group", g, ":condition", seq_len(k))
+  }), use.names = FALSE)
+
+  is_ssb <- is.list(num_subj_lst)
+  offset <- 0L
+  for (g in seq_len(num_groups)) {
+    n_vec <- if (is_ssb) {
+      as.integer(num_subj_lst[[g]])
+    } else {
+      rep(as.integer(num_subj_lst[g]), k)
+    }
+
+    for (cond in seq_len(k)) {
+      n <- n_vec[[cond]]
+      if (n > 0L) {
+        rows <- offset + seq_len(n)
+        col <- (g - 1L) * k + cond
+        out[rows, col] <- 1
+      }
+      offset <- offset + n
+    }
+  }
+
+  out
 }
 
 .plsrri_group_row_counts <- function(num_subj_lst, num_cond) {
@@ -469,5 +521,121 @@ adapter_plsrri_task <- function() {
   if (!identical(as.integer(expected), as.integer(observed))) {
     stop("datamat row counts do not match num_subj_lst x num_cond", call. = FALSE)
   }
+  if (!is.matrix(data$X) || !is.numeric(data$X)) {
+    stop("data$X must be a numeric matrix", call. = FALSE)
+  }
+  if (!is.matrix(data$Y) || !is.numeric(data$Y)) {
+    stop("data$Y must be a numeric matrix", call. = FALSE)
+  }
+  if (nrow(data$X) != nrow(data$Y)) {
+    stop("data$X and data$Y must have the same number of rows", call. = FALSE)
+  }
+  if (nrow(data$X) != sum(observed)) {
+    stop("data$X row count must match the stacked datamat rows", call. = FALSE)
+  }
   invisible(TRUE)
 }
+
+.plsrri_multifer_has_cross_adapter_execution <- local({
+  cached <- NULL
+
+  function() {
+    if (!is.null(cached)) {
+      return(cached)
+    }
+    if (!requireNamespace("multifer", quietly = TRUE)) {
+      cached <<- FALSE
+      return(cached)
+    }
+
+    seen <- new.env(parent = emptyenv())
+    seen$component_stat <- 0L
+    seen$null_action <- 0L
+    seen$residualize <- 0L
+    adapter_id <- paste0(
+      "plsrri_cross_probe_",
+      Sys.getpid(),
+      "_",
+      sample.int(1000000L, 1L)
+    )
+
+    adapter <- tryCatch(
+      multifer::infer_adapter(
+        adapter_id = adapter_id,
+        shape_kinds = "cross",
+        capabilities = multifer::capability_matrix(
+          list(
+            geometry = "cross",
+            relation = "covariance",
+            targets = "component_significance"
+          )
+        ),
+        roots = function(x, ...) c(1, 0.5),
+        loadings = function(x, domain = c("X", "Y"), ...) {
+          matrix(1, nrow = 2L, ncol = 2L)
+        },
+        scores = function(x, domain = c("X", "Y"), ...) {
+          matrix(1, nrow = 3L, ncol = 2L)
+        },
+        refit = function(x, new_data, ...) {
+          list()
+        },
+        component_stat = function(x, data, k, ...) {
+          seen$component_stat <- seen$component_stat + 1L
+          if (isTRUE(data$.plsrri_probe_null)) 0 else 1
+        },
+        null_action = function(x, data, ...) {
+          seen$null_action <- seen$null_action + 1L
+          data$.plsrri_probe_null <- TRUE
+          data
+        },
+        residualize = function(x, k, data, ...) {
+          seen$residualize <- seen$residualize + 1L
+          data
+        },
+        validity_level = "conditional",
+        component_execution = "adapter"
+      ),
+      error = function(e) e
+    )
+    if (inherits(adapter, "error")) {
+      cached <<- FALSE
+      return(cached)
+    }
+
+    registered <- FALSE
+    result <- tryCatch(
+      {
+        multifer::register_infer_adapter(adapter_id, adapter, overwrite = TRUE)
+        registered <- TRUE
+        multifer::infer(
+          adapter = adapter_id,
+          data = list(
+            X = matrix(rnorm(6), nrow = 3L),
+            Y = matrix(rnorm(6), nrow = 3L),
+            relation = "covariance"
+          ),
+          geometry = "cross",
+          relation = "covariance",
+          targets = "component_significance",
+          B = 1L,
+          R = 0L,
+          alpha = 0.999,
+          model = list(),
+          parallel = "sequential"
+        )
+      },
+      error = function(e) e
+    )
+
+    if (isTRUE(registered)) {
+      try(multifer::unregister_infer_adapter(adapter_id), silent = TRUE)
+    }
+
+    cached <<- !inherits(result, "error") &&
+      seen$component_stat > 0L &&
+      seen$null_action > 0L &&
+      seen$residualize > 0L
+    cached
+  }
+})
