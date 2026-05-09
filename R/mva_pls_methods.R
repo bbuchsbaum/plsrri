@@ -292,6 +292,7 @@ pls_result_to_mva_result <- function(pls_res, spec = NULL, method_name = NULL) {
       bscan            = pls_res$bscan,
       stacked_designdata = pls_res$stacked_designdata,
       stacked_behavdata  = pls_res$stacked_behavdata,
+      task_pls            = pls_res$task_pls,
       is_struct          = pls_res$is_struct,
       pls_method_int     = pls_res$method,
       groups             = pls_res$groups %||% spec$groups %||% NULL,
@@ -363,6 +364,7 @@ mva_result_to_pls_result <- function(mva_res) {
   res$feature_layout <- ex$feature_layout
   res$ws_seed_info <- ex$ws_seed_info
   res$site_diagnostics <- ex$site_diagnostics
+  res$task_pls <- ex$task_pls
 
   res
 }

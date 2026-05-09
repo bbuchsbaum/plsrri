@@ -27,7 +27,8 @@ pls_analysis(
   bootsamp_4beh = NULL,
   parallel_config = NULL,
   progress = TRUE,
-  keep_perm_distribution = FALSE
+  keep_perm_distribution = FALSE,
+  keep_crossblock = FALSE
 )
 }
 \arguments{
@@ -110,6 +111,10 @@ permutation testing and task-only bootstrap execution.}
 permuted singular values for null-distribution diagnostic plots and
 reproducibility. Adds a few KB to the result for typical sizes. Defaults
 to \code{FALSE} to preserve historical result-object size.}
+
+\item{keep_crossblock}{Logical. When \code{TRUE} for Task PLS methods 1 and 2,
+store the cell-level Task PLS cross-block matrix and centering metadata in
+\code{result$task_pls} for design-subspace decomposition.}
 }
 \value{
 A \code{pls_result} object containing:

@@ -72,6 +72,9 @@ NULL
 #'   permuted singular values for null-distribution diagnostic plots and
 #'   reproducibility. Adds a few KB to the result for typical sizes. Defaults
 #'   to `FALSE` to preserve historical result-object size.
+#' @param keep_crossblock Logical. When `TRUE` for Task PLS methods 1 and 2,
+#'   store the cell-level Task PLS cross-block matrix and centering metadata in
+#'   `result$task_pls` for design-subspace decomposition.
 #'
 #' @return A `pls_result` object containing:
 #' \describe{
@@ -122,7 +125,8 @@ pls_analysis <- function(datamat_lst,
                           bootsamp_4beh = NULL,
                           parallel_config = NULL,
                           progress = TRUE,
-                          keep_perm_distribution = FALSE) {
+                          keep_perm_distribution = FALSE,
+                          keep_crossblock = FALSE) {
 
   # --- Input Validation ---
   assert_that(is.list(datamat_lst), length(datamat_lst) >= 1)
@@ -630,6 +634,21 @@ pls_analysis <- function(datamat_lst,
     result$TBv <- list(tb_split$task_v, tb_split$behav_v)
     result$TBusc <- list(Tusc, Busc)
     result$TBvsc <- list(Tvsc, Bvsc)
+  }
+
+  if (isTRUE(keep_crossblock) && method %in% c(1L, 2L)) {
+    result$task_pls <- list(
+      crossblock = datamatsvd,
+      cell_info = .task_pls_cell_info(num_subj_lst, k),
+      centering_operator = .task_pls_centering_operator(
+        num_subj_lst = num_subj_lst,
+        num_cond = k,
+        meancentering_type = meancentering_type,
+        method = method
+      ),
+      row_weights = rep(1, nrow(datamatsvd)),
+      meancentering_type = meancentering_type
+    )
   }
 
   result

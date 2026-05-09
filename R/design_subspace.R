@@ -1,0 +1,671 @@
+#' Factorial Design Object for Task PLS
+#'
+#' @description
+#' Defines a factorial design over Task PLS group-condition cells. The design
+#' object stores the cell-level formula and condition metadata used by
+#' design-subspace decomposition and observed subspace statistics.
+#'
+#' @param formula One-sided model formula, such as `~ group * task * level`.
+#' @param condition_key Optional data frame with a `condition` column and one
+#'   row per PLS condition. Additional columns define condition-level factors.
+#' @param subject Optional subject identifier column name for future
+#'   exchangeability-aware resampling.
+#' @param between Optional between-subject factor names.
+#' @param within Optional within-subject factor names.
+#' @param contrasts Contrast coding. Currently `"sum"` is used for unordered
+#'   factors.
+#'
+#' @return A `pls_design` object.
+#' @export
+pls_design <- function(formula,
+                       condition_key = NULL,
+                       subject = NULL,
+                       between = NULL,
+                       within = NULL,
+                       contrasts = "sum") {
+  formula <- .pls_one_sided_formula(formula)
+  condition_key <- .validate_condition_key(condition_key, conditions = NULL)
+
+  structure(
+    list(
+      formula = formula,
+      condition_key = condition_key,
+      subject = subject,
+      between = between,
+      within = within,
+      contrasts = contrasts
+    ),
+    class = "pls_design"
+  )
+}
+
+#' Cell Table for a Task PLS Factorial Design
+#'
+#' @description
+#' Builds the group-condition cell table whose rows match the row order of the
+#' Task PLS cross-block matrix: all conditions for group 1, then all conditions
+#' for group 2, and so on.
+#'
+#' @param x A `pls_result`.
+#' @param design Optional `pls_design` object.
+#' @param condition_key Optional condition metadata. Ignored when supplied by
+#'   `design`.
+#'
+#' @return A data frame with one row per Task PLS design cell.
+#' @export
+design_cell_table <- function(x, design = NULL, condition_key = NULL) {
+  if (!inherits(x, "pls_result")) {
+    stop("x must be a pls_result.", call. = FALSE)
+  }
+
+  if (!is.null(design) && !inherits(design, "pls_design")) {
+    stop("design must be a pls_design object.", call. = FALSE)
+  }
+
+  num_subj_lst <- x$num_subj_lst
+  num_cond <- as.integer(x$num_cond)
+  num_groups <- length(num_subj_lst)
+  groups <- as.character(x$groups %||% paste0("Group", seq_len(num_groups)))
+  conditions <- as.character(x$conditions %||% paste0("Cond", seq_len(num_cond)))
+
+  if (length(groups) != num_groups) {
+    stop("result group labels do not match num_subj_lst.", call. = FALSE)
+  }
+  if (length(conditions) != num_cond) {
+    stop("result condition labels do not match num_cond.", call. = FALSE)
+  }
+
+  condition_key <- if (!is.null(design)) design$condition_key else condition_key
+  condition_key <- .validate_condition_key(condition_key, conditions = conditions)
+
+  cell_n <- .task_pls_cell_counts(num_subj_lst, num_cond)
+  out <- data.frame(
+    row_index = seq_len(num_groups * num_cond),
+    group = rep(groups, each = num_cond),
+    condition = rep(conditions, times = num_groups),
+    cell_n = cell_n,
+    stringsAsFactors = FALSE
+  )
+
+  if (!is.null(condition_key)) {
+    ordered_key <- condition_key[match(out$condition, as.character(condition_key$condition)), , drop = FALSE]
+    ordered_key$condition <- NULL
+    out <- cbind(out, ordered_key)
+  }
+
+  out$group <- factor(out$group, levels = groups)
+  out$condition <- factor(out$condition, levels = conditions)
+  .factorize_design_columns(out)
+}
+
+#' Build Centered Design Projectors
+#'
+#' @description
+#' Builds QR-based orthonormal bases and optional projection matrices for each
+#' factorial term after applying the same Task PLS cell-centering operator used
+#' to create the stored cross-block matrix.
+#'
+#' @param result A Task PLS `pls_result`.
+#' @param design Optional `pls_design` object.
+#' @param formula Optional one-sided formula overriding `design$formula`.
+#' @param condition_key Optional condition metadata.
+#' @param weights `"cell_equal"` or `"subject_count"`.
+#' @param include_matrix Logical; include dense projection matrices.
+#'
+#' @return A named list of projector descriptors.
+#' @export
+design_projectors <- function(result,
+                              design = NULL,
+                              formula = NULL,
+                              condition_key = NULL,
+                              weights = c("cell_equal", "subject_count"),
+                              include_matrix = FALSE) {
+  weights <- match.arg(weights)
+  ctx <- .design_subspace_context(
+    result = result,
+    design = design,
+    formula = formula,
+    condition_key = condition_key,
+    weights = weights,
+    require_crossblock = FALSE
+  )
+
+  out <- vector("list", length(ctx$terms))
+  names(out) <- ctx$terms
+
+  for (term_id in seq_along(ctx$terms)) {
+    columns <- which(ctx$assign == term_id)
+    basis <- .weighted_basis(ctx$centered_model[, columns, drop = FALSE], ctx$weights)
+    item <- list(
+      term = ctx$terms[[term_id]],
+      rank = basis$rank,
+      basis = basis$q,
+      weights = ctx$weights
+    )
+    if (isTRUE(include_matrix)) {
+      item$projector <- basis$q %*% t(basis$q)
+    }
+    out[[term_id]] <- item
+  }
+
+  out
+}
+
+#' Observed Design-Subspace Statistics for Task PLS Terms
+#'
+#' @description
+#' Computes observed covariance energy in each factorial design subspace. The
+#' subspaces are built in the centered Task PLS row space, so effects removed
+#' by the Task PLS mean-centering operator have rank zero.
+#'
+#' @param result A Task PLS `pls_result` produced with
+#'   `pls_analysis(..., keep_crossblock = TRUE)` or
+#'   `run(..., keep_crossblock = TRUE)`.
+#' @param design Optional `pls_design` object.
+#' @param formula Optional one-sided formula overriding `design$formula`.
+#' @param condition_key Optional condition metadata.
+#' @param statistic `"trace"` for total subspace covariance energy, or
+#'   `"largest_root"` for the dominant singular-root statistic.
+#' @param weights `"cell_equal"` or `"subject_count"`.
+#' @param nperm Number of permutations. Permutation inference is not yet
+#'   implemented for design-subspace tests; values greater than zero error.
+#' @param correction Multiple-testing correction label. Present for API
+#'   compatibility with future permutation support.
+#'
+#' @return A data frame with term, rank, statistic, and placeholder p-value
+#'   columns.
+#' @export
+test_design_terms <- function(result,
+                              design = NULL,
+                              formula = NULL,
+                              condition_key = NULL,
+                              statistic = c("trace", "largest_root"),
+                              weights = c("cell_equal", "subject_count"),
+                              nperm = 0L,
+                              correction = c("none", "maxT")) {
+  statistic <- match.arg(statistic)
+  weights <- match.arg(weights)
+  correction <- match.arg(correction)
+  nperm <- as.integer(nperm)
+  if (nperm > 0L) {
+    stop(
+      "Permutation design-subspace inference is not implemented yet. ",
+      "Use nperm = 0 for observed statistics; nested p-values require a reduced-model-respecting null.",
+      call. = FALSE
+    )
+  }
+
+  ctx <- .design_subspace_context(
+    result = result,
+    design = design,
+    formula = formula,
+    condition_key = condition_key,
+    weights = weights,
+    require_crossblock = TRUE
+  )
+
+  rows <- vector("list", length(ctx$terms))
+  for (term_id in seq_along(ctx$terms)) {
+    columns <- which(ctx$assign == term_id)
+    basis <- .weighted_basis(ctx$centered_model[, columns, drop = FALSE], ctx$weights)
+    rows[[term_id]] <- data.frame(
+      term = ctx$terms[[term_id]],
+      rank = basis$rank,
+      statistic = .design_subspace_stat(ctx$crossblock, basis$q, ctx$weights, statistic),
+      p_value = NA_real_,
+      p_adjusted = NA_real_,
+      statistic_type = statistic,
+      correction = correction,
+      stringsAsFactors = FALSE
+    )
+  }
+
+  do.call(rbind, rows)
+}
+
+#' Compare Nested Task PLS Design Subspaces
+#'
+#' @description
+#' Computes the observed covariance energy in the part of a full cell-level
+#' design that remains after QR residualization against a reduced design.
+#'
+#' @param result A Task PLS `pls_result` produced with
+#'   `pls_analysis(..., keep_crossblock = TRUE)` or
+#'   `run(..., keep_crossblock = TRUE)`.
+#' @param reduced One-sided reduced formula.
+#' @param full One-sided full formula.
+#' @param design Optional `pls_design` object.
+#' @param condition_key Optional condition metadata.
+#' @param statistic `"trace"` or `"largest_root"`.
+#' @param weights `"cell_equal"` or `"subject_count"`.
+#' @param nperm Number of permutations. Values greater than zero error until a
+#'   reduced-model-respecting null is implemented.
+#'
+#' @return A one-row data frame with observed nested-subspace statistic.
+#' @export
+compare_designs <- function(result,
+                            reduced,
+                            full,
+                            design = NULL,
+                            condition_key = NULL,
+                            statistic = c("trace", "largest_root"),
+                            weights = c("cell_equal", "subject_count"),
+                            nperm = 0L) {
+  statistic <- match.arg(statistic)
+  weights <- match.arg(weights)
+  nperm <- as.integer(nperm)
+  if (nperm > 0L) {
+    stop(
+      "Permutation nested design-subspace inference is not implemented yet. ",
+      "Use nperm = 0 for observed statistics; nested p-values require preserving the reduced model.",
+      call. = FALSE
+    )
+  }
+
+  reduced <- .pls_one_sided_formula(reduced)
+  full <- .pls_one_sided_formula(full)
+  ctx <- .design_subspace_context(
+    result = result,
+    design = design,
+    formula = full,
+    condition_key = condition_key,
+    weights = weights,
+    require_crossblock = TRUE
+  )
+
+  x_full <- .design_model_matrix(full, ctx$cell_table, contrasts = ctx$contrasts)
+  x_reduced <- .design_model_matrix(reduced, ctx$cell_table, contrasts = ctx$contrasts)
+  x_full_c <- ctx$centering_operator %*% x_full
+  x_reduced_c <- ctx$centering_operator %*% x_reduced
+  basis <- .nested_weighted_basis(full = x_full_c, reduced = x_reduced_c, weights = ctx$weights)
+
+  full_terms <- attr(stats::terms(full), "term.labels")
+  reduced_terms <- attr(stats::terms(reduced), "term.labels")
+  added_terms <- setdiff(full_terms, reduced_terms)
+  if (!length(added_terms)) {
+    added_terms <- "residualized_full"
+  }
+
+  data.frame(
+    reduced = .formula_text(reduced),
+    full = .formula_text(full),
+    added_terms = paste(added_terms, collapse = " + "),
+    rank = basis$rank,
+    statistic = .design_subspace_stat(ctx$crossblock, basis$q, ctx$weights, statistic),
+    p_value = NA_real_,
+    statistic_type = statistic,
+    stringsAsFactors = FALSE
+  )
+}
+
+#' Decompose a Task PLS Design LV into Factorial Subspaces
+#'
+#' @description
+#' Descriptively attributes a design-side latent variable to centered
+#' factorial subspaces. This is not an inferential test.
+#'
+#' @param result A Task PLS `pls_result`.
+#' @param lv Latent variable index.
+#' @param design Optional `pls_design` object.
+#' @param formula Optional one-sided formula overriding `design$formula`.
+#' @param condition_key Optional condition metadata.
+#' @param weights `"cell_equal"` or `"subject_count"`.
+#'
+#' @return A data frame with LV energy and fraction by factorial term.
+#' @export
+decompose_design_terms <- function(result,
+                                   lv = 1L,
+                                   design = NULL,
+                                   formula = NULL,
+                                   condition_key = NULL,
+                                   weights = c("cell_equal", "subject_count")) {
+  weights <- match.arg(weights)
+  lv <- as.integer(lv)
+  if (length(lv) != 1L || lv < 1L || lv > ncol(result$v)) {
+    stop("lv must identify one design latent variable.", call. = FALSE)
+  }
+
+  ctx <- .design_subspace_context(
+    result = result,
+    design = design,
+    formula = formula,
+    condition_key = condition_key,
+    weights = weights,
+    require_crossblock = FALSE
+  )
+
+  y <- as.numeric(result$v[, lv])
+  if (length(y) != nrow(ctx$cell_table)) {
+    stop("The selected design LV does not match the Task PLS cell table.", call. = FALSE)
+  }
+
+  yw <- y * sqrt(ctx$weights)
+  total_energy <- sum(yw^2)
+
+  rows <- vector("list", length(ctx$terms))
+  for (term_id in seq_along(ctx$terms)) {
+    columns <- which(ctx$assign == term_id)
+    basis <- .weighted_basis(ctx$centered_model[, columns, drop = FALSE], ctx$weights)
+    coefficients <- if (basis$rank > 0L) as.numeric(crossprod(basis$q, yw)) else numeric(0L)
+    energy <- sum(coefficients^2)
+    rows[[term_id]] <- data.frame(
+      lv = lv,
+      term = ctx$terms[[term_id]],
+      rank = basis$rank,
+      signed_projection = if (basis$rank == 1L) coefficients[[1L]] else NA_real_,
+      energy = energy,
+      fraction = if (total_energy > 0) energy / total_energy else NA_real_,
+      stringsAsFactors = FALSE
+    )
+  }
+
+  do.call(rbind, rows)
+}
+
+.design_subspace_context <- function(result,
+                                     design,
+                                     formula,
+                                     condition_key,
+                                     weights,
+                                     require_crossblock) {
+  .validate_task_pls_result(result)
+
+  if (!is.null(design) && !inherits(design, "pls_design")) {
+    stop("design must be a pls_design object.", call. = FALSE)
+  }
+
+  formula <- if (!is.null(formula)) {
+    .pls_one_sided_formula(formula)
+  } else if (!is.null(design)) {
+    design$formula
+  } else {
+    stop("Provide either design or formula.", call. = FALSE)
+  }
+
+  cell_table <- design_cell_table(result, design = design, condition_key = condition_key)
+  contrasts <- if (!is.null(design)) design$contrasts else "sum"
+  model <- .design_model_matrix(formula, cell_table, contrasts = contrasts)
+  terms <- attr(stats::terms(formula), "term.labels")
+  if (!length(terms)) {
+    stop("formula must contain at least one design term.", call. = FALSE)
+  }
+
+  centering_operator <- .result_centering_operator(result)
+  if (nrow(centering_operator) != nrow(model)) {
+    stop("Task PLS centering operator does not match the design model.", call. = FALSE)
+  }
+
+  crossblock <- .result_crossblock(result, require = require_crossblock)
+  if (!is.null(crossblock) && nrow(crossblock) != nrow(model)) {
+    stop("Stored Task PLS crossblock does not match the design cell table.", call. = FALSE)
+  }
+
+  list(
+    cell_table = cell_table,
+    formula = formula,
+    terms = terms,
+    assign = attr(model, "assign"),
+    model = model,
+    centered_model = centering_operator %*% model,
+    centering_operator = centering_operator,
+    crossblock = crossblock,
+    weights = .resolve_design_weights(weights, cell_table),
+    contrasts = contrasts
+  )
+}
+
+.validate_task_pls_result <- function(result) {
+  if (!inherits(result, "pls_result")) {
+    stop("result must be a pls_result.", call. = FALSE)
+  }
+  if (!result$method %in% c(1L, 2L)) {
+    stop("Design-subspace tools currently support Task PLS methods 1 and 2.", call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+.result_crossblock <- function(result, require = TRUE) {
+  crossblock <- result$task_pls$crossblock %||% result$design_crossblock %||% NULL
+  if (is.null(crossblock) && isTRUE(require)) {
+    stop(
+      "No Task PLS crossblock is stored in result. ",
+      "Fit with pls_analysis(..., keep_crossblock = TRUE) or run(..., keep_crossblock = TRUE).",
+      call. = FALSE
+    )
+  }
+  crossblock
+}
+
+.result_centering_operator <- function(result) {
+  op <- result$task_pls$centering_operator %||% NULL
+  if (!is.null(op)) {
+    return(op)
+  }
+
+  meancentering_type <- as.integer(result$other_input$meancentering_type %||% 0L)
+  .task_pls_centering_operator(
+    num_subj_lst = result$num_subj_lst,
+    num_cond = result$num_cond,
+    meancentering_type = meancentering_type,
+    method = result$method
+  )
+}
+
+.design_model_matrix <- function(formula, cell_table, contrasts = "sum") {
+  formula <- .pls_one_sided_formula(formula)
+  terms <- all.vars(formula)
+  missing <- setdiff(terms, names(cell_table))
+  if (length(missing)) {
+    stop("Design formula references missing cell-table columns: ", paste(missing, collapse = ", "), call. = FALSE)
+  }
+
+  data <- cell_table
+  contrast_args <- .design_contrast_args(
+    data[, intersect(all.vars(formula), names(data)), drop = FALSE],
+    contrasts
+  )
+  stats::model.matrix(formula, data = data, contrasts.arg = contrast_args)
+}
+
+.design_contrast_args <- function(data, contrasts) {
+  factor_cols <- names(data)[vapply(data, is.factor, logical(1))]
+  if (!length(factor_cols)) {
+    return(NULL)
+  }
+
+  if (!identical(contrasts, "sum")) {
+    stop("Only contrasts = \"sum\" is currently supported.", call. = FALSE)
+  }
+
+  stats::setNames(rep(list(stats::contr.sum), length(factor_cols)), factor_cols)
+}
+
+.weighted_basis <- function(x, weights, tol = 1e-10) {
+  if (!is.matrix(x)) {
+    x <- as.matrix(x)
+  }
+  if (!ncol(x)) {
+    return(list(q = matrix(0, nrow = nrow(x), ncol = 0L), rank = 0L))
+  }
+  if (any(!is.finite(x))) {
+    stop("Design matrix contains non-finite values.", call. = FALSE)
+  }
+
+  xw <- x * sqrt(weights)
+  qr_x <- qr(xw, tol = tol)
+  rank <- as.integer(qr_x$rank)
+  if (rank == 0L) {
+    return(list(q = matrix(0, nrow = nrow(x), ncol = 0L), rank = 0L))
+  }
+
+  list(q = qr.Q(qr_x)[, seq_len(rank), drop = FALSE], rank = rank)
+}
+
+.nested_weighted_basis <- function(full, reduced, weights, tol = 1e-10) {
+  full_w <- full * sqrt(weights)
+  reduced_w <- reduced * sqrt(weights)
+
+  reduced_basis <- .weighted_basis(reduced, weights, tol = tol)
+  residual <- full_w
+  if (reduced_basis$rank > 0L) {
+    residual <- full_w - reduced_basis$q %*% crossprod(reduced_basis$q, full_w)
+  }
+
+  qr_resid <- qr(residual, tol = tol)
+  rank <- as.integer(qr_resid$rank)
+  if (rank == 0L) {
+    return(list(q = matrix(0, nrow = nrow(full), ncol = 0L), rank = 0L))
+  }
+
+  list(q = qr.Q(qr_resid)[, seq_len(rank), drop = FALSE], rank = rank)
+}
+
+.design_subspace_stat <- function(crossblock, basis, weights, statistic) {
+  if (ncol(basis) == 0L) {
+    return(0)
+  }
+
+  crossblock_w <- crossblock * sqrt(weights)
+  coordinates <- crossprod(basis, crossblock_w)
+
+  if (identical(statistic, "trace")) {
+    return(sum(coordinates^2))
+  }
+
+  d <- svd(coordinates, nu = 0L, nv = 0L)$d
+  if (!length(d)) 0 else d[[1L]]^2
+}
+
+.resolve_design_weights <- function(weights, cell_table) {
+  if (identical(weights, "cell_equal")) {
+    return(rep(1, nrow(cell_table)))
+  }
+
+  out <- as.numeric(cell_table$cell_n)
+  if (any(!is.finite(out)) || any(out <= 0)) {
+    stop("subject_count weights require positive cell_n values.", call. = FALSE)
+  }
+  out
+}
+
+.task_pls_cell_counts <- function(num_subj_lst, num_cond) {
+  num_cond <- as.integer(num_cond)
+  if (is.list(num_subj_lst)) {
+    unlist(lapply(num_subj_lst, function(x) {
+      x <- as.integer(x)
+      if (length(x) != num_cond) {
+        stop("Each num_subj_lst entry must have length num_cond.", call. = FALSE)
+      }
+      x
+    }), use.names = FALSE)
+  } else {
+    rep(as.integer(num_subj_lst), each = num_cond)
+  }
+}
+
+.task_pls_centering_operator <- function(num_subj_lst,
+                                         num_cond,
+                                         meancentering_type = 0L,
+                                         method = 1L) {
+  counts <- .task_pls_cell_counts(num_subj_lst, num_cond)
+  num_cond <- as.integer(num_cond)
+  num_groups <- length(num_subj_lst)
+  n_cells <- num_groups * num_cond
+
+  if (as.integer(method) == 2L) {
+    return(diag(n_cells))
+  }
+
+  meancentering_type <- as.integer(meancentering_type)
+  if (!meancentering_type %in% 0:3) {
+    stop("meancentering_type must be 0, 1, 2, or 3.", call. = FALSE)
+  }
+
+  m <- diag(n_cells)
+
+  if (meancentering_type == 0L) {
+    for (g in seq_len(num_groups)) {
+      idx <- ((g - 1L) * num_cond + 1L):(g * num_cond)
+      w <- counts[idx] / sum(counts[idx])
+      m[idx, idx] <- m[idx, idx] - outer(rep(1, length(idx)), w)
+    }
+  } else if (meancentering_type == 1L) {
+    for (cond in seq_len(num_cond)) {
+      idx <- seq(from = cond, by = num_cond, length.out = num_groups)
+      m[idx, idx] <- m[idx, idx] - matrix(1 / num_groups, nrow = num_groups, ncol = num_groups)
+    }
+  } else if (meancentering_type == 2L) {
+    w <- counts / sum(counts)
+    m <- m - outer(rep(1, n_cells), w)
+  } else if (meancentering_type == 3L) {
+    for (row in seq_len(n_cells)) {
+      group_id <- ((row - 1L) %/% num_cond) + 1L
+      cond_id <- ((row - 1L) %% num_cond) + 1L
+      group_idx <- ((group_id - 1L) * num_cond + 1L):(group_id * num_cond)
+      cond_idx <- seq(from = cond_id, by = num_cond, length.out = num_groups)
+      m[row, group_idx] <- m[row, group_idx] - 1 / num_cond
+      m[row, cond_idx] <- m[row, cond_idx] - 1 / num_groups
+      m[row, ] <- m[row, ] + 1 / n_cells
+    }
+  }
+
+  m
+}
+
+.task_pls_cell_info <- function(num_subj_lst, num_cond) {
+  data.frame(
+    row_index = seq_len(length(num_subj_lst) * as.integer(num_cond)),
+    cell_n = .task_pls_cell_counts(num_subj_lst, num_cond),
+    stringsAsFactors = FALSE
+  )
+}
+
+.validate_condition_key <- function(condition_key, conditions = NULL) {
+  if (is.null(condition_key)) {
+    return(NULL)
+  }
+  if (!is.data.frame(condition_key)) {
+    stop("condition_key must be a data frame.", call. = FALSE)
+  }
+  if (!"condition" %in% names(condition_key)) {
+    stop("condition_key must contain a condition column.", call. = FALSE)
+  }
+  if (anyDuplicated(as.character(condition_key$condition))) {
+    stop("condition_key contains duplicated condition labels.", call. = FALSE)
+  }
+  if (!is.null(conditions)) {
+    missing <- setdiff(as.character(conditions), as.character(condition_key$condition))
+    if (length(missing)) {
+      stop("condition_key is missing condition labels: ", paste(missing, collapse = ", "), call. = FALSE)
+    }
+  }
+  condition_key
+}
+
+.factorize_design_columns <- function(x) {
+  skip <- c("row_index", "cell_n")
+  for (nm in setdiff(names(x), skip)) {
+    if (is.factor(x[[nm]])) {
+      next
+    }
+    x[[nm]] <- factor(x[[nm]], levels = unique(x[[nm]]))
+  }
+  x
+}
+
+.pls_one_sided_formula <- function(formula) {
+  if (!inherits(formula, "formula")) {
+    stop("formula must be a formula.", call. = FALSE)
+  }
+  if (length(formula) == 3L) {
+    formula <- stats::as.formula(paste("~", paste(deparse(formula[[3L]]), collapse = " ")), env = environment(formula))
+  }
+  if (length(formula) != 2L) {
+    stop("formula must be one-sided.", call. = FALSE)
+  }
+  formula
+}
+
+.formula_text <- function(formula) {
+  paste(deparse(formula), collapse = " ")
+}
