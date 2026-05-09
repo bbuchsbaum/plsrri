@@ -20,14 +20,15 @@ check_gui_deps()
 #> ── PLS GUI Dependency Check ──
 #> 
 #> ── Required packages 
-#> ✔ shiny
+#> ✖ shiny - NOT INSTALLED
 #> ✔ bslib
-#> ✔ bsicons
-#> ✔ shinyjs
-#> ✔ shinyFiles
+#> ✖ bsicons - NOT INSTALLED
+#> ✖ shinyjs - NOT INSTALLED
+#> ✖ shinyFiles - NOT INSTALLED
 #> ✔ R6
 #> 
 #> ── Suggested packages (for async execution) 
-#> ✔ future
-#> ✔ promises
+#> ! future - not installed (optional)
+#> ! promises - not installed (optional)
+#> ℹ Install missing packages with:
 ```

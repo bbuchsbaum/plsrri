@@ -34,6 +34,7 @@ PLS results and Quarto reports, start with:
 Start by scaffolding a spec rather than writing YAML from scratch:
 
 ``` r
+
 write_pipeline_template("study.yml")
 ```
 
@@ -44,6 +45,7 @@ plscli template --out study.yml
 The minimal scripted path is:
 
 ``` r
+
 prep <- prepare_firstlevel("study.yml")
 result <- run_pls(prep)
 render_pls_report(prep$spec)
@@ -124,6 +126,15 @@ That same contract is designed to work across:
 - [`analysis-api`](https://bbuchsbaum.github.io/plsrri/reference/analysis-api.md)
   : High-Level Analysis API
 
+- [`as_design_contrasts()`](https://bbuchsbaum.github.io/plsrri/reference/as_design_contrasts.md)
+  : Factorial Design Contrasts for a Latent Variable
+
+- [`as_design_score_space()`](https://bbuchsbaum.github.io/plsrri/reference/as_design_score_space.md)
+  : Two-LV Design Score Space
+
+- [`as_design_scores()`](https://bbuchsbaum.github.io/plsrri/reference/as_design_scores.md)
+  : Tidy Design Scores
+
 - [`behav_pls()`](https://bbuchsbaum.github.io/plsrri/reference/behav_pls.md)
   : Behavioral Correlates PLS
 
@@ -160,11 +171,23 @@ That same contract is designed to work across:
 - [`check_gui_deps()`](https://bbuchsbaum.github.io/plsrri/reference/check_gui_deps.md)
   : Check GUI Dependencies
 
+- [`compare_designs()`](https://bbuchsbaum.github.io/plsrri/reference/compare_designs.md)
+  : Compare Nested Task PLS Design Subspaces
+
 - [`confidence()`](https://bbuchsbaum.github.io/plsrri/reference/confidence.md)
   : Get Confidence Intervals
 
 - [`configure()`](https://bbuchsbaum.github.io/plsrri/reference/configure.md)
   : Configure PLS Analysis
+
+- [`decompose_design_terms()`](https://bbuchsbaum.github.io/plsrri/reference/decompose_design_terms.md)
+  : Decompose a Task PLS Design LV into Factorial Subspaces
+
+- [`design_cell_table()`](https://bbuchsbaum.github.io/plsrri/reference/design_cell_table.md)
+  : Cell Table for a Task PLS Factorial Design
+
+- [`design_projectors()`](https://bbuchsbaum.github.io/plsrri/reference/design_projectors.md)
+  : Build Centered Design Projectors
 
 - [`design_weights()`](https://bbuchsbaum.github.io/plsrri/reference/design_weights.md)
   : Extract Design/Behavior Weights
@@ -328,6 +351,18 @@ That same contract is designed to work across:
 - [`plot_brain_summary()`](https://bbuchsbaum.github.io/plsrri/reference/plot_brain_summary.md)
   : Plot Brain Summary
 
+- [`plot_design_contrasts()`](https://bbuchsbaum.github.io/plsrri/reference/plot_design_contrasts.md)
+  : Plot Factorial Design Contrast Magnitudes
+
+- [`plot_design_heatmap()`](https://bbuchsbaum.github.io/plsrri/reference/plot_design_heatmap.md)
+  : Plot Design Scores as a Heatmap
+
+- [`plot_design_interaction()`](https://bbuchsbaum.github.io/plsrri/reference/plot_design_interaction.md)
+  : Plot Design Score Interactions
+
+- [`plot_design_score_space()`](https://bbuchsbaum.github.io/plsrri/reference/plot_design_score_space.md)
+  : Plot a Two-LV Design Score Space
+
 - [`plot_loadings()`](https://bbuchsbaum.github.io/plsrri/reference/plot_loadings.md)
   : Plot PLS Loadings
 
@@ -411,6 +446,9 @@ That same contract is designed to work across:
 
 - [`pls_corr_maps_notall()`](https://bbuchsbaum.github.io/plsrri/reference/pls_corr_maps_notall.md)
   : Correlation Maps for Subset of Conditions
+
+- [`pls_design()`](https://bbuchsbaum.github.io/plsrri/reference/pls_design.md)
+  : Factorial Design Object for Task PLS
 
 - [`pls_design_scores()`](https://bbuchsbaum.github.io/plsrri/reference/pls_design_scores.md)
   : Compute Design Scores
@@ -504,6 +542,9 @@ That same contract is designed to work across:
 
   Read a `plscli` Pipeline Specification
 
+- [`read_results()`](https://bbuchsbaum.github.io/plsrri/reference/read_results.md)
+  : Read a PLS Result From Disk
+
 - [`register_method()`](https://bbuchsbaum.github.io/plsrri/reference/register_method.md)
   : Register a Multivariate Analysis Method
 
@@ -558,6 +599,9 @@ That same contract is designed to work across:
 - [`task_mean_cpp()`](https://bbuchsbaum.github.io/plsrri/reference/task_mean_cpp.md)
   : Fast Task Mean Computation
 
+- [`test_design_terms()`](https://bbuchsbaum.github.io/plsrri/reference/test_design_terms.md)
+  : Observed Design-Subspace Statistics for Task PLS Terms
+
 - [`theme_pls()`](https://bbuchsbaum.github.io/plsrri/reference/theme_pls.md)
   : PLS Plot Theme
 
@@ -596,6 +640,10 @@ That same contract is designed to work across:
   Interface](https://bbuchsbaum.github.io/plsrri/articles/cli.md):
 - [Scripted End-to-End
   Workflows](https://bbuchsbaum.github.io/plsrri/articles/scripted-workflows.md):
+- [Design-Subspace Summaries for Task
+  PLS](https://bbuchsbaum.github.io/plsrri/articles/task-design-subspace.md):
+- [Mean-Centered Task PLS for First-Level SDAM
+  Maps](https://bbuchsbaum.github.io/plsrri/articles/sdam-firstlevel-task-pls.md):
 - [Pipeline YAML
   Specification](https://bbuchsbaum.github.io/plsrri/articles/pipeline-yaml-spec.md):
 - [Multisite Behavioral PLS

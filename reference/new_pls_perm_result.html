@@ -20,6 +20,8 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/plsrri.html">Getting Started</a></li>
     <li><a class="dropdown-item" href="../articles/cli.html">Command Line Interface</a></li>
     <li><a class="dropdown-item" href="../articles/scripted-workflows.html">Scripted Workflows</a></li>
+    <li><a class="dropdown-item" href="../articles/task-design-subspace.html">Task PLS Design Subspaces</a></li>
+    <li><a class="dropdown-item" href="../articles/sdam-firstlevel-task-pls.html">First-Level SDAM Task PLS</a></li>
     <li><a class="dropdown-item" href="../articles/pipeline-yaml-spec.html">Pipeline YAML Specification</a></li>
     <li><a class="dropdown-item" href="../articles/site-pooling.html">Multisite Behavioral PLS</a></li>
     <li><a class="dropdown-item" href="../articles/predictive-measures.html">Predictive Measures</a></li>
@@ -58,7 +60,8 @@
 <span>  <span class="va">sprob</span>,</span>
 <span>  permsamp <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  Tpermsamp <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  Bpermsamp <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  Bpermsamp <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  perm_singval <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -88,6 +91,12 @@
 
 <dt id="arg-bpermsamp">Bpermsamp<a class="anchor" aria-label="anchor" href="#arg-bpermsamp"></a></dt>
 <dd><p>Behavior permutation samples (multiblock)</p></dd>
+
+
+<dt id="arg-perm-singval">perm_singval<a class="anchor" aria-label="anchor" href="#arg-perm-singval"></a></dt>
+<dd><p>Optional <code>n_lv x num_perm</code> numeric matrix holding the
+full permutation null distribution of singular values (kept when
+<code>pls_analysis(..., keep_perm_distribution = TRUE)</code>). <code>NULL</code> by default.</p></dd>
 
 </dl></div>
     <div class="section level2">

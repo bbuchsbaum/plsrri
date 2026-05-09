@@ -1,6 +1,7 @@
 # Pipeline YAML Specification
 
 ``` r
+
 library(plsrri)
 library(yaml)
 ```
@@ -20,6 +21,7 @@ see
 The intended starting point is a scaffold, not a blank file:
 
 ``` r
+
 write_pipeline_template("study.yml")
 ```
 
@@ -34,6 +36,7 @@ The scaffold written by
 gives the intended shape.
 
 ``` r
+
 required_sections
 #> [1] "dataset"     "design"      "first_level" "pls"         "execution"  
 #> [6] "outputs"
@@ -60,9 +63,10 @@ The minimum viable spec is deliberately small. You need:
 - an output root
 
 ``` r
+
 cat(as.yaml(minimal_spec))
 #> dataset:
-#>   bids_dir: /tmp/Rtmpeh7kCo/plsrri-yaml-27f17a179d9/bids
+#>   bids_dir: /tmp/RtmpofHWrB/plsrri-yaml-292742be2192/bids
 #>   task: stroop
 #> design:
 #>   formula: onset ~ hrf(condition, basis = 'spmg1')
@@ -75,7 +79,7 @@ cat(as.yaml(minimal_spec))
 #>   nperm: 0
 #>   nboot: 0
 #> outputs:
-#>   root: /tmp/Rtmpeh7kCo/plsrri-yaml-27f17a179d9/out
+#>   root: /tmp/RtmpofHWrB/plsrri-yaml-292742be2192/out
 ```
 
 That small object already validates and picks up defaults for
@@ -111,6 +115,7 @@ dataset:
 field is `formula`.
 
 ``` r
+
 design:
   formula: onset ~ hrf(condition, basis = 'spmg1')
   block: ~ run
@@ -144,6 +149,7 @@ The important distinction is:
 `pls` tells the second stage how to interpret first-level outputs.
 
 ``` r
+
 pls:
   method: task
   input:
@@ -168,6 +174,7 @@ The `method` field maps onto supported `plsrri` methods such as:
 statistical analysis itself.
 
 ``` r
+
 execution:
   mode: array
   parallelism: 8
@@ -179,6 +186,7 @@ execution:
 layer, and Shiny attach mode all reuse.
 
 ``` r
+
 outputs:
   root: plscli-out
 ```
@@ -192,9 +200,10 @@ encode basis functions such as FIR bins or tent functions:
 2.  how PLS should fold those labels back into a basis-aware manifest
 
 ``` r
+
 cat(as.yaml(basis_spec))
 #> dataset:
-#>   bids_dir: /tmp/Rtmpeh7kCo/plsrri-yaml-27f17a179d9/bids
+#>   bids_dir: /tmp/RtmpofHWrB/plsrri-yaml-292742be2192/bids
 #>   task: stroop
 #> design:
 #>   formula: onset ~ hrf(condition, basis = 'fir', K = 4)
@@ -224,7 +233,7 @@ cat(as.yaml(basis_spec))
 #>   nperm: 0
 #>   nboot: 0
 #> outputs:
-#>   root: /tmp/Rtmpeh7kCo/plsrri-yaml-27f17a179d9/fir-out
+#>   root: /tmp/RtmpofHWrB/plsrri-yaml-292742be2192/fir-out
 ```
 
 The important point is that basis handling belongs in both places:

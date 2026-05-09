@@ -87,6 +87,7 @@ The stacking order places conditions within subjects (matching the
 convention used by
 [`pls_analysis()`](https://bbuchsbaum.github.io/plsrri/reference/pls_analysis.md)):
 
+
       row 1:  subject 1, condition 1
       row 2:  subject 1, condition 2
       ...

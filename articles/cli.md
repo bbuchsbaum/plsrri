@@ -1,6 +1,7 @@
 # Command Line Interface
 
 ``` r
+
 library(plsrri)
 ```
 
@@ -25,6 +26,7 @@ For a broader end-to-end analysis example, see
 Install the package, then copy the wrapper into a directory on `PATH`.
 
 ``` r
+
 plsrri::install_cli("~/.local/bin", overwrite = TRUE)
 ```
 

@@ -36,6 +36,8 @@
 <li><a class="dropdown-item" href="../articles/plsrri.html">Getting Started</a></li>
     <li><a class="dropdown-item" href="../articles/cli.html">Command Line Interface</a></li>
     <li><a class="dropdown-item" href="../articles/scripted-workflows.html">Scripted Workflows</a></li>
+    <li><a class="dropdown-item" href="../articles/task-design-subspace.html">Task PLS Design Subspaces</a></li>
+    <li><a class="dropdown-item" href="../articles/sdam-firstlevel-task-pls.html">First-Level SDAM Task PLS</a></li>
     <li><a class="dropdown-item" href="../articles/pipeline-yaml-spec.html">Pipeline YAML Specification</a></li>
     <li><a class="dropdown-item" href="../articles/site-pooling.html">Multisite Behavioral PLS</a></li>
     <li><a class="dropdown-item" href="../articles/predictive-measures.html">Predictive Measures</a></li>
@@ -144,7 +146,7 @@ gives you labels, metadata, and full control over every parameter.</p>
 older), three conditions, and 200 voxels with planted signal in two
 blocks.</p>
 <p>Each group matrix has 15 subjects
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>×</mo><annotation encoding="application/x-tex">\times</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
 3 conditions = 45 rows and 200 voxels:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
@@ -233,7 +235,7 @@ Brain scores for LV1. Each point is one subject-condition observation.
 </h2>
 <p>Bootstrap ratios (BSRs) are saliences divided by their bootstrap
 standard errors — they work like z-scores. Voxels with
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mo stretchy="true" form="prefix">|</mo><mi>B</mi><mi>S</mi><mi>R</mi><mo stretchy="true" form="postfix">|</mo></mrow><mo>&gt;</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">|BSR| &gt; 2</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi>B</mi><mi>S</mi><mi>R</mi><mo stretchy="false" form="prefix">|</mo><mo>&gt;</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">|BSR| &gt; 2</annotation></semantics></math>
 or
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>3</mn><annotation encoding="application/x-tex">3</annotation></semantics></math>
 are typically considered reliable.</p>
@@ -241,7 +243,7 @@ are typically considered reliable.</p>
 <code class="sourceCode R"><span><span class="va">lv1_bsr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/bsr.html">bsr</a></span><span class="op">(</span><span class="va">result</span>, lv <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">reliable</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">lv1_bsr</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
 <p>21 of 200 voxels have
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mo stretchy="true" form="prefix">|</mo><mi>B</mi><mi>S</mi><mi>R</mi><mo stretchy="true" form="postfix">|</mo></mrow><mo>&gt;</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">|BSR| &gt; 2</annotation></semantics></math>.
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi>B</mi><mi>S</mi><mi>R</mi><mo stretchy="false" form="prefix">|</mo><mo>&gt;</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">|BSR| &gt; 2</annotation></semantics></math>.
 A quick profile shows where the reliable voxels cluster:</p>
 <div class="figure">
 <img src="plsrri_files/figure-html/plot-task-bsr-1.png" class="r-plt" alt="Bootstrap ratio profile across voxels. The horizontal lines mark the |BSR| = 2 threshold. Voxels 1-80 and 81-140 show the planted signal blocks." width="576"><p class="caption">
@@ -321,42 +323,46 @@ runs, and Quarto reporting.</p>
 <td align="left"><code><a href="../articles/scripted-workflows.html">vignette("scripted-workflows")</a></code></td>
 </tr>
 <tr class="even">
+<td align="left">Factorial design-subspace summaries for Task PLS</td>
+<td align="left"><code><a href="../articles/task-design-subspace.html">vignette("task-design-subspace")</a></code></td>
+</tr>
+<tr class="odd">
 <td align="left">Behavior PLS with continuous measures</td>
 <td align="left"><code><a href="../articles/behavior-pls.html">vignette("behavior-pls")</a></code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Multisite pooled behavior PLS with site
 diagnostics</td>
 <td align="left"><code><a href="../articles/site-pooling.html">vignette("site-pooling")</a></code></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Within-subject seed connectivity from trial-level
 data</td>
 <td align="left"><code><a href="../articles/ws-seed-pls.html">vignette("ws-seed-pls")</a></code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Multiblock and seed connectivity PLS</td>
 <td align="left"><code><a href="../articles/multiblock-and-seed.html">vignette("multiblock-and-seed")</a></code></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Full engine parameters</td>
 <td align="left"><code><a href="../reference/pls_analysis.html">?pls_analysis</a></code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Builder verbs</td>
 <td align="left">
 <code><a href="../reference/pls_spec.html">?pls_spec</a></code>, <code><a href="../reference/configure.html">?configure</a></code>,
 <code><a href="../reference/run.html">?run</a></code>
 </td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Plotting functions</td>
 <td align="left">
 <code><a href="../reference/plot_scores.html">?plot_scores</a></code>, <code><a href="../reference/plot_loadings.html">?plot_loadings</a></code>,
 <code><a href="../reference/plot_singular_values.html">?plot_singular_values</a></code>
 </td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Bootstrap and permutation details</td>
 <td align="left">
 <code><a href="../reference/bsr.html">?bsr</a></code>, <code><a href="../reference/significance.html">?significance</a></code>,

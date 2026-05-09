@@ -1,6 +1,7 @@
 # Group by Covariate Designs
 
 ``` r
+
 library(plsrri)
 ```
 
@@ -46,6 +47,7 @@ subject-by-feature matrices. In a real analysis, the columns would be
 voxels, parcels, surface vertices, or another common feature space.
 
 ``` r
+
 set.seed(42)
 
 n1 <- 28
@@ -62,6 +64,7 @@ Y_g2 <- matrix(rnorm(n2 * n_features, sd = 0.7), nrow = n2)
 The trait matrix is stacked as group 1 followed by group 2:
 
 ``` r
+
 head(trait, 4)
 #>           trait
 #> [1,]  0.9998323
@@ -84,6 +87,7 @@ column asks for a shared trait-brain association; the second asks
 whether the association differs by group.
 
 ``` r
+
 trait_design <- cbind(
   common_trait = c(1, 1),
   group_by_trait = c(-1, 1)
@@ -96,6 +100,7 @@ trait_design
 ```
 
 ``` r
+
 trait_result <- pls_spec() |>
   add_subjects(list(Y_g1, Y_g2), groups = c(n1, n2)) |>
   add_conditions(1) |>
@@ -113,6 +118,7 @@ trait_result <- pls_spec() |>
 The two requested contrasts become two latent variables:
 
 ``` r
+
 cbind(
   pvalue = round(significance(trait_result), 3),
   variance = round(singular_values(trait_result, normalize = TRUE), 1)
@@ -126,6 +132,7 @@ The design loadings show the hypothesis weights used for each latent
 variable:
 
 ``` r
+
 loadings(trait_result, type = "design")
 #>      contrast_1 contrast_2
 #> [1,]  0.7071068 -0.7071068
@@ -149,6 +156,7 @@ does not estimate the mean group difference. For the main group effect,
 use non-rotated Task PLS with one condition and a group contrast:
 
 ``` r
+
 group_result <- pls_spec() |>
   add_subjects(list(Y_g1, Y_g2), groups = c(n1, n2)) |>
   add_conditions(1) |>
@@ -162,6 +170,7 @@ group_result <- pls_spec() |>
 ```
 
 ``` r
+
 cbind(
   pvalue = round(significance(group_result), 3),
   variance = round(singular_values(group_result, normalize = TRUE), 1)
@@ -189,6 +198,7 @@ That gives a single analysis with columns for the group main effect,
 common trait effect, and group-by-trait effect.
 
 ``` r
+
 multiblock_design <- cbind(
   group_2_minus_1 = c(-1, 1, 0, 0),
   common_trait = c(0, 0, 1, 1),
@@ -204,6 +214,7 @@ multiblock_design
 ```
 
 ``` r
+
 multiblock_result <- pls_spec() |>
   add_subjects(list(Y_g1, Y_g2), groups = c(n1, n2)) |>
   add_conditions(1) |>
@@ -219,6 +230,7 @@ multiblock_result <- pls_spec() |>
 ```
 
 ``` r
+
 cbind(
   pvalue = round(significance(multiblock_result), 3),
   variance = round(singular_values(multiblock_result, normalize = TRUE), 1)
@@ -250,10 +262,10 @@ group sizes when resampling.
 
 ## Where to go next
 
-| Goal                                  | Resource                                                                                                 |
-|:--------------------------------------|:---------------------------------------------------------------------------------------------------------|
-| Behavior PLS with continuous measures | [`vignette("behavior-pls")`](https://bbuchsbaum.github.io/plsrri/articles/behavior-pls.md)               |
-| Group and condition effects           | [`vignette("plsrri")`](https://bbuchsbaum.github.io/plsrri/articles/plsrri.md)                           |
-| Multiblock PLS                        | [`vignette("multiblock-and-seed")`](https://bbuchsbaum.github.io/plsrri/articles/multiblock-and-seed.md) |
+| Goal | Resource |
+|:---|:---|
+| Behavior PLS with continuous measures | [`vignette("behavior-pls")`](https://bbuchsbaum.github.io/plsrri/articles/behavior-pls.md) |
+| Group and condition effects | [`vignette("plsrri")`](https://bbuchsbaum.github.io/plsrri/articles/plsrri.md) |
+| Multiblock PLS | [`vignette("multiblock-and-seed")`](https://bbuchsbaum.github.io/plsrri/articles/multiblock-and-seed.md) |
 | Predictive validation from PLS scores | [`vignette("predictive-measures")`](https://bbuchsbaum.github.io/plsrri/articles/predictive-measures.md) |
-| Full engine options                   | [`?pls_analysis`](https://bbuchsbaum.github.io/plsrri/reference/pls_analysis.md)                         |
+| Full engine options | [`?pls_analysis`](https://bbuchsbaum.github.io/plsrri/reference/pls_analysis.md) |

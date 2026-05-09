@@ -1,6 +1,7 @@
 # Getting Started with plsrri
 
 ``` r
+
 library(plsrri)
 ```
 
@@ -30,10 +31,10 @@ The core workflow has three steps:
     [`loadings()`](https://bbuchsbaum.github.io/plsrri/reference/loadings.md),
     [`confidence()`](https://bbuchsbaum.github.io/plsrri/reference/confidence.md)
 
-| Object       | What it holds                            | How you get it                                                                                                                                 |
-|:-------------|:-----------------------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------|
-| `pls_spec`   | Data matrices, method, resampling config | [`pls_spec()`](https://bbuchsbaum.github.io/plsrri/reference/pls_spec.md) + builder verbs                                                      |
-| `pls_result` | SVD decomposition, scores, inference     | [`run()`](https://bbuchsbaum.github.io/plsrri/reference/run.md) or [`quick_pls()`](https://bbuchsbaum.github.io/plsrri/reference/quick_pls.md) |
+| Object | What it holds | How you get it |
+|:---|:---|:---|
+| `pls_spec` | Data matrices, method, resampling config | [`pls_spec()`](https://bbuchsbaum.github.io/plsrri/reference/pls_spec.md) + builder verbs |
+| `pls_result` | SVD decomposition, scores, inference | [`run()`](https://bbuchsbaum.github.io/plsrri/reference/run.md) or [`quick_pls()`](https://bbuchsbaum.github.io/plsrri/reference/quick_pls.md) |
 
 The fastest path is
 [`quick_pls()`](https://bbuchsbaum.github.io/plsrri/reference/quick_pls.md),
@@ -46,10 +47,11 @@ labels, metadata, and full control over every parameter.
 This vignette uses a small synthetic dataset: two groups (young, older),
 three conditions, and 200 voxels with planted signal in two blocks.
 
-Each group matrix has 15 subjects $\times$ 3 conditions = 45 rows and
+Each group matrix has 15 subjects $`\times`$ 3 conditions = 45 rows and
 200 voxels:
 
 ``` r
+
 rbind(
   young = dim(group_young),
   older = dim(group_older)
@@ -64,6 +66,7 @@ is the shortest path. It runs mean-centering Task PLS with permutation
 and bootstrap inference in one call:
 
 ``` r
+
 result <- quick_pls(
   datamat_lst = list(group_young, group_older),
   num_subj_lst = c(n_subj, n_subj),
@@ -86,6 +89,7 @@ to see which latent variables survive the permutation test, and
 to see how variance is distributed:
 
 ``` r
+
 cbind(
   pvalue = round(significance(result), 3),
   variance = round(singular_values(result, normalize = TRUE), 1)
@@ -103,6 +107,7 @@ LV1 captures 29.5% of the variance. The scree plot makes this dominance
 visual:
 
 ``` r
+
 plot_singular_values(result)
 ```
 
@@ -120,6 +125,7 @@ latent variable. Large positive and negative bars indicate conditions
 that drive the pattern in opposite directions.
 
 ``` r
+
 plot_scores(result, lv = 1, type = "design", plot_type = "bar")
 ```
 
@@ -140,6 +146,7 @@ pattern. Tight distributions mean the effect is reliable; wide spread
 suggests individual differences.
 
 ``` r
+
 plot_scores(result, lv = 1, type = "brain", plot_type = "violin")
 ```
 
@@ -151,15 +158,16 @@ Brain scores for LV1. Each point is one subject-condition observation.
 ## Which voxels contribute reliably?
 
 Bootstrap ratios (BSRs) are saliences divided by their bootstrap
-standard errors — they work like z-scores. Voxels with $|BSR| > 2$ or
-$3$ are typically considered reliable.
+standard errors — they work like z-scores. Voxels with $`|BSR| > 2`$ or
+$`3`$ are typically considered reliable.
 
 ``` r
+
 lv1_bsr <- bsr(result, lv = 1)
 reliable <- sum(abs(lv1_bsr) > 2)
 ```
 
-21 of 200 voxels have $|BSR| > 2$. A quick profile shows where the
+21 of 200 voxels have $`|BSR| > 2`$. A quick profile shows where the
 reliable voxels cluster:
 
 ![Bootstrap ratio profile across voxels. The horizontal lines mark the
@@ -173,6 +181,7 @@ blocks.
 You can also threshold directly to get a cleaned vector:
 
 ``` r
+
 lv1_bsr_clean <- bsr(result, lv = 1, threshold = 2)
 sum(lv1_bsr_clean != 0)
 #> [1] 21
@@ -185,6 +194,7 @@ non-default method settings to travel with the analysis. The pipe chain
 makes the full specification explicit and readable:
 
 ``` r
+
 builder_result <- pls_spec() |>
   add_subjects(
     list(group_young, group_older),
@@ -201,6 +211,7 @@ The numerical result is identical to
 but now plots carry meaningful labels:
 
 ``` r
+
 plot_scores(builder_result, lv = 1, type = "design", plot_type = "bar")
 ```
 
@@ -223,6 +234,7 @@ For exploratory work, `plsrri` ships a Shiny application that wraps the
 full setup-analyze-explore workflow in a point-and-click interface:
 
 ``` r
+
 launch_pls_gui()
 ```
 
@@ -238,14 +250,15 @@ analysis, go next to
 which shows the public non-GUI contract built around saved first-level
 artifacts, staged CLI runs, and Quarto reporting.
 
-| Goal                                                   | Resource                                                                                                                                                                                                                                                             |
-|:-------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Scripted R API, CLI, and report workflow               | [`vignette("scripted-workflows")`](https://bbuchsbaum.github.io/plsrri/articles/scripted-workflows.md)                                                                                                                                                               |
-| Behavior PLS with continuous measures                  | [`vignette("behavior-pls")`](https://bbuchsbaum.github.io/plsrri/articles/behavior-pls.md)                                                                                                                                                                           |
-| Multisite pooled behavior PLS with site diagnostics    | [`vignette("site-pooling")`](https://bbuchsbaum.github.io/plsrri/articles/site-pooling.md)                                                                                                                                                                           |
-| Within-subject seed connectivity from trial-level data | [`vignette("ws-seed-pls")`](https://bbuchsbaum.github.io/plsrri/articles/ws-seed-pls.md)                                                                                                                                                                             |
-| Multiblock and seed connectivity PLS                   | [`vignette("multiblock-and-seed")`](https://bbuchsbaum.github.io/plsrri/articles/multiblock-and-seed.md)                                                                                                                                                             |
-| Full engine parameters                                 | [`?pls_analysis`](https://bbuchsbaum.github.io/plsrri/reference/pls_analysis.md)                                                                                                                                                                                     |
-| Builder verbs                                          | [`?pls_spec`](https://bbuchsbaum.github.io/plsrri/reference/pls_spec.md), [`?configure`](https://bbuchsbaum.github.io/plsrri/reference/configure.md), [`?run`](https://bbuchsbaum.github.io/plsrri/reference/run.md)                                                 |
-| Plotting functions                                     | [`?plot_scores`](https://bbuchsbaum.github.io/plsrri/reference/plot_scores.md), [`?plot_loadings`](https://bbuchsbaum.github.io/plsrri/reference/plot_loadings.md), [`?plot_singular_values`](https://bbuchsbaum.github.io/plsrri/reference/plot_singular_values.md) |
-| Bootstrap and permutation details                      | [`?bsr`](https://bbuchsbaum.github.io/plsrri/reference/bsr.md), [`?significance`](https://bbuchsbaum.github.io/plsrri/reference/significance.md), [`?confidence`](https://bbuchsbaum.github.io/plsrri/reference/confidence.md)                                       |
+| Goal | Resource |
+|:---|:---|
+| Scripted R API, CLI, and report workflow | [`vignette("scripted-workflows")`](https://bbuchsbaum.github.io/plsrri/articles/scripted-workflows.md) |
+| Factorial design-subspace summaries for Task PLS | [`vignette("task-design-subspace")`](https://bbuchsbaum.github.io/plsrri/articles/task-design-subspace.md) |
+| Behavior PLS with continuous measures | [`vignette("behavior-pls")`](https://bbuchsbaum.github.io/plsrri/articles/behavior-pls.md) |
+| Multisite pooled behavior PLS with site diagnostics | [`vignette("site-pooling")`](https://bbuchsbaum.github.io/plsrri/articles/site-pooling.md) |
+| Within-subject seed connectivity from trial-level data | [`vignette("ws-seed-pls")`](https://bbuchsbaum.github.io/plsrri/articles/ws-seed-pls.md) |
+| Multiblock and seed connectivity PLS | [`vignette("multiblock-and-seed")`](https://bbuchsbaum.github.io/plsrri/articles/multiblock-and-seed.md) |
+| Full engine parameters | [`?pls_analysis`](https://bbuchsbaum.github.io/plsrri/reference/pls_analysis.md) |
+| Builder verbs | [`?pls_spec`](https://bbuchsbaum.github.io/plsrri/reference/pls_spec.md), [`?configure`](https://bbuchsbaum.github.io/plsrri/reference/configure.md), [`?run`](https://bbuchsbaum.github.io/plsrri/reference/run.md) |
+| Plotting functions | [`?plot_scores`](https://bbuchsbaum.github.io/plsrri/reference/plot_scores.md), [`?plot_loadings`](https://bbuchsbaum.github.io/plsrri/reference/plot_loadings.md), [`?plot_singular_values`](https://bbuchsbaum.github.io/plsrri/reference/plot_singular_values.md) |
+| Bootstrap and permutation details | [`?bsr`](https://bbuchsbaum.github.io/plsrri/reference/bsr.md), [`?significance`](https://bbuchsbaum.github.io/plsrri/reference/significance.md), [`?confidence`](https://bbuchsbaum.github.io/plsrri/reference/confidence.md) |

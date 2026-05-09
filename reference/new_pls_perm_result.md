@@ -11,7 +11,8 @@ new_pls_perm_result(
   sprob,
   permsamp = NULL,
   Tpermsamp = NULL,
-  Bpermsamp = NULL
+  Bpermsamp = NULL,
+  perm_singval = NULL
 )
 ```
 
@@ -40,6 +41,13 @@ new_pls_perm_result(
 - Bpermsamp:
 
   Behavior permutation samples (multiblock)
+
+- perm_singval:
+
+  Optional `n_lv x num_perm` numeric matrix holding the full permutation
+  null distribution of singular values (kept when
+  `pls_analysis(..., keep_perm_distribution = TRUE)`). `NULL` by
+  default.
 
 ## Value
 

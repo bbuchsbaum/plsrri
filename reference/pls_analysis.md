@@ -29,7 +29,9 @@ pls_analysis(
   bootsamp = NULL,
   bootsamp_4beh = NULL,
   parallel_config = NULL,
-  progress = TRUE
+  progress = TRUE,
+  keep_perm_distribution = FALSE,
+  keep_crossblock = FALSE
 )
 ```
 
@@ -188,6 +190,20 @@ pls_analysis(
 - progress:
 
   Logical, show progress messages.
+
+- keep_perm_distribution:
+
+  Logical. When `TRUE`, the returned `perm_result$perm_singval` retains
+  the full `n_lv x num_perm` matrix of permuted singular values for
+  null-distribution diagnostic plots and reproducibility. Adds a few KB
+  to the result for typical sizes. Defaults to `FALSE` to preserve
+  historical result-object size.
+
+- keep_crossblock:
+
+  Logical. When `TRUE` for Task PLS methods 1 and 2, store the
+  cell-level Task PLS cross-block matrix and centering metadata in
+  `result$task_pls` for design-subspace decomposition.
 
 ## Value
 

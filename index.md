@@ -34,6 +34,7 @@ PLS results and Quarto reports, start with:
 Start by scaffolding a spec rather than writing YAML from scratch:
 
 ``` r
+
 write_pipeline_template("study.yml")
 ```
 
@@ -44,6 +45,7 @@ plscli template --out study.yml
 The minimal scripted path is:
 
 ``` r
+
 prep <- prepare_firstlevel("study.yml")
 result <- run_pls(prep)
 render_pls_report(prep$spec)

@@ -36,6 +36,8 @@
 <li><a class="dropdown-item" href="../articles/plsrri.html">Getting Started</a></li>
     <li><a class="dropdown-item" href="../articles/cli.html">Command Line Interface</a></li>
     <li><a class="dropdown-item" href="../articles/scripted-workflows.html">Scripted Workflows</a></li>
+    <li><a class="dropdown-item" href="../articles/task-design-subspace.html">Task PLS Design Subspaces</a></li>
+    <li><a class="dropdown-item" href="../articles/sdam-firstlevel-task-pls.html">First-Level SDAM Task PLS</a></li>
     <li><a class="dropdown-item" href="../articles/pipeline-yaml-spec.html">Pipeline YAML Specification</a></li>
     <li><a class="dropdown-item" href="../articles/site-pooling.html">Multisite Behavioral PLS</a></li>
     <li><a class="dropdown-item" href="../articles/predictive-measures.html">Predictive Measures</a></li>
@@ -179,7 +181,7 @@ combination.
 <code class="sourceCode R"><span><span class="va">mb_bsr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/bsr.html">bsr</a></span><span class="op">(</span><span class="va">multiblock_result</span>, lv <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">reliable</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">mb_bsr</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
 <p>63 of 140 voxels pass the
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mo stretchy="true" form="prefix">|</mo><mi>B</mi><mi>S</mi><mi>R</mi><mo stretchy="true" form="postfix">|</mo></mrow><mo>&gt;</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">|BSR| &gt; 2</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi>B</mi><mi>S</mi><mi>R</mi><mo stretchy="false" form="prefix">|</mo><mo>&gt;</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">|BSR| &gt; 2</annotation></semantics></math>
 threshold:</p>
 <div class="figure">
 <img src="multiblock-and-seed_files/figure-html/plot-multiblock-bsr-1.png" class="r-plt" alt="Bootstrap ratio profile for the multiblock result. Three planted signal regions are visible." width="576"><p class="caption">
@@ -262,7 +264,7 @@ correlation; voxels 46-80 show condition effects.
 </p>
 </div>
 <p>51 voxels pass the
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mo stretchy="true" form="prefix">|</mo><mi>B</mi><mi>S</mi><mi>R</mi><mo stretchy="true" form="postfix">|</mo></mrow><mo>&gt;</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">|BSR| &gt; 2</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi>B</mi><mi>S</mi><mi>R</mi><mo stretchy="false" form="prefix">|</mo><mo>&gt;</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">|BSR| &gt; 2</annotation></semantics></math>
 threshold. The seed correlation confidence intervals confirm the
 relationship is stable under bootstrap resampling:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">

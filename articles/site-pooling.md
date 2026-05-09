@@ -1,6 +1,7 @@
 # Multisite Behavioral PLS Workflow
 
 ``` r
+
 library(plsrri)
 ```
 
@@ -20,6 +21,7 @@ structure: subjects within conditions. The only addition is a site label
 for each subject or observation.
 
 ``` r
+
 site_summary
 #>     site n_subjects n_observations       rt_mean      acc_mean
 #> 1 site_a         12             24 -5.898060e-17 -3.903128e-17
@@ -38,6 +40,7 @@ Use the usual builder path for behavioral PLS, then attach site labels
 before running the fit.
 
 ``` r
+
 site_spec <- pls_spec() |>
   add_subjects(list(brain_z), groups = n_subj) |>
   add_conditions(condition_levels) |>
@@ -68,6 +71,7 @@ Check the pooled latent variables first, just as you would in an
 ordinary behavior PLS run:
 
 ``` r
+
 pooled_summary <- cbind(
   pvalue = round(significance(site_result), 3),
   variance = round(singular_values(site_result, normalize = TRUE), 1)
@@ -103,6 +107,7 @@ Because `site` was provided in the builder, those diagnostics are
 already attached to the result:
 
 ``` r
+
 site_corr_lv1 <- subset(site_diag$site_score_correlations, lv == 1)
 
 stopifnot(
@@ -124,6 +129,7 @@ LV1. That is the first thing you want to see in a pooled multisite
 analysis.
 
 ``` r
+
 ggplot2::ggplot(site_corr_lv1, ggplot2::aes(x = site, y = correlation, fill = site)) +
   ggplot2::geom_col(width = 0.7, show.legend = FALSE) +
   ggplot2::geom_hline(yintercept = 0, linetype = 2, color = "grey50") +
@@ -148,6 +154,7 @@ differences are larger than you would expect from random subject-to-site
 reassignment under the pooled model.
 
 ``` r
+
 hetero_lv1 <- subset(site_diag_infer$score_heterogeneity$global_tests, lv == 1)
 site_ci_lv1 <- subset(site_diag_infer$score_heterogeneity$site_intervals, lv == 1)
 
@@ -180,6 +187,7 @@ The site-specific reruns compare each site’s own fit to the pooled fit
 using cosine similarity in both feature space and design space.
 
 ``` r
+
 site_sim_lv1 <- subset(site_diag$site_fit_similarity, lv == 1)
 
 stopifnot(
@@ -209,6 +217,7 @@ current workflow. They refit the model on two sites, then project the
 held-out site into that score space.
 
 ``` r
+
 loos_lv1 <- subset(site_diag$leave_one_site_out, lv == 1)
 
 stopifnot(
@@ -254,11 +263,11 @@ residualization, or separate site-specific analyses.
 
 ## Where should you go next?
 
-| Goal                                     | Resource                                                                                                 |
-|:-----------------------------------------|:---------------------------------------------------------------------------------------------------------|
-| Basic behavior PLS without site pooling  | [`vignette("behavior-pls")`](https://bbuchsbaum.github.io/plsrri/articles/behavior-pls.md)               |
-| Scripted CLI and artifact workflow       | [`vignette("scripted-workflows")`](https://bbuchsbaum.github.io/plsrri/articles/scripted-workflows.md)   |
-| YAML contract for multisite pipelines    | [`vignette("pipeline-yaml-spec")`](https://bbuchsbaum.github.io/plsrri/articles/pipeline-yaml-spec.md)   |
-| Add site labels in the builder           | [`?add_site_labels`](https://bbuchsbaum.github.io/plsrri/reference/add_site_labels.md)                   |
+| Goal | Resource |
+|:---|:---|
+| Basic behavior PLS without site pooling | [`vignette("behavior-pls")`](https://bbuchsbaum.github.io/plsrri/articles/behavior-pls.md) |
+| Scripted CLI and artifact workflow | [`vignette("scripted-workflows")`](https://bbuchsbaum.github.io/plsrri/articles/scripted-workflows.md) |
+| YAML contract for multisite pipelines | [`vignette("pipeline-yaml-spec")`](https://bbuchsbaum.github.io/plsrri/articles/pipeline-yaml-spec.md) |
+| Add site labels in the builder | [`?add_site_labels`](https://bbuchsbaum.github.io/plsrri/reference/add_site_labels.md) |
 | Compute diagnostics from a fitted result | [`?site_pooling_diagnostics`](https://bbuchsbaum.github.io/plsrri/reference/site_pooling_diagnostics.md) |
-| Full behavior wrapper                    | [`?behav_pls`](https://bbuchsbaum.github.io/plsrri/reference/behav_pls.md)                               |
+| Full behavior wrapper | [`?behav_pls`](https://bbuchsbaum.github.io/plsrri/reference/behav_pls.md) |

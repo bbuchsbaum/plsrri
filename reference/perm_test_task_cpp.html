@@ -22,6 +22,8 @@ Computes singular values for each permutation and compares to observed."></head>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/plsrri.html">Getting Started</a></li>
     <li><a class="dropdown-item" href="../articles/cli.html">Command Line Interface</a></li>
     <li><a class="dropdown-item" href="../articles/scripted-workflows.html">Scripted Workflows</a></li>
+    <li><a class="dropdown-item" href="../articles/task-design-subspace.html">Task PLS Design Subspaces</a></li>
+    <li><a class="dropdown-item" href="../articles/sdam-firstlevel-task-pls.html">First-Level SDAM Task PLS</a></li>
     <li><a class="dropdown-item" href="../articles/pipeline-yaml-spec.html">Pipeline YAML Specification</a></li>
     <li><a class="dropdown-item" href="../articles/site-pooling.html">Multisite Behavioral PLS</a></li>
     <li><a class="dropdown-item" href="../articles/predictive-measures.html">Predictive Measures</a></li>
@@ -62,7 +64,8 @@ Computes singular values for each permutation and compares to observed.</p>
 <span>  <span class="va">num_groups</span>,</span>
 <span>  <span class="va">num_subj_lst</span>,</span>
 <span>  <span class="va">num_cond</span>,</span>
-<span>  <span class="va">meancentering_type</span></span>
+<span>  <span class="va">meancentering_type</span>,</span>
+<span>  keep_distribution <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -97,11 +100,18 @@ Computes singular values for each permutation and compares to observed.</p>
 <dt id="arg-meancentering-type">meancentering_type<a class="anchor" aria-label="anchor" href="#arg-meancentering-type"></a></dt>
 <dd><p>Mean-centering type</p></dd>
 
+
+<dt id="arg-keep-distribution">keep_distribution<a class="anchor" aria-label="anchor" href="#arg-keep-distribution"></a></dt>
+<dd><p>When TRUE, also return the (n_lv x num_perm)
+matrix of permuted singular values for diagnostic plots.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>Vector of counts (permuted s &gt;= observed s)</p>
-    </div>
+    <p>List with elements:</p><ul><li><p><code>sp</code> (integer vector, length <code>n_lv</code>): counts of permuted s &gt;= observed s.</p></li>
+<li><p><code>perm_singval</code> (numeric matrix <code>n_lv x num_perm</code>, or <code>NULL</code>): full null
+distribution when <code>keep_distribution = TRUE</code>; <code>NULL</code> otherwise.</p></li>
+</ul></div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>

@@ -20,6 +20,8 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="articles/plsrri.html">Getting Started</a></li>
     <li><a class="dropdown-item" href="articles/cli.html">Command Line Interface</a></li>
     <li><a class="dropdown-item" href="articles/scripted-workflows.html">Scripted Workflows</a></li>
+    <li><a class="dropdown-item" href="articles/task-design-subspace.html">Task PLS Design Subspaces</a></li>
+    <li><a class="dropdown-item" href="articles/sdam-firstlevel-task-pls.html">First-Level SDAM Task PLS</a></li>
     <li><a class="dropdown-item" href="articles/pipeline-yaml-spec.html">Pipeline YAML Specification</a></li>
     <li><a class="dropdown-item" href="articles/site-pooling.html">Multisite Behavioral PLS</a></li>
     <li><a class="dropdown-item" href="articles/predictive-measures.html">Predictive Measures</a></li>
@@ -67,81 +69,81 @@
 </ul></div>
 <div class="section level2">
 <h2 id="high-level-parity-map">High-level parity map<a class="anchor" aria-label="anchor" href="#high-level-parity-map"></a></h2>
-<table class="table"><colgroup><col width="23%"><col width="23%"><col width="30%"><col width="23%"></colgroup><thead><tr class="header"><th>MATLAB (PLS/plscmd)</th>
+<table class="table"><colgroup><col width="23%"><col width="23%"><col width="30%"><col width="23%"></colgroup><thead><tr><th>MATLAB (PLS/plscmd)</th>
 <th>R (plsrri)</th>
 <th align="right">Status</th>
 <th>Notes</th>
-</tr></thead><tbody><tr class="odd"><td><code>pls_analysis.m</code></td>
+</tr></thead><tbody><tr><td><code>pls_analysis.m</code></td>
 <td>
 <code>R/pls_analysis.R</code> (<code><a href="reference/pls_analysis.html">pls_analysis()</a></code>)</td>
 <td align="right"><strong>Mostly</strong></td>
 <td>Core analysis + resampling; see gaps below</td>
-</tr><tr class="even"><td><code>rri_get_covcor.m</code></td>
+</tr><tr><td><code>rri_get_covcor.m</code></td>
 <td>
 <code>R/pls_covariance.R</code> (<code><a href="reference/pls_get_covcor.html">pls_get_covcor()</a></code>)</td>
 <td align="right"><strong>Yes</strong></td>
 <td>Includes MATLAB-style <code>stacked_smeanmat</code> (opt-in via <code>compute_smeanmat</code>)</td>
-</tr><tr class="odd"><td><code>rri_task_mean.m</code></td>
+</tr><tr><td><code>rri_task_mean.m</code></td>
 <td>
 <code>R/pls_meancentering.R</code> (<code><a href="reference/pls_task_mean.html">pls_task_mean()</a></code>)</td>
 <td align="right"><strong>Yes</strong></td>
 <td>Condition means (balanced)</td>
-</tr><tr class="even"><td><code>ssb_rri_task_mean.m</code></td>
+</tr><tr><td><code>ssb_rri_task_mean.m</code></td>
 <td>
 <code>R/pls_meancentering.R</code> (<code><a href="reference/pls_task_mean_ssb.html">pls_task_mean_ssb()</a></code>)</td>
 <td align="right"><strong>Yes</strong></td>
 <td>Wired end-to-end via <code>num_subj_lst</code> list support</td>
-</tr><tr class="odd"><td><code>rri_xcor.m</code></td>
+</tr><tr><td><code>rri_xcor.m</code></td>
 <td>
 <code>R/pls_xcor.R</code> (<code><a href="reference/pls_xcor.html">pls_xcor()</a></code>)</td>
 <td align="right"><strong>Yes</strong></td>
 <td>Pearson/cov/cosine/dot modes</td>
-</tr><tr class="even"><td><code>rri_corr_maps.m</code></td>
+</tr><tr><td><code>rri_corr_maps.m</code></td>
 <td>
 <code>R/pls_covariance.R</code> (<code><a href="reference/pls_corr_maps.html">pls_corr_maps()</a></code>)</td>
 <td align="right"><strong>Yes</strong></td>
 <td>Uses <code><a href="reference/pls_xcor.html">pls_xcor()</a></code> per condition</td>
-</tr><tr class="odd"><td><code>rri_corr_maps_notall.m</code></td>
+</tr><tr><td><code>rri_corr_maps_notall.m</code></td>
 <td>
 <code>R/pls_covariance.R</code> (<code><a href="reference/pls_corr_maps_notall.html">pls_corr_maps_notall()</a></code>)</td>
 <td align="right"><strong>Yes</strong></td>
 <td>bscan subset support</td>
-</tr><tr class="even"><td><code>rri_get_behavscores.m</code></td>
+</tr><tr><td><code>rri_get_behavscores.m</code></td>
 <td>
 <code>R/pls_scores.R</code> (<code><a href="reference/pls_get_behavscores.html">pls_get_behavscores()</a></code>)</td>
 <td align="right"><strong>Yes</strong></td>
 <td>Implemented for MATLAB‑parity scoring/loading outputs</td>
-</tr><tr class="odd"><td><code>rri_perm_order.m</code></td>
+</tr><tr><td><code>rri_perm_order.m</code></td>
 <td>
 <code>R/resample_perm.R</code> (<code><a href="reference/pls_perm_order.html">pls_perm_order()</a></code>)</td>
 <td align="right"><strong>Yes</strong></td>
 <td>Task/block permutation order</td>
-</tr><tr class="even"><td><code>rri_randperm_notall.m</code></td>
+</tr><tr><td><code>rri_randperm_notall.m</code></td>
 <td>
 <code>R/utils.R</code> (<code><a href="reference/pls_randperm_notall.html">pls_randperm_notall()</a></code>)</td>
 <td align="right"><strong>Yes</strong></td>
 <td>Multiblock behavior-row permutation only</td>
-</tr><tr class="odd"><td><code>rri_boot_order.m</code></td>
+</tr><tr><td><code>rri_boot_order.m</code></td>
 <td>
 <code>R/resample_boot.R</code> (<code><a href="reference/pls_boot_order.html">pls_boot_order()</a></code>)</td>
 <td align="right"><strong>Yes</strong></td>
 <td>Includes bscan mapping + sequential sample option</td>
-</tr><tr class="even"><td><code>rri_bootprocrust.m</code></td>
+</tr><tr><td><code>rri_bootprocrust.m</code></td>
 <td>
 <code>R/utils.R</code> (<code><a href="reference/pls_bootprocrust.html">pls_bootprocrust()</a></code>)</td>
 <td align="right"><strong>Yes</strong></td>
 <td>Orthogonal Procrustes rotation matrix</td>
-</tr><tr class="odd"><td><code>misssvd.m</code></td>
+</tr><tr><td><code>misssvd.m</code></td>
 <td>
 <code>R/pls_svd.R</code> (<code><a href="reference/misssvd.html">misssvd()</a></code>)</td>
 <td align="right"><strong>Mostly</strong></td>
 <td>NA/NaN handling matches; Inf handling differs from MATLAB (see gaps)</td>
-</tr><tr class="even"><td><code>rri_distrib.m</code></td>
+</tr><tr><td><code>rri_distrib.m</code></td>
 <td>
 <code>R/statistics.R</code> (<code><a href="reference/pls_distrib_ci.html">pls_distrib_ci()</a></code>, <code><a href="reference/pls_percentile.html">pls_percentile()</a></code>)</td>
 <td align="right"><strong>Yes</strong></td>
 <td>Percentile + adjusted CI pipeline replicated</td>
-</tr><tr class="odd"><td>Split-half (<code>splithalf_*</code>)</td>
+</tr><tr><td>Split-half (<code>splithalf_*</code>)</td>
 <td>
 <code>R/resample_splithalf.R</code> (<code><a href="reference/pls_splithalf_test.html">pls_splithalf_test()</a></code>)</td>
 <td align="right"><strong>Yes</strong></td>

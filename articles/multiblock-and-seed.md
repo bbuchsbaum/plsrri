@@ -1,6 +1,7 @@
 # Multiblock and Seed PLS Workflows
 
 ``` r
+
 library(plsrri)
 ```
 
@@ -35,6 +36,7 @@ because it lets you name conditions and choose behavior-block conditions
 explicitly:
 
 ``` r
+
 multiblock_result <- pls_spec() |>
   add_subjects(list(brain_mb), groups = n_subj_mb) |>
   add_conditions(3, labels = c("encoding", "retrieval", "rest")) |>
@@ -47,6 +49,7 @@ The result has class `pls_multiblock`, indicating the joint
 decomposition:
 
 ``` r
+
 cbind(
   pvalue = round(significance(multiblock_result), 3),
   variance = round(singular_values(multiblock_result, normalize = TRUE), 1)
@@ -67,6 +70,7 @@ The scree plot shows whether the combined task-plus-behavior signal is
 concentrated in one or two latent variables:
 
 ``` r
+
 plot_singular_values(multiblock_result)
 ```
 
@@ -84,6 +88,7 @@ loading matrix has four rows (encoding-RT, encoding-accuracy,
 retrieval-RT, retrieval-accuracy):
 
 ``` r
+
 round(loadings(multiblock_result, type = "behavior", lv = 1), 2)
 #>       [,1]
 #> [1,] -0.86
@@ -97,6 +102,7 @@ between encoding and retrieval — exactly the kind of joint structure
 that motivates multiblock over separate task and behavior analyses.
 
 ``` r
+
 plot_loadings(multiblock_result, lv = 1, type = "behavior", plot_type = "dot")
 ```
 
@@ -109,11 +115,12 @@ combination.
 ## Are the voxel contributions reliable?
 
 ``` r
+
 mb_bsr <- bsr(multiblock_result, lv = 1)
 reliable <- sum(abs(mb_bsr) > 2)
 ```
 
-63 of 140 voxels pass the $|BSR| > 2$ threshold:
+63 of 140 voxels pass the $`|BSR| > 2`$ threshold:
 
 ![Bootstrap ratio profile for the multiblock result. Three planted
 signal regions are
@@ -126,6 +133,7 @@ The correlation confidence intervals confirm the behavior-block
 relationships are stable:
 
 ``` r
+
 mb_ci <- confidence(multiblock_result, what = "correlation", lv = 1)
 round(cbind(lower = mb_ci$lower[, 1], upper = mb_ci$upper[, 1]), 2)
 #>      lower upper
@@ -151,6 +159,7 @@ subjects and 2 conditions. Voxels 1-45 are planted to correlate with the
 seed; voxels 46-80 respond to condition only.
 
 ``` r
+
 seed_result <- seed_pls(
   datamat_lst = list(brain_seed),
   seed_data = seed_data,
@@ -163,6 +172,7 @@ seed_result <- seed_pls(
 ```
 
 ``` r
+
 cbind(
   pvalue = round(significance(seed_result), 3),
   variance = round(singular_values(seed_result, normalize = TRUE), 1)
@@ -179,6 +189,7 @@ condition. With one seed and two conditions, there are two loading
 values:
 
 ``` r
+
 round(loadings(seed_result, type = "behavior", lv = 1), 2)
 #>      [,1]
 #> [1,]   -1
@@ -189,6 +200,7 @@ Both conditions show strong seed-brain correlations, confirming the
 planted connectivity pattern.
 
 ``` r
+
 plot_loadings(seed_result, lv = 1, type = "behavior", plot_type = "dot")
 ```
 
@@ -201,6 +213,7 @@ correlations.
 The BSR profile shows which voxels are reliably connected to the seed:
 
 ``` r
+
 seed_bsr <- bsr(seed_result, lv = 1)
 reliable <- sum(abs(seed_bsr) > 2)
 ```
@@ -212,11 +225,12 @@ effects.](multiblock-and-seed_files/figure-html/plot-seed-bsr-1.png)
 Bootstrap ratio profile for seed PLS. Voxels 1-45 show the planted seed
 correlation; voxels 46-80 show condition effects.
 
-51 voxels pass the $|BSR| > 2$ threshold. The seed correlation
+51 voxels pass the $`|BSR| > 2`$ threshold. The seed correlation
 confidence intervals confirm the relationship is stable under bootstrap
 resampling:
 
 ``` r
+
 seed_ci <- confidence(seed_result, what = "correlation", lv = 1)
 round(cbind(lower = seed_ci$lower[, 1], upper = seed_ci$upper[, 1]), 2)
 #>      lower upper
@@ -227,6 +241,7 @@ round(cbind(lower = seed_ci$lower[, 1], upper = seed_ci$upper[, 1]), 2)
 Both conditions show intervals well away from zero.
 
 ``` r
+
 plot_scores(seed_result, lv = 1, type = "brain", plot_type = "violin")
 ```
 
@@ -237,12 +252,12 @@ Brain scores for LV1 in the seed PLS example.
 
 ## Where to go next
 
-| Goal                                                    | Resource                                                                                                                                                         |
-|:--------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Task PLS workflow                                       | [`vignette("plsrri")`](https://bbuchsbaum.github.io/plsrri/articles/plsrri.md)                                                                                   |
-| Behavior PLS with continuous measures                   | [`vignette("behavior-pls")`](https://bbuchsbaum.github.io/plsrri/articles/behavior-pls.md)                                                                       |
-| Within-subject seed connectivity with trial-level betas | [`vignette("ws-seed-pls")`](https://bbuchsbaum.github.io/plsrri/articles/ws-seed-pls.md)                                                                         |
-| Seed PLS wrapper                                        | [`?seed_pls`](https://bbuchsbaum.github.io/plsrri/reference/seed_pls.md)                                                                                         |
-| Multiblock block conditions                             | [`?add_behavior`](https://bbuchsbaum.github.io/plsrri/reference/add_behavior.md)                                                                                 |
-| Method switching                                        | [`?configure`](https://bbuchsbaum.github.io/plsrri/reference/configure.md)                                                                                       |
-| Loadings and confidence intervals                       | [`?plot_loadings`](https://bbuchsbaum.github.io/plsrri/reference/plot_loadings.md), [`?confidence`](https://bbuchsbaum.github.io/plsrri/reference/confidence.md) |
+| Goal | Resource |
+|:---|:---|
+| Task PLS workflow | [`vignette("plsrri")`](https://bbuchsbaum.github.io/plsrri/articles/plsrri.md) |
+| Behavior PLS with continuous measures | [`vignette("behavior-pls")`](https://bbuchsbaum.github.io/plsrri/articles/behavior-pls.md) |
+| Within-subject seed connectivity with trial-level betas | [`vignette("ws-seed-pls")`](https://bbuchsbaum.github.io/plsrri/articles/ws-seed-pls.md) |
+| Seed PLS wrapper | [`?seed_pls`](https://bbuchsbaum.github.io/plsrri/reference/seed_pls.md) |
+| Multiblock block conditions | [`?add_behavior`](https://bbuchsbaum.github.io/plsrri/reference/add_behavior.md) |
+| Method switching | [`?configure`](https://bbuchsbaum.github.io/plsrri/reference/configure.md) |
+| Loadings and confidence intervals | [`?plot_loadings`](https://bbuchsbaum.github.io/plsrri/reference/plot_loadings.md), [`?confidence`](https://bbuchsbaum.github.io/plsrri/reference/confidence.md) |

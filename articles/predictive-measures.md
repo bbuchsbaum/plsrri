@@ -1,6 +1,7 @@
 # Predictive Measures and Resampling Inference
 
 ``` r
+
 library(plsrri)
 ```
 
@@ -27,6 +28,7 @@ high-vs-low subject label from the score space learned inside each
 training fold?
 
 ``` r
+
 round_numeric_df(cls_result$summary)
 #>     metric mean   sd
 #> 1 accuracy 0.79 0.08
@@ -34,6 +36,7 @@ round_numeric_df(cls_result$summary)
 ```
 
 ``` r
+
 round_numeric_df(cls_result$boot_ci[, c("metric", "estimate", "lower", "upper")])
 #>            metric estimate lower upper
 #> accuracy accuracy     0.79  0.53  0.94
@@ -52,6 +55,7 @@ symptom measure, and the binary diagnosis; a second block captures
 condition structure.
 
 ``` r
+
 rbind(
   brain = dim(brain),
   behavior = dim(behav)
@@ -62,6 +66,7 @@ rbind(
 ```
 
 ``` r
+
 head(data.frame(
   subject = seq_len(6),
   symptom_score = round(symptom_score[1:6], 2),
@@ -83,6 +88,7 @@ asks whether there is a dominant brain-behavior latent variable, and
 whether the behavior links are stable under bootstrap resampling.
 
 ``` r
+
 round(cbind(
   pvalue = significance(fit),
   variance = singular_values(fit, normalize = TRUE)
@@ -95,6 +101,7 @@ round(cbind(
 ```
 
 ``` r
+
 plot_singular_values(fit)
 ```
 
@@ -114,6 +121,7 @@ Bootstrap intervals answer a different question again: which specific
 brain-behavior links are stable?
 
 ``` r
+
 round_numeric_df(corr_table)
 #>               loading lower upper
 #> 1  baseline / symptom -0.96 -0.79
@@ -133,6 +141,7 @@ regression target is the subject-level symptom score, not the repeated
 behavior matrix used to fit the decomposition.
 
 ``` r
+
 round_numeric_df(reg_result$summary)
 #>   metric mean   sd
 #> 1   rmse 0.53 0.10
@@ -141,6 +150,7 @@ round_numeric_df(reg_result$summary)
 ```
 
 ``` r
+
 round_numeric_df(reg_result$boot_ci[, c("metric", "estimate", "lower", "upper")])
 #>      metric estimate lower upper
 #> rmse   rmse     0.53  0.39  0.67
@@ -153,6 +163,7 @@ the smallest attainable predictive p-value is 0.1. In a real analysis
 you would increase this substantially.
 
 ``` r
+
 reg_result$perm_test
 #> $metric
 #> [1] "rmse"
@@ -191,6 +202,7 @@ target is a binary high-vs-low diagnosis derived from the same latent
 factor.
 
 ``` r
+
 round_numeric_df(cls_result$summary)
 #>     metric mean   sd
 #> 1 accuracy 0.79 0.08
@@ -198,6 +210,7 @@ round_numeric_df(cls_result$summary)
 ```
 
 ``` r
+
 cls_result$perm_test
 #> $metric
 #> [1] "accuracy"
@@ -217,6 +230,7 @@ cls_result$perm_test
 ```
 
 ``` r
+
 round_numeric_df(cls_result$boot_ci[, c("metric", "estimate", "lower", "upper")])
 #>            metric estimate lower upper
 #> accuracy accuracy     0.79  0.53  0.94
@@ -242,6 +256,7 @@ These tools are strongest when you treat them as complementary rather
 than interchangeable:
 
 ``` r
+
 comparison
 #>                                                              question
 #> 1 Is the dominant latent variable stronger than a null decomposition?
@@ -272,11 +287,11 @@ prediction.
 
 ## Where should you go next?
 
-| Goal                            | Resource                                                                                                 |
-|:--------------------------------|:---------------------------------------------------------------------------------------------------------|
-| Core task PLS workflow          | [`vignette("plsrri")`](https://bbuchsbaum.github.io/plsrri/articles/plsrri.md)                           |
-| Ordinary behavior PLS workflow  | [`vignette("behavior-pls")`](https://bbuchsbaum.github.io/plsrri/articles/behavior-pls.md)               |
-| Multiblock and seed methods     | [`vignette("multiblock-and-seed")`](https://bbuchsbaum.github.io/plsrri/articles/multiblock-and-seed.md) |
-| Predictive entry point          | [`?evaluate_prediction`](https://bbuchsbaum.github.io/plsrri/reference/evaluate_prediction.md)           |
-| Decomposition-side significance | [`?significance`](https://bbuchsbaum.github.io/plsrri/reference/significance.md)                         |
-| Bootstrap confidence intervals  | [`?confidence`](https://bbuchsbaum.github.io/plsrri/reference/confidence.md)                             |
+| Goal | Resource |
+|:---|:---|
+| Core task PLS workflow | [`vignette("plsrri")`](https://bbuchsbaum.github.io/plsrri/articles/plsrri.md) |
+| Ordinary behavior PLS workflow | [`vignette("behavior-pls")`](https://bbuchsbaum.github.io/plsrri/articles/behavior-pls.md) |
+| Multiblock and seed methods | [`vignette("multiblock-and-seed")`](https://bbuchsbaum.github.io/plsrri/articles/multiblock-and-seed.md) |
+| Predictive entry point | [`?evaluate_prediction`](https://bbuchsbaum.github.io/plsrri/reference/evaluate_prediction.md) |
+| Decomposition-side significance | [`?significance`](https://bbuchsbaum.github.io/plsrri/reference/significance.md) |
+| Bootstrap confidence intervals | [`?confidence`](https://bbuchsbaum.github.io/plsrri/reference/confidence.md) |

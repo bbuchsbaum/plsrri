@@ -10,7 +10,9 @@
 <url><loc>https://bbuchsbaum.github.io/plsrri/articles/plsrri.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/articles/predictive-measures.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/articles/scripted-workflows.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/articles/sdam-firstlevel-task-pls.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/articles/site-pooling.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/articles/task-design-subspace.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/articles/ws-seed-pls.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/authors.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/index.html</loc></url>
@@ -28,6 +30,9 @@
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/add_trial_data.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/align_signs_cpp.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/analysis-api.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/as_design_contrasts.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/as_design_score_space.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/as_design_scores.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/behav_pls.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/benchmark_fast_paths.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/boot_test_task_cpp.html</loc></url>
@@ -44,10 +49,14 @@
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/check_datamat.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/check_gui_deps.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/colwise_cor_cpp.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/compare_designs.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/compute_bsr_cpp.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/confidence.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/configure.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/count_observations.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/decompose_design_terms.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/design_cell_table.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/design_projectors.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/design_weights.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/dot-add_conditions_events.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/dot-add_subjects_bids.html</loc></url>
@@ -58,6 +67,7 @@
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/dot-check_contrasts.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/dot-create_temp_template.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/dot-fisher_z.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/dot-materialize_pls_spec.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/dot-matrix_to_neurovol.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/dot-percentile_vec.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/dot-pipeline_relativize_df.html</loc></url>
@@ -153,6 +163,10 @@
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/plot_brain_ortho.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/plot_brain_overlay.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/plot_brain_summary.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/plot_design_contrasts.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/plot_design_heatmap.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/plot_design_interaction.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/plot_design_score_space.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/plot_loadings.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/plot_pls_summary.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/plot_scores.html</loc></url>
@@ -185,6 +199,7 @@
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/pls_colors.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/pls_corr_maps.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/pls_corr_maps_notall.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/pls_design.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/pls_design_scores.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/pls_distrib_ci.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/pls_get_behavscores.html</loc></url>
@@ -212,6 +227,7 @@
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/pls_xcor_cpp.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/plscli.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/plscli_main.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/plsrri-hdf5.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/plsrri-package.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/predict-cv.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/predict-projection.html</loc></url>
@@ -223,6 +239,7 @@
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/project_scores.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/quick_pls.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/read_pipeline_spec.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/read_results.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/register_method.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/render_pls_report.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/render_report.html</loc></url>
@@ -246,6 +263,7 @@
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/stability.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/stack_datamats.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/task_mean_cpp.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/plsrri/reference/test_design_terms.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/theme_pls.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/validate_pipeline_spec.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/plsrri/reference/variance_explained.html</loc></url>

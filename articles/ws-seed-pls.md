@@ -1,6 +1,7 @@
 # Within-Subject Seed PLS Workflow
 
 ``` r
+
 library(plsrri)
 ```
 
@@ -28,6 +29,7 @@ activation* in the two conditions, but its trial-by-trial coupling with
 voxels 1-15 flips sign:
 
 ``` r
+
 data.frame(
   quantity = c(
     "mean within-subject r in signal voxels (past)",
@@ -55,6 +57,7 @@ The basic workflow is:
 3.  inspect significance, design scores, and reliable voxels
 
 ``` r
+
 ws_result <- ws_seed_pls(
   beta_lst = beta_lst,
   seed_lst = seed_lst,
@@ -75,6 +78,7 @@ stopifnot(
 ```
 
 ``` r
+
 cbind(
   pvalue = round(significance(ws_result), 3),
   variance = round(singular_values(ws_result, normalize = TRUE), 1)
@@ -87,6 +91,7 @@ cbind(
 If the planted connectivity reversal is strong, LV1 should dominate:
 
 ``` r
+
 plot_singular_values(ws_result)
 ```
 
@@ -101,6 +106,7 @@ The design scores should show opposite contributions from `past` and
 `future`:
 
 ``` r
+
 plot_scores(ws_result, lv = 1, type = "design", plot_type = "bar")
 ```
 
@@ -114,6 +120,7 @@ reflecting the planted sign flip in within-subject connectivity.
 ## Which voxels contribute reliably?
 
 ``` r
+
 ws_bsr <- bsr(ws_result, lv = 1)
 reliable <- sum(abs(ws_bsr) > 2)
 
@@ -123,7 +130,7 @@ stopifnot(
 )
 ```
 
-17 of 80 voxels pass the $|BSR| > 2$ threshold:
+17 of 80 voxels pass the $`|BSR| > 2`$ threshold:
 
 ![Bootstrap ratio profile for LV1. Voxels 1-15 carry the planted
 within-subject connectivity
@@ -143,6 +150,7 @@ That makes rotated and non-rotated ws-seed analyses use the same
 underlying representation.
 
 ``` r
+
 data.frame(
   condition_cell = multi_result$conditions,
   design_row = seq_along(multi_result$conditions)
@@ -170,6 +178,7 @@ the seed dimension is now part of the feature space rather than the
 condition space.
 
 ``` r
+
 stacked_result <- ws_seed_pls(
   beta_lst = multi_beta_lst,
   seed_lst = multi_seed_lst,
@@ -192,6 +201,7 @@ stopifnot(
 ```
 
 ``` r
+
 data.frame(
   property = c("num_cond", "feature layout", "features in u"),
   value = c(
@@ -215,11 +225,11 @@ The general recommendation is:
 
 ## Where to go next
 
-| Goal                            | Resource                                                                                                 |
-|:--------------------------------|:---------------------------------------------------------------------------------------------------------|
-| Task PLS workflow               | [`vignette("plsrri")`](https://bbuchsbaum.github.io/plsrri/articles/plsrri.md)                           |
-| Across-subject seed workflow    | [`vignette("multiblock-and-seed")`](https://bbuchsbaum.github.io/plsrri/articles/multiblock-and-seed.md) |
-| Scripted API and CLI workflow   | [`vignette("scripted-workflows")`](https://bbuchsbaum.github.io/plsrri/articles/scripted-workflows.md)   |
-| Core helper for trial maps      | [`?ws_seed_correlation`](https://bbuchsbaum.github.io/plsrri/reference/ws_seed_correlation.md)           |
-| Main wrapper                    | [`?ws_seed_pls`](https://bbuchsbaum.github.io/plsrri/reference/ws_seed_pls.md)                           |
-| Trial-level builder entry point | [`?add_trial_data`](https://bbuchsbaum.github.io/plsrri/reference/add_trial_data.md)                     |
+| Goal | Resource |
+|:---|:---|
+| Task PLS workflow | [`vignette("plsrri")`](https://bbuchsbaum.github.io/plsrri/articles/plsrri.md) |
+| Across-subject seed workflow | [`vignette("multiblock-and-seed")`](https://bbuchsbaum.github.io/plsrri/articles/multiblock-and-seed.md) |
+| Scripted API and CLI workflow | [`vignette("scripted-workflows")`](https://bbuchsbaum.github.io/plsrri/articles/scripted-workflows.md) |
+| Core helper for trial maps | [`?ws_seed_correlation`](https://bbuchsbaum.github.io/plsrri/reference/ws_seed_correlation.md) |
+| Main wrapper | [`?ws_seed_pls`](https://bbuchsbaum.github.io/plsrri/reference/ws_seed_pls.md) |
+| Trial-level builder entry point | [`?add_trial_data`](https://bbuchsbaum.github.io/plsrri/reference/add_trial_data.md) |

@@ -1,6 +1,7 @@
 # Behavior PLS Workflow
 
 ``` r
+
 library(plsrri)
 ```
 
@@ -26,6 +27,7 @@ driving both RT and accuracy in opposite directions, plus a
 condition-specific voxel block:
 
 ``` r
+
 head(round(behav_data, 2))
 #>         rt   acc
 #> [1,] -0.87  0.57
@@ -43,6 +45,7 @@ is the convenience wrapper. It runs Behavior PLS (method 3) with the
 behavior matrix as the second block:
 
 ``` r
+
 behav_result <- behav_pls(
   datamat_lst = list(brain_data),
   behav_data = behav_data,
@@ -58,6 +61,7 @@ Check which latent variables are significant and how much variance each
 explains:
 
 ``` r
+
 cbind(
   pvalue = round(significance(behav_result), 3),
   variance = round(singular_values(behav_result, normalize = TRUE), 1)
@@ -73,6 +77,7 @@ LV1 captures the dominant brain-behavior relationship. The scree plot
 makes the structure clear:
 
 ``` r
+
 plot_singular_values(behav_result)
 ```
 
@@ -88,6 +93,7 @@ correlation-style weights linking each behavior-by-condition cell to the
 latent variable. Each row is one condition-measure combination.
 
 ``` r
+
 round(loadings(behav_result, type = "behavior", lv = 1), 2)
 #>       [,1]
 #> [1,] -0.98
@@ -101,6 +107,7 @@ relationship — subjects who are faster also tend to be more accurate on
 the latent dimension captured by LV1.
 
 ``` r
+
 plot_loadings(behav_result, lv = 1, type = "behavior", plot_type = "dot")
 ```
 
@@ -118,6 +125,7 @@ variable. In a real analysis, you would check whether the pattern varies
 across conditions or groups:
 
 ``` r
+
 plot_scores(behav_result, lv = 1, type = "brain", plot_type = "violin")
 ```
 
@@ -135,6 +143,7 @@ bootstrap confidence intervals on the brain-behavior correlations.
 Intervals that exclude zero indicate a reliable relationship:
 
 ``` r
+
 corr_ci <- confidence(behav_result, what = "correlation", lv = 1)
 round(cbind(lower = corr_ci$lower[, 1], upper = corr_ci$upper[, 1]), 2)
 #>      lower upper
@@ -153,11 +162,12 @@ Bootstrap ratios work the same way as in Task PLS — they indicate which
 voxels participate reliably in the latent pattern:
 
 ``` r
+
 behav_bsr <- bsr(behav_result, lv = 1)
 reliable <- sum(abs(behav_bsr) > 2)
 ```
 
-74 of 120 voxels have $|BSR| > 2$.
+74 of 120 voxels have $`|BSR| > 2`$.
 
 ![Bootstrap ratio profile. Voxels 1-35 and 36-70 show the planted latent
 factor; voxels 71-90 show the condition-specific
@@ -172,13 +182,13 @@ weakly.
 
 ## Where to go next
 
-| Goal                                                | Resource                                                                                                 |
-|:----------------------------------------------------|:---------------------------------------------------------------------------------------------------------|
-| Multisite pooled behavior PLS with site diagnostics | [`vignette("site-pooling")`](https://bbuchsbaum.github.io/plsrri/articles/site-pooling.md)               |
-| Task PLS workflow                                   | [`vignette("plsrri")`](https://bbuchsbaum.github.io/plsrri/articles/plsrri.md)                           |
-| Predictive validation from the same score space     | [`vignette("predictive-measures")`](https://bbuchsbaum.github.io/plsrri/articles/predictive-measures.md) |
-| Multiblock and seed PLS                             | [`vignette("multiblock-and-seed")`](https://bbuchsbaum.github.io/plsrri/articles/multiblock-and-seed.md) |
-| Behavior wrapper                                    | [`?behav_pls`](https://bbuchsbaum.github.io/plsrri/reference/behav_pls.md)                               |
-| Full engine with all options                        | [`?pls_analysis`](https://bbuchsbaum.github.io/plsrri/reference/pls_analysis.md)                         |
-| Loadings interpretation                             | [`?plot_loadings`](https://bbuchsbaum.github.io/plsrri/reference/plot_loadings.md)                       |
-| Bootstrap confidence intervals                      | [`?confidence`](https://bbuchsbaum.github.io/plsrri/reference/confidence.md)                             |
+| Goal | Resource |
+|:---|:---|
+| Multisite pooled behavior PLS with site diagnostics | [`vignette("site-pooling")`](https://bbuchsbaum.github.io/plsrri/articles/site-pooling.md) |
+| Task PLS workflow | [`vignette("plsrri")`](https://bbuchsbaum.github.io/plsrri/articles/plsrri.md) |
+| Predictive validation from the same score space | [`vignette("predictive-measures")`](https://bbuchsbaum.github.io/plsrri/articles/predictive-measures.md) |
+| Multiblock and seed PLS | [`vignette("multiblock-and-seed")`](https://bbuchsbaum.github.io/plsrri/articles/multiblock-and-seed.md) |
+| Behavior wrapper | [`?behav_pls`](https://bbuchsbaum.github.io/plsrri/reference/behav_pls.md) |
+| Full engine with all options | [`?pls_analysis`](https://bbuchsbaum.github.io/plsrri/reference/pls_analysis.md) |
+| Loadings interpretation | [`?plot_loadings`](https://bbuchsbaum.github.io/plsrri/reference/plot_loadings.md) |
+| Bootstrap confidence intervals | [`?confidence`](https://bbuchsbaum.github.io/plsrri/reference/confidence.md) |
