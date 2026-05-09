@@ -504,6 +504,12 @@ adapter_plsrri_task <- function() {
       !all(vapply(data$datamat_lst, is.matrix, logical(1)))) {
     stop("data$datamat_lst must be a non-empty list of matrices", call. = FALSE)
   }
+  if (!all(vapply(data$datamat_lst, is.numeric, logical(1)))) {
+    stop("all datamat matrices must be numeric", call. = FALSE)
+  }
+  if (any(vapply(data$datamat_lst, function(x) any(!is.finite(x)), logical(1)))) {
+    stop("all datamat matrix entries must be finite", call. = FALSE)
+  }
   if (length(unique(vapply(data$datamat_lst, ncol, integer(1)))) != 1L) {
     stop("all datamat matrices must have the same number of columns", call. = FALSE)
   }
@@ -524,8 +530,14 @@ adapter_plsrri_task <- function() {
   if (!is.matrix(data$X) || !is.numeric(data$X)) {
     stop("data$X must be a numeric matrix", call. = FALSE)
   }
+  if (any(!is.finite(data$X))) {
+    stop("data$X entries must be finite", call. = FALSE)
+  }
   if (!is.matrix(data$Y) || !is.numeric(data$Y)) {
     stop("data$Y must be a numeric matrix", call. = FALSE)
+  }
+  if (any(!is.finite(data$Y))) {
+    stop("data$Y entries must be finite", call. = FALSE)
   }
   if (nrow(data$X) != nrow(data$Y)) {
     stop("data$X and data$Y must have the same number of rows", call. = FALSE)
