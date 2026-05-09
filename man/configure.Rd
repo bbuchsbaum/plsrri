@@ -14,7 +14,8 @@ configure(
   meancentering = NULL,
   cormode = NULL,
   boot_type = NULL,
-  is_struct = NULL
+  is_struct = NULL,
+  inference = NULL
 )
 }
 \arguments{
@@ -61,6 +62,9 @@ trial-level within-subject seed correlation maps
 \item{boot_type}{Bootstrap type: "strat" (default) or "nonstrat"}
 
 \item{is_struct}{Logical, structure PLS (don't permute conditions)}
+
+\item{inference}{Inference engine: "mcintosh" (default) or "multifer".
+The "multifer" engine is optional and currently supports method 1 task PLS.}
 }
 \value{
 Updated \code{pls_spec} object

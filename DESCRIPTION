@@ -33,6 +33,7 @@ Imports:
     utils,
     yaml
 Suggests:
+    multifer,
     neuroim2,
     bidser,
     fmridataset,

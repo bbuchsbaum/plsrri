@@ -116,6 +116,7 @@ pls_spec <- function(mask = NULL) {
       num_boot = 0L,
       num_split = 0L,
       clim = 95,
+      inference = "mcintosh",
       is_struct = FALSE,
       bscan = NULL,
       meancentering_type = 0L,
@@ -173,6 +174,7 @@ print.pls_spec <- function(x, ...) {
 
   cli::cli_text("Permutations: {x$num_perm}")
   cli::cli_text("Bootstraps: {x$num_boot}")
+  cli::cli_text("Inference engine: {x$inference %||% 'mcintosh'}")
 
   invisible(x)
 }

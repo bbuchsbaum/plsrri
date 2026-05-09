@@ -218,6 +218,8 @@ pipeline_load_analysis_plan <- function(root,
 #'   \describe{
 #'     \item{method}{PLS method name or integer (e.g., \code{"task"},
 #'       \code{"behavior"}, \code{1L}).}
+#'     \item{inference}{Inference engine (\code{"mcintosh"} or
+#'       \code{"multifer"}).}
 #'     \item{nperm}{Number of permutations (integer).}
 #'     \item{nboot}{Number of bootstrap samples (integer).}
 #'     \item{nsplit}{Number of split-half iterations (integer).}
@@ -301,6 +303,7 @@ pipeline_build_pls_spec_from_ui <- function(plan, pls_options) {
   configure(
     pspec,
     method         = method,
+    inference      = pls_options$inference %||% "mcintosh",
     nperm          = as.integer(pls_options$nperm  %||% 0L),
     nboot          = as.integer(pls_options$nboot  %||% 0L),
     nsplit         = as.integer(pls_options$nsplit  %||% 0L),

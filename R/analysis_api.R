@@ -20,6 +20,7 @@ NULL
 .analysis_default_pls_options <- function() {
   list(
     method = "task",
+    inference = "mcintosh",
     nperm = 0L,
     nboot = 0L,
     nsplit = 0L,
@@ -76,6 +77,7 @@ NULL
 .analysis_pls_options_from_spec <- function(plan, spec) {
   opts <- list(
     method = .pipeline_method_name(spec$pls$method),
+    inference = .pipeline_nested(spec, c("pls", "inference"), "mcintosh"),
     nperm = .pipeline_nested(spec, c("pls", "nperm"), 0L),
     nboot = .pipeline_nested(spec, c("pls", "nboot"), 0L),
     nsplit = .pipeline_nested(spec, c("pls", "nsplit"), 0L),

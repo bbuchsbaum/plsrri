@@ -39,6 +39,8 @@ NULL
 #'   - "dot" or 6: Dot product
 #' @param boot_type Bootstrap type: "strat" (default) or "nonstrat"
 #' @param is_struct Logical, structure PLS (don't permute conditions)
+#' @param inference Inference engine: "mcintosh" (default) or "multifer".
+#'   The "multifer" engine is optional and currently supports method 1 task PLS.
 #'
 #' @return Updated `pls_spec` object
 #' @export
@@ -61,7 +63,8 @@ configure <- function(spec,
                        meancentering = NULL,
                        cormode = NULL,
                        boot_type = NULL,
-                       is_struct = NULL) {
+                       is_struct = NULL,
+                       inference = NULL) {
 
   assert_that(inherits(spec, "pls_spec"))
 
@@ -127,7 +130,30 @@ configure <- function(spec,
     spec$is_struct <- is_struct
   }
 
+  # Inference engine
+  if (!is.null(inference)) {
+    spec$inference <- .resolve_inference(inference)
+  }
+
   spec
+}
+
+#' Resolve Inference Engine
+#'
+#' @keywords internal
+.resolve_inference <- function(inference) {
+  if (!is.character(inference) || length(inference) != 1L || is.na(inference)) {
+    stop("inference must be a single string")
+  }
+  inference <- tolower(inference)
+  switch(
+    inference,
+    "mcintosh" = "mcintosh",
+    "classic" = "mcintosh",
+    "legacy" = "mcintosh",
+    "multifer" = "multifer",
+    stop("Unknown inference engine: ", inference)
+  )
 }
 
 #' Resolve Method Name to Integer
@@ -294,7 +320,8 @@ set_parallel <- function(spec, workers = NULL, backend = "future") {
   assert_that(backend %in% c("future", "sequential"))
 
   if (is.null(workers)) {
-    workers <- parallel::detectCores() - 1
+    detected <- parallel::detectCores()
+    workers <- if (is.na(detected) || detected <= 1L) 1L else detected - 1L
   }
 
   spec$.parallel <- list(

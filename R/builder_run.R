@@ -77,6 +77,10 @@ run.pls_spec <- function(spec, progress = TRUE, ...) {
   # Validate specification
   .validate_spec(spec)
 
+  if (identical(spec$inference %||% "mcintosh", "multifer")) {
+    return(.run_pls_multifer(spec, progress = progress, ...))
+  }
+
   # Run analysis
   result <- pls_analysis(
     datamat_lst = spec$datamat_lst,

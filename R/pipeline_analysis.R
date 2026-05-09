@@ -93,6 +93,7 @@ NULL
   configure(
     pspec,
     method = .pipeline_method_name(spec$pls$method),
+    inference = .pipeline_nested(spec, c("pls", "inference"), "mcintosh"),
     nperm = .pipeline_nested(spec, c("pls", "nperm"), 0L),
     nboot = .pipeline_nested(spec, c("pls", "nboot"), 0L),
     nsplit = .pipeline_nested(spec, c("pls", "nsplit"), 0L),
