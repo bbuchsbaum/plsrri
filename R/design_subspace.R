@@ -154,12 +154,12 @@ design_projectors <- function(result,
   out
 }
 
-#' Observed Design-Subspace Statistics for Task PLS Terms
+#' Term-Specific Design-Subspace SVDs for Task PLS
 #'
 #' @description
-#' Computes observed covariance energy in each factorial design subspace. The
-#' subspaces are built in the centered Task PLS row space, so effects removed
-#' by the Task PLS mean-centering operator have rank zero.
+#' Fits ASCA-like term-specific PLS decompositions by projecting the Task PLS
+#' cross-block matrix into centered factorial design subspaces, then computing
+#' an SVD within each projected subspace.
 #'
 #' @param result A Task PLS `pls_result` produced with
 #'   `pls_analysis(..., keep_crossblock = TRUE)` or
@@ -167,37 +167,28 @@ design_projectors <- function(result,
 #' @param design Optional `pls_design` object.
 #' @param formula Optional one-sided formula overriding `design$formula`.
 #' @param condition_key Optional condition metadata.
+#' @param terms `"all"` or a character vector of term labels to decompose.
+#' @param ncomp Optional number of components to retain per term.
 #' @param statistic `"trace"` for total subspace covariance energy, or
 #'   `"largest_root"` for the dominant singular-root statistic.
 #' @param weights `"cell_equal"`, `"subject_count"`, or `"row_weights"` to
 #'   use stored `result$task_pls$row_weights`.
-#' @param nperm Number of permutations. Permutation inference is not yet
-#'   implemented for design-subspace tests; values greater than zero error.
-#' @param correction Multiple-testing correction label. Present for API
-#'   compatibility with future permutation support.
+#' @param keep_crossblocks Logical; retain projected cross-block matrices.
 #'
-#' @return A data frame with term, rank, statistic, and placeholder p-value
-#'   columns.
+#' @return A `pls_design_subspace_svd` object with term-level statistics and
+#'   component-level singular values.
 #' @export
-test_design_terms <- function(result,
-                              design = NULL,
-                              formula = NULL,
-                              condition_key = NULL,
-                              statistic = c("trace", "largest_root"),
-                              weights = c("cell_equal", "subject_count", "row_weights"),
-                              nperm = 0L,
-                              correction = c("none", "maxT")) {
+design_subspace_svd <- function(result,
+                                design = NULL,
+                                formula = NULL,
+                                condition_key = NULL,
+                                terms = "all",
+                                ncomp = NULL,
+                                statistic = c("trace", "largest_root"),
+                                weights = c("cell_equal", "subject_count", "row_weights"),
+                                keep_crossblocks = FALSE) {
   statistic <- match.arg(statistic)
   weights <- match.arg(weights)
-  correction <- match.arg(correction)
-  nperm <- as.integer(nperm)
-  if (nperm > 0L) {
-    stop(
-      "Permutation design-subspace inference is not implemented yet. ",
-      "Use nperm = 0 for observed statistics; nested p-values require a reduced-model-respecting null.",
-      call. = FALSE
-    )
-  }
 
   ctx <- .design_subspace_context(
     result = result,
@@ -208,34 +199,227 @@ test_design_terms <- function(result,
     require_crossblock = TRUE
   )
 
-  rows <- vector("list", length(ctx$terms))
-  for (term_id in seq_along(ctx$terms)) {
+  term_ids <- .select_design_terms(terms, ctx$terms)
+  term_fits <- vector("list", length(term_ids))
+  names(term_fits) <- ctx$terms[term_ids]
+
+  for (i in seq_along(term_ids)) {
+    term_id <- term_ids[[i]]
     columns <- which(ctx$assign == term_id)
     basis <- .weighted_basis(ctx$centered_model[, columns, drop = FALSE], ctx$weights)
-    rows[[term_id]] <- data.frame(
+    term_fits[[i]] <- .design_subspace_svd_one(
+      crossblock = ctx$crossblock,
+      basis = basis$q,
       term = ctx$terms[[term_id]],
       rank = basis$rank,
-      statistic = .design_subspace_stat(ctx$crossblock, basis$q, ctx$weights, statistic),
-      p_value = NA_real_,
-      p_adjusted = NA_real_,
-      statistic_type = statistic,
-      correction = correction,
-      stringsAsFactors = FALSE
+      weights = ctx$weights,
+      ncomp = ncomp,
+      keep_crossblock = keep_crossblocks
     )
   }
 
-  do.call(rbind, rows)
+  stats <- do.call(rbind, lapply(term_fits, function(x) {
+    data.frame(
+      term = x$term,
+      rank = x$rank,
+      ncomp = length(x$singular_values),
+      trace = x$trace,
+      largest_root = x$largest_root,
+      statistic = if (identical(statistic, "trace")) x$trace else x$largest_root,
+      statistic_type = statistic,
+      stringsAsFactors = FALSE
+    )
+  }))
+
+  components <- do.call(rbind, lapply(term_fits, function(x) x$components))
+  rownames(stats) <- NULL
+  rownames(components) <- NULL
+
+  structure(
+    list(
+      terms = names(term_fits),
+      term_fits = term_fits,
+      statistics = stats,
+      components = components,
+      design = design,
+      formula = ctx$formula,
+      cell_table = ctx$cell_table,
+      weights = ctx$weights,
+      statistic_type = statistic,
+      centering_operator = ctx$centering_operator
+    ),
+    class = "pls_design_subspace_svd"
+  )
+}
+
+#' @export
+print.pls_design_subspace_svd <- function(x, ...) {
+  cat("Task PLS design-subspace SVD\n")
+  cat("Terms:", paste(x$terms, collapse = ", "), "\n\n")
+  print(x$statistics[, c("term", "rank", "trace", "largest_root")], row.names = FALSE)
+  invisible(x)
+}
+
+#' Test Task PLS Design Subspaces
+#'
+#' @description
+#' Computes observed covariance energy in term-specific design subspaces and,
+#' when requested, compares those statistics to a global Task PLS permutation
+#' null. The permutation null asks whether term-aligned covariance is larger
+#' than expected under the package's ordinary global Task PLS row permutation.
+#'
+#' @param x A Task PLS `pls_result`, or a `pls_spec` when `fit` is supplied.
+#' @param fit Optional fitted `pls_result` when `x` is a `pls_spec`.
+#' @param spec Optional `pls_spec` used to recompute permuted cross-block
+#'   matrices. Required for `nperm > 0` when `x` is a `pls_result`.
+#' @param design Optional `pls_design` object.
+#' @param formula Optional one-sided formula overriding `design$formula`.
+#' @param condition_key Optional condition metadata.
+#' @param terms `"all"` or a character vector of term labels to test.
+#' @param statistic `"trace"` for total subspace covariance energy, or
+#'   `"largest_root"` for the dominant singular-root statistic.
+#' @param weights `"cell_equal"`, `"subject_count"`, or `"row_weights"` to
+#'   use stored `result$task_pls$row_weights`.
+#' @param nperm Number of permutations.
+#' @param permutation `"none"` or `"global_task_pls"`.
+#' @param correction `"none"` or `"maxT"` adjustment across tested terms.
+#' @param permsamp Optional permutation order matrix.
+#' @param progress Logical; show permutation progress messages.
+#'
+#' @return A data frame with term, rank, statistic, p-value, and null labels.
+#' @export
+test_design_subspaces <- function(x,
+                                  fit = NULL,
+                                  spec = NULL,
+                                  design = NULL,
+                                  formula = NULL,
+                                  condition_key = NULL,
+                                  terms = "all",
+                                  statistic = c("trace", "largest_root"),
+                                  weights = c("cell_equal", "subject_count", "row_weights"),
+                                  nperm = 0L,
+                                  permutation = c("none", "global_task_pls"),
+                                  correction = c("none", "maxT"),
+                                  permsamp = NULL,
+                                  progress = FALSE) {
+  statistic <- match.arg(statistic)
+  weights <- match.arg(weights)
+  permutation <- match.arg(permutation)
+  correction <- match.arg(correction)
+  nperm <- as.integer(nperm)
+  if (length(nperm) != 1L || is.na(nperm) || nperm < 0L) {
+    stop("nperm must be a non-negative integer.", call. = FALSE)
+  }
+  if (nperm > 0L && identical(permutation, "none")) {
+    permutation <- "global_task_pls"
+  }
+
+  inputs <- .resolve_design_subspace_inputs(x, fit = fit, spec = spec)
+  observed <- design_subspace_svd(
+    inputs$result,
+    design = design,
+    formula = formula,
+    condition_key = condition_key,
+    terms = terms,
+    statistic = statistic,
+    weights = weights
+  )
+
+  out <- observed$statistics[, c("term", "rank", "statistic", "statistic_type"), drop = FALSE]
+  out$p_value <- NA_real_
+  out$p_adjusted <- NA_real_
+  out$permutation <- permutation
+  out$correction <- correction
+  out$nperm <- nperm
+
+  if (nperm > 0L) {
+    if (is.null(inputs$spec)) {
+      stop(
+        "Permutation design-subspace inference requires a pls_spec. ",
+        "Call test_design_subspaces(spec, fit = fit, ...) or provide spec = spec.",
+        call. = FALSE
+      )
+    }
+    perm_stats <- .design_subspace_permutation_stats(
+      spec = inputs$spec,
+      result = inputs$result,
+      observed = observed,
+      statistic = statistic,
+      nperm = nperm,
+      permsamp = permsamp,
+      progress = progress
+    )
+    observed_stats <- out$statistic
+    out$p_value <- colMeans(sweep(perm_stats, 2L, observed_stats, `>=`))
+    if (identical(correction, "maxT")) {
+      max_stat <- apply(perm_stats, 1L, max)
+      out$p_adjusted <- vapply(observed_stats, function(x) mean(max_stat >= x), numeric(1))
+    } else {
+      out$p_adjusted <- out$p_value
+    }
+  }
+
+  rownames(out) <- NULL
+  out
+}
+
+#' Observed or Global-Null Design-Subspace Statistics for Task PLS Terms
+#'
+#' @description
+#' Compatibility wrapper for [test_design_subspaces()]. New code should prefer
+#' `test_design_subspaces()` to make clear that inference is over fitted
+#' design subspaces, not post-hoc LV annotations.
+#'
+#' @inheritParams test_design_subspaces
+#' @param result A Task PLS `pls_result`.
+#' @param spec Optional `pls_spec` used to recompute permuted cross-block
+#'   matrices. Required for `nperm > 0`.
+#'
+#' @return A data frame with term, rank, statistic, and p-value columns.
+#' @export
+test_design_terms <- function(result,
+                              design = NULL,
+                              formula = NULL,
+                              condition_key = NULL,
+                              terms = "all",
+                              statistic = c("trace", "largest_root"),
+                              weights = c("cell_equal", "subject_count", "row_weights"),
+                              nperm = 0L,
+                              permutation = c("none", "global_task_pls"),
+                              correction = c("none", "maxT"),
+                              spec = NULL,
+                              permsamp = NULL,
+                              progress = FALSE) {
+  test_design_subspaces(
+    result,
+    spec = spec,
+    design = design,
+    formula = formula,
+    condition_key = condition_key,
+    terms = terms,
+    statistic = statistic,
+    weights = weights,
+    nperm = nperm,
+    permutation = permutation,
+    correction = correction,
+    permsamp = permsamp,
+    progress = progress
+  )
 }
 
 #' Compare Nested Task PLS Design Subspaces
 #'
 #' @description
-#' Computes the observed covariance energy in the part of a full cell-level
-#' design that remains after QR residualization against a reduced design.
+#' Fits the delta design subspace from a full cell-level design after QR
+#' residualization against a reduced design. With
+#' `permutation = "global_task_pls"`, compares the delta statistic to the
+#' package's ordinary global Task PLS permutation null. This global null is not
+#' a reduced-model-preserving nested test.
 #'
-#' @param result A Task PLS `pls_result` produced with
-#'   `pls_analysis(..., keep_crossblock = TRUE)` or
-#'   `run(..., keep_crossblock = TRUE)`.
+#' @param x A Task PLS `pls_result`, or a `pls_spec` when `fit` is supplied.
+#' @param fit Optional fitted `pls_result` when `x` is a `pls_spec`.
+#' @param spec Optional `pls_spec` used to recompute permuted cross-block
+#'   matrices. Required for `nperm > 0` when `x` is a `pls_result`.
 #' @param reduced One-sided reduced formula.
 #' @param full One-sided full formula.
 #' @param design Optional `pls_design` object.
@@ -243,34 +427,49 @@ test_design_terms <- function(result,
 #' @param statistic `"trace"` or `"largest_root"`.
 #' @param weights `"cell_equal"`, `"subject_count"`, or `"row_weights"` to
 #'   use stored `result$task_pls$row_weights`.
-#' @param nperm Number of permutations. Values greater than zero error until a
-#'   reduced-model-respecting null is implemented.
+#' @param nperm Number of permutations.
+#' @param permutation `"none"` or `"global_task_pls"`.
+#' @param permsamp Optional permutation order matrix.
+#' @param progress Logical; show permutation progress messages.
 #'
 #' @return A one-row data frame with observed nested-subspace statistic.
 #' @export
-compare_designs <- function(result,
-                            reduced,
-                            full,
-                            design = NULL,
-                            condition_key = NULL,
-                            statistic = c("trace", "largest_root"),
-                            weights = c("cell_equal", "subject_count", "row_weights"),
-                            nperm = 0L) {
+compare_design_subspaces <- function(x,
+                                     reduced,
+                                     full,
+                                     fit = NULL,
+                                     spec = NULL,
+                                     design = NULL,
+                                     condition_key = NULL,
+                                     statistic = c("trace", "largest_root"),
+                                     weights = c("cell_equal", "subject_count", "row_weights"),
+                                     nperm = 0L,
+                                     permutation = c("none", "global_task_pls", "reduced_model"),
+                                     permsamp = NULL,
+                                     progress = FALSE) {
   statistic <- match.arg(statistic)
   weights <- match.arg(weights)
+  permutation <- match.arg(permutation)
   nperm <- as.integer(nperm)
-  if (nperm > 0L) {
+  if (length(nperm) != 1L || is.na(nperm) || nperm < 0L) {
+    stop("nperm must be a non-negative integer.", call. = FALSE)
+  }
+  if (identical(permutation, "reduced_model")) {
     stop(
-      "Permutation nested design-subspace inference is not implemented yet. ",
-      "Use nperm = 0 for observed statistics; nested p-values require preserving the reduced model.",
+      "Reduced-model design-subspace permutation inference is not implemented yet. ",
+      "Use permutation = \"global_task_pls\" for a global-null test, or nperm = 0 for observed statistics.",
       call. = FALSE
     )
   }
+  if (nperm > 0L && identical(permutation, "none")) {
+    permutation <- "global_task_pls"
+  }
 
+  inputs <- .resolve_design_subspace_inputs(x, fit = fit, spec = spec)
   reduced <- .pls_one_sided_formula(reduced)
   full <- .pls_one_sided_formula(full)
   ctx <- .design_subspace_context(
-    result = result,
+    result = inputs$result,
     design = design,
     formula = full,
     condition_key = condition_key,
@@ -292,15 +491,90 @@ compare_designs <- function(result,
     added_terms <- if (basis$rank == 0L) "none" else "residualized_full"
   }
 
+  term_label <- paste(added_terms, collapse = " + ")
+  fit_delta <- .design_subspace_svd_one(
+    crossblock = ctx$crossblock,
+    basis = basis$q,
+    term = term_label,
+    rank = basis$rank,
+    weights = ctx$weights,
+    ncomp = NULL,
+    keep_crossblock = FALSE
+  )
+  observed_stat <- if (identical(statistic, "trace")) fit_delta$trace else fit_delta$largest_root
+
+  p_value <- NA_real_
+  if (nperm > 0L) {
+    if (is.null(inputs$spec)) {
+      stop(
+        "Permutation design-subspace inference requires a pls_spec. ",
+        "Call compare_design_subspaces(spec, fit = fit, ...) or provide spec = spec.",
+        call. = FALSE
+      )
+    }
+    perm_stats <- .design_subspace_permutation_stats(
+      spec = inputs$spec,
+      result = inputs$result,
+      observed = list(term_fits = list(fit_delta)),
+      statistic = statistic,
+      nperm = nperm,
+      permsamp = permsamp,
+      progress = progress
+    )
+    p_value <- mean(perm_stats[, 1L] >= observed_stat)
+  }
+
   data.frame(
     reduced = .formula_text(reduced),
     full = .formula_text(full),
-    added_terms = paste(added_terms, collapse = " + "),
+    added_terms = term_label,
     rank = basis$rank,
-    statistic = .design_subspace_stat(ctx$crossblock, basis$q, ctx$weights, statistic),
-    p_value = NA_real_,
+    statistic = observed_stat,
+    p_value = p_value,
     statistic_type = statistic,
+    permutation = permutation,
+    nperm = nperm,
     stringsAsFactors = FALSE
+  )
+}
+
+#' Compare Nested Task PLS Design Subspaces
+#'
+#' @description
+#' Compatibility wrapper for [compare_design_subspaces()].
+#'
+#' @inheritParams compare_design_subspaces
+#' @param result A Task PLS `pls_result`.
+#' @param spec Optional `pls_spec` used to recompute permuted cross-block
+#'   matrices. Required for `nperm > 0`.
+#'
+#' @return A one-row data frame with observed nested-subspace statistic.
+#' @export
+compare_designs <- function(result,
+                            reduced,
+                            full,
+                            design = NULL,
+                            condition_key = NULL,
+                            statistic = c("trace", "largest_root"),
+                            weights = c("cell_equal", "subject_count", "row_weights"),
+                            nperm = 0L,
+                            permutation = c("none", "global_task_pls", "reduced_model"),
+                            spec = NULL,
+                            permsamp = NULL,
+                            progress = FALSE) {
+  compare_design_subspaces(
+    result,
+    reduced = reduced,
+    full = full,
+    spec = spec,
+    design = design,
+    condition_key = condition_key,
+    statistic = statistic,
+    weights = weights,
+    nperm = nperm,
+    permutation = permutation,
+    permsamp = permsamp,
+    progress = progress
   )
 }
 
@@ -371,6 +645,243 @@ decompose_design_terms <- function(result,
   }
 
   do.call(rbind, rows)
+}
+
+.select_design_terms <- function(terms, available_terms) {
+  if (identical(terms, "all")) {
+    return(seq_along(available_terms))
+  }
+  if (!is.character(terms) || !length(terms)) {
+    stop("terms must be \"all\" or a character vector of design term labels.", call. = FALSE)
+  }
+  missing <- setdiff(terms, available_terms)
+  if (length(missing)) {
+    stop("Unknown design term(s): ", paste(missing, collapse = ", "), call. = FALSE)
+  }
+  match(terms, available_terms)
+}
+
+.design_subspace_svd_one <- function(crossblock,
+                                     basis,
+                                     term,
+                                     rank,
+                                     weights,
+                                     ncomp = NULL,
+                                     keep_crossblock = FALSE) {
+  if (!is.matrix(crossblock)) {
+    crossblock <- as.matrix(crossblock)
+  }
+  if (any(!is.finite(crossblock))) {
+    stop("Task PLS crossblock contains non-finite values.", call. = FALSE)
+  }
+  if (nrow(crossblock) != nrow(basis)) {
+    stop("Subspace basis and Task PLS crossblock have incompatible row counts.", call. = FALSE)
+  }
+  if (length(weights) != nrow(crossblock)) {
+    stop("Design weights must have one value per design cell.", call. = FALSE)
+  }
+
+  n_features <- ncol(crossblock)
+  if (ncol(basis) == 0L || rank == 0L) {
+    components <- data.frame(
+      term = character(0),
+      component = integer(0),
+      singular_value = numeric(0),
+      covariance = numeric(0),
+      percent_term_covariance = numeric(0),
+      rank = integer(0),
+      stringsAsFactors = FALSE
+    )
+    return(list(
+      term = term,
+      rank = as.integer(rank),
+      basis = basis,
+      weights = weights,
+      singular_values = numeric(0),
+      all_singular_values = numeric(0),
+      left_vectors = matrix(0, nrow = nrow(crossblock), ncol = 0L),
+      right_vectors = matrix(0, nrow = n_features, ncol = 0L),
+      trace = 0,
+      largest_root = 0,
+      components = components,
+      projected_crossblock = if (isTRUE(keep_crossblock)) matrix(0, nrow = nrow(crossblock), ncol = n_features) else NULL
+    ))
+  }
+
+  if (!is.null(ncomp)) {
+    ncomp <- as.integer(ncomp)
+    if (length(ncomp) != 1L || is.na(ncomp) || ncomp < 1L) {
+      stop("ncomp must be a positive integer or NULL.", call. = FALSE)
+    }
+  }
+
+  crossblock_w <- crossblock * sqrt(weights)
+  coordinates <- crossprod(basis, crossblock_w)
+  sv <- svd(coordinates)
+  all_d <- sv$d
+  trace <- sum(all_d^2)
+  largest_root <- if (length(all_d)) all_d[[1L]]^2 else 0
+
+  keep <- if (length(all_d)) seq_along(all_d) else integer(0)
+  if (!is.null(ncomp)) {
+    keep <- keep[seq_len(min(ncomp, length(keep)))]
+  }
+
+  d <- all_d[keep]
+  u <- if (length(keep)) sv$u[, keep, drop = FALSE] else matrix(0, nrow = ncol(basis), ncol = 0L)
+  v <- if (length(keep)) sv$v[, keep, drop = FALSE] else matrix(0, nrow = n_features, ncol = 0L)
+  left <- basis %*% u
+
+  components <- data.frame(
+    term = rep(term, length(d)),
+    component = seq_along(d),
+    singular_value = d,
+    covariance = d^2,
+    percent_term_covariance = if (trace > 0) d^2 / trace else rep(NA_real_, length(d)),
+    rank = rep(as.integer(rank), length(d)),
+    stringsAsFactors = FALSE
+  )
+
+  list(
+    term = term,
+    rank = as.integer(rank),
+    basis = basis,
+    weights = weights,
+    singular_values = d,
+    all_singular_values = all_d,
+    left_vectors = left,
+    right_vectors = v,
+    trace = trace,
+    largest_root = largest_root,
+    components = components,
+    projected_crossblock = if (isTRUE(keep_crossblock)) basis %*% coordinates else NULL
+  )
+}
+
+.resolve_design_subspace_inputs <- function(x, fit = NULL, spec = NULL) {
+  if (inherits(x, "pls_result")) {
+    if (!is.null(fit)) {
+      stop("fit is only used when x is a pls_spec.", call. = FALSE)
+    }
+    .validate_task_pls_result(x)
+    return(list(result = x, spec = spec))
+  }
+
+  if (inherits(x, "pls_spec")) {
+    if (is.null(fit)) {
+      stop("When x is a pls_spec, provide fit = a fitted pls_result.", call. = FALSE)
+    }
+    if (!inherits(fit, "pls_result")) {
+      stop("fit must be a pls_result.", call. = FALSE)
+    }
+    .validate_task_pls_result(fit)
+    return(list(result = fit, spec = x))
+  }
+
+  stop("x must be a pls_result or a pls_spec.", call. = FALSE)
+}
+
+.design_subspace_permutation_stats <- function(spec,
+                                               result,
+                                               observed,
+                                               statistic,
+                                               nperm,
+                                               permsamp = NULL,
+                                               progress = FALSE) {
+  spec <- .materialize_pls_spec(spec, derive_seed_behavior = TRUE)
+  .validate_spec(spec)
+  if (!as.integer(spec$method) %in% c(1L, 2L)) {
+    stop("Design-subspace permutations currently support Task PLS methods 1 and 2.", call. = FALSE)
+  }
+  if (as.integer(spec$method) != as.integer(result$method)) {
+    stop("spec and fit use different PLS methods.", call. = FALSE)
+  }
+
+  stacked_datamat <- do.call(rbind, spec$datamat_lst)
+  total_rows <- nrow(stacked_datamat)
+  n_cells <- length(spec$num_subj_lst) * as.integer(spec$num_cond)
+  if (nrow(.result_crossblock(result, require = TRUE)) != n_cells) {
+    stop("spec and fit have incompatible Task PLS design dimensions.", call. = FALSE)
+  }
+
+  permsamp <- .normalize_design_permsamp(
+    permsamp = permsamp %||% .stored_task_pls_permsamp(result, nperm, total_rows),
+    spec = spec,
+    nperm = nperm,
+    total_rows = total_rows
+  )
+
+  out <- matrix(0, nrow = nperm, ncol = length(observed$term_fits))
+  colnames(out) <- vapply(observed$term_fits, function(x) x$term, character(1))
+  bscan <- spec$bscan %||% seq_len(spec$num_cond)
+
+  for (p in seq_len(nperm)) {
+    covcor <- pls_get_covcor(
+      method = as.integer(spec$method),
+      stacked_datamat = stacked_datamat,
+      stacked_behavdata = spec$stacked_behavdata,
+      num_groups = length(spec$num_subj_lst),
+      num_subj_lst = spec$num_subj_lst,
+      num_cond = as.integer(spec$num_cond),
+      bscan = bscan,
+      meancentering_type = as.integer(spec$meancentering_type %||% 0L),
+      cormode = as.integer(spec$cormode %||% 0L),
+      datamat_reorder = permsamp[, p]
+    )
+
+    for (j in seq_along(observed$term_fits)) {
+      term_fit <- observed$term_fits[[j]]
+      out[p, j] <- .design_subspace_stat(
+        crossblock = covcor$datamatsvd,
+        basis = term_fit$basis,
+        weights = term_fit$weights,
+        statistic = statistic
+      )
+    }
+
+    if (isTRUE(progress) && (p == nperm || p %% 25L == 0L)) {
+      cli::cli_inform("Computed design-subspace permutation {p}/{nperm}.")
+    }
+  }
+
+  out
+}
+
+.stored_task_pls_permsamp <- function(result, nperm, total_rows) {
+  permsamp <- result$perm_result$permsamp %||% NULL
+  if (is.null(permsamp) || nrow(permsamp) != total_rows || ncol(permsamp) < nperm) {
+    return(NULL)
+  }
+  permsamp[, seq_len(nperm), drop = FALSE]
+}
+
+.normalize_design_permsamp <- function(permsamp, spec, nperm, total_rows) {
+  if (is.null(permsamp)) {
+    permsamp <- pls_perm_order(
+      num_subj_lst = spec$num_subj_lst,
+      num_cond = as.integer(spec$num_cond),
+      num_perm = nperm,
+      not_in_cond = isTRUE(spec$is_struct)
+    )
+  }
+  if (!is.matrix(permsamp) || !is.numeric(permsamp)) {
+    stop("permsamp must be a numeric matrix.", call. = FALSE)
+  }
+  if (nrow(permsamp) != total_rows || ncol(permsamp) < nperm) {
+    stop(
+      "permsamp must have one row per stacked data row and at least nperm columns.",
+      call. = FALSE
+    )
+  }
+  permsamp <- permsamp[, seq_len(nperm), drop = FALSE]
+  if (any(!is.finite(permsamp))) {
+    stop("permsamp must contain finite row indices.", call. = FALSE)
+  }
+  storage.mode(permsamp) <- "integer"
+  if (any(permsamp < 1L) || any(permsamp > total_rows)) {
+    stop("permsamp contains row indices outside the stacked data matrix.", call. = FALSE)
+  }
+  permsamp
 }
 
 .design_subspace_context <- function(result,

@@ -42,8 +42,9 @@ ensure_local_plsrri(c(
   "pls_design",
   "design_cell_table",
   "decompose_design_terms",
-  "test_design_terms",
-  "compare_designs"
+  "design_subspace_svd",
+  "test_design_subspaces",
+  "compare_design_subspaces"
 ))
 ```
 
@@ -123,12 +124,13 @@ PLS before the singular value decomposition. Request it at fit time with
 `keep_crossblock = TRUE`.
 
 ```{r fit-task-pls}
-fit <- pls_spec() |>
+spec <- pls_spec() |>
   add_subjects(list(control, sdam), groups = c(n_subjects, n_subjects)) |>
   add_conditions(nrow(condition_key), labels = condition_key$condition) |>
   add_group_labels(c("control", "sdam")) |>
-  configure(method = "task", meancentering = "grand_mean") |>
-  run(progress = FALSE, keep_crossblock = TRUE)
+  configure(method = "task", meancentering = "grand_mean")
+
+fit <- run(spec, progress = FALSE, keep_crossblock = TRUE)
 ```
 
 ```{r check-fit, include = FALSE}
@@ -210,42 +212,109 @@ interpretive summary for a selected latent variable.
 plot_design_contrasts(fit, lv = 1, condition_key = condition_key)
 ```
 
-## How much covariance is in each design subspace?
+## How do we fit term-specific PLS components?
 
-`test_design_terms()` works on the stored Task PLS cross-block matrix, not just
-on one LV. The default statistic is `"trace"`, the total squared singular
-value energy in each centered term subspace.
+The ASCA-like step is `design_subspace_svd()`. It projects the stored Task PLS
+cross-block matrix into each centered factorial subspace, then fits a separate
+SVD for each term. This is a fitted term-specific PLS decomposition, not a
+post-hoc label attached to a global LV.
 
-```{r test-terms}
-term_tests <- test_design_terms(
+```{r subspace-svd}
+term_fit <- design_subspace_svd(
   fit,
   design = design,
+  ncomp = 2,
   statistic = "trace"
+)
+
+term_fit$statistics[, c("term", "rank", "trace", "largest_root")]
+```
+
+```{r show-subspace-components}
+components <- term_fit$components
+components$percent_term_covariance <- round(components$percent_term_covariance, 3)
+components[components$component == 1,
+           c("term", "component", "singular_value", "percent_term_covariance")]
+```
+
+```{r check-subspace-svd, include = FALSE}
+stopifnot(
+  inherits(term_fit, "pls_design_subspace_svd"),
+  all(is.finite(term_fit$statistics$trace)),
+  all(term_fit$statistics$rank >= 0)
+)
+```
+
+The term-level `trace` is the total squared singular-value energy in that
+subspace. `largest_root` is the dominant PLS-like component for the same
+projected matrix.
+
+## Can we get resampling p-values?
+
+Yes, against an explicitly named null. `test_design_subspaces()` recomputes
+each subspace statistic over permuted Task PLS cross-block matrices and
+returns a p-value per term.
+
+The only null currently implemented is `permutation = "global_task_pls"` —
+the same permutation scheme that ordinary Task PLS already uses for LV
+significance. Concretely, for each permutation the routine
+
+1. permutes condition labels within each subject and permutes subjects across
+   groups (`pls_perm_order()`),
+2. rebuilds the centered group-by-condition cross-block matrix from the
+   permuted subject rows (`pls_get_covcor()`), and
+3. recomputes each term-subspace statistic on the permuted cross-block.
+
+Under this null **every factorial label is broken simultaneously** — there is
+no group structure, no task structure, no interaction structure. The
+question being asked for each term is therefore:
+
+> Is the covariance projected into this term's subspace larger than what we
+> would see if subject-condition labels were exchangeable?
+
+That is the right null for an *omnibus* "is this term doing anything?"
+question, and it is the standard PLS permutation null restricted to a
+subspace. It is **not** a nested test: it cannot tell you whether
+`group:task` adds anything *beyond* `group`, because the same permutation
+that breaks `group:task` also breaks `group`. A reduced-model-preserving
+null (Freedman–Lane–style) is the right tool for nested questions and is
+filed as future work.
+
+The `correction = "maxT"` option compares each observed term statistic to
+the per-permutation maximum across all terms, giving family-wise adjusted
+p-values across the table.
+
+```{r test-terms}
+set.seed(20260510)
+term_tests <- test_design_subspaces(
+  spec,
+  fit = fit,
+  design = design,
+  statistic = "trace",
+  nperm = 99,
+  permutation = "global_task_pls",
+  correction = "maxT"
 )
 term_tests$share <- round(term_tests$statistic / sum(term_tests$statistic), 3)
 term_tests$statistic <- round(term_tests$statistic, 2)
-term_tests[, c("term", "rank", "statistic", "share", "p_value")]
+term_tests[, c("term", "rank", "statistic", "share", "p_value", "p_adjusted")]
 ```
 
 ```{r check-term-tests, include = FALSE}
 stopifnot(
   all(is.finite(term_tests$statistic)),
   all(term_tests$rank >= 0),
-  all(is.na(term_tests$p_value)),
+  all(is.finite(term_tests$p_value)),
+  all(term_tests$p_value >= 0 & term_tests$p_value <= 1),
   sum(term_tests$share) > 0.9
 )
 ```
-
-The `p_value` column is intentionally `NA` here. The current implementation
-computes observed design-subspace summaries; permutation p-values for nested
-factorial questions require a reduced-model-respecting null and are not
-silently approximated.
 
 If you want the most PLS-like single-root statistic instead of omnibus energy,
 use `statistic = "largest_root"`.
 
 ```{r largest-root}
-largest_root <- test_design_terms(
+largest_root <- test_design_subspaces(
   fit,
   design = design,
   statistic = "largest_root"
@@ -255,30 +324,37 @@ largest_root[, c("term", "rank", "statistic")]
 ```
 
 ```{r check-largest-root, include = FALSE}
-trace_again <- test_design_terms(fit, design = design, statistic = "trace")
-root_again <- test_design_terms(fit, design = design, statistic = "largest_root")
+trace_again <- test_design_subspaces(fit, design = design, statistic = "trace")
+root_again <- test_design_subspaces(fit, design = design, statistic = "largest_root")
 stopifnot(all(root_again$statistic <= trace_again$statistic + 1e-8))
 ```
 
 ## How do we ask a nested design question?
 
-Use `compare_designs()` when your question is "what is added by the full model
-beyond the reduced model?" The function residualizes the full design against
-the reduced design in the same centered Task PLS row space.
+Use `compare_design_subspaces()` when your question is "what is added by the
+full model beyond the reduced model?" The function residualizes the full design
+against the reduced design in the same centered Task PLS row space, then fits
+the delta-subspace SVD.
 
 ```{r compare-designs}
-task_beyond_group <- compare_designs(
-  fit,
+task_beyond_group <- compare_design_subspaces(
+  spec,
+  fit = fit,
   design = design,
   reduced = ~ group,
-  full = ~ group * task
+  full = ~ group * task,
+  nperm = 99,
+  permutation = "global_task_pls"
 )
 
-interactions_beyond_main_effects <- compare_designs(
-  fit,
+interactions_beyond_main_effects <- compare_design_subspaces(
+  spec,
+  fit = fit,
   design = design,
   reduced = ~ group + task + level,
-  full = ~ group * task * level
+  full = ~ group * task * level,
+  nperm = 99,
+  permutation = "global_task_pls"
 )
 
 nested_tests <- rbind(task_beyond_group, interactions_beyond_main_effects)
@@ -290,33 +366,73 @@ nested_tests[, c("reduced", "full", "added_terms", "rank", "statistic", "p_value
 stopifnot(
   all(is.finite(nested_tests$statistic)),
   all(nested_tests$rank >= 0),
-  all(is.na(nested_tests$p_value))
+  all(is.finite(nested_tests$p_value))
 )
 ```
 
-The first comparison asks how much covariance is carried by task plus the
-group-by-task interaction after accounting for group. The second asks how much
-covariance is carried by all interactions after accounting for the three main
-effects.
+The `statistic` column is the *observed* covariance energy in the
+residualized delta subspace — i.e., the part of the full design that is
+orthogonal to the reduced design after centering. This part of the answer
+is purely descriptive and does not depend on the permutation null.
+
+The `p_value` column, however, again uses the `"global_task_pls"` null.
+That is, the delta statistic is compared to the distribution of delta
+statistics computed on cross-block matrices where *all* subject-condition
+labels have been permuted — not just the labels associated with the added
+terms. So the p-value answers:
+
+> Is the energy in the full-minus-reduced subspace larger than expected
+> when there is no design structure at all?
+
+That is informative and it is what classical Task PLS already gives you for
+an LV. It is **not** the same as testing "does adding `task` and
+`group:task` improve fit beyond `group` alone" in the strict nested sense:
+a true nested test would permute under a null that preserves the reduced
+model, and that null is not yet implemented. Use the descriptive
+`statistic` and `rank` columns when you want to compare the *size* of the
+added subspace, and treat the p-value as global-null evidence that
+*something* in the delta subspace is non-trivial.
 
 ## How should the summaries be interpreted?
 
-Keep three distinctions clear:
+Keep four distinctions clear:
 
 1. `plot_scores()` and `plot_design_contrasts()` help you interpret selected
    LVs.
 2. `decompose_design_terms()` descriptively attributes one LV's design vector
    to factorial terms.
-3. `test_design_terms()` and `compare_designs()` summarize covariance energy
-   in centered design subspaces of the Task PLS cross-block matrix.
+3. `design_subspace_svd()` fits term-specific PLS components from projected
+   cross-block matrices.
+4. `test_design_subspaces()` and `compare_design_subspaces()` add observed
+   statistics and, when a `pls_spec` is available, global Task PLS permutation
+   p-values.
 
 These are design-subspace summaries, not classical ANOVA tables and not
-voxelwise tests. They preserve the multivariate PLS object while making the
-factorial structure of the design explicit.
+voxelwise tests. They differ from classical ANOVA in three ways worth keeping
+in mind:
+
+- **The response is multivariate.** The statistic is squared singular-value
+  energy of a projected cross-block matrix, not a univariate sum-of-squares.
+  There is no F ratio and no residual mean square; the reference distribution
+  is built by permutation, not by Gaussian-error theory.
+- **The null is exchangeability of subject-condition labels.** It is the same
+  null used for LV significance in ordinary Task PLS — labels are permuted,
+  cross-blocks are rebuilt, statistics are recomputed. There is no
+  independence or homoscedasticity assumption.
+- **Term tests are global, not sequential.** The currently implemented null
+  breaks all design structure at once. Each term's p-value answers "is this
+  subspace doing anything?" against a no-design null, not "does this term
+  add anything beyond the others?" The latter is what nested
+  `compare_design_subspaces()` calls would ask once a reduced-model-preserving
+  null is implemented.
+
+Treated this way, the table is a multivariate, design-aware companion to the
+LV table — not a substitute for ANOVA and not a voxelwise test.
 
 ## Where to go next
 
 Use `vignette("sdam-firstlevel-task-pls")` for a first-level image-map example
 with design-score heatmaps and contrast plots. Use `?pls_design`,
-`?decompose_design_terms`, `?test_design_terms`, and `?compare_designs` for the
+`?decompose_design_terms`, `?design_subspace_svd`,
+`?test_design_subspaces`, and `?compare_design_subspaces` for the
 function-level reference.
