@@ -308,7 +308,7 @@ nested_tests[, c("reduced", "full", "added_terms", "rank", "statistic", "p_value
 #> 2 ~group + task + level ~group * task * level
 #>                                                added_terms rank statistic
 #> 1                                        task + group:task    3      7.89
-#> 2 group:task + group:level + task:level + group:task:level    7     21.26
+#> 2 group:task + group:level + task:level + group:task:level    7     21.30
 #>     p_value
 #> 1 0.9696970
 #> 2 0.9494949
