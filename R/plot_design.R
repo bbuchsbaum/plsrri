@@ -141,21 +141,27 @@ as_design_contrasts.pls_result <- function(x,
 #' Two-LV Design Score Space
 #'
 #' @description
-#' Extract group-condition design-score centroids for two latent variables.
-#' This is useful for seeing how the flattened design pattern separates across
-#' more than one interpretable LV.
+#' Extract design-score centroids for two latent variables. This is useful for
+#' seeing how the flattened design pattern separates across more than one
+#' interpretable LV.
 #'
 #' @param x A `pls_result` object.
 #' @param lv Integer vector of two latent variables.
 #' @param condition_key Optional data frame with one row per condition and a
 #'   `condition` column.
+#' @param formula Optional one-sided formula controlling aggregation and
+#'   faceting. Variables before `|` identify plotted points; variables after
+#'   `|` identify facets. Variables omitted from the formula are averaged over.
+#'   For example, `~ group + level | task` plots group-by-level centroids
+#'   separately within each task.
 #' @param block Optional score block to keep for multiblock results.
 #'
-#' @return A data frame with one row per group-condition cell.
+#' @return A data frame with one row per requested centroid.
 #' @export
 as_design_score_space <- function(x,
                                   lv = c(1L, 2L),
                                   condition_key = NULL,
+                                  formula = NULL,
                                   block = NULL) {
   UseMethod("as_design_score_space")
 }
@@ -164,6 +170,7 @@ as_design_score_space <- function(x,
 as_design_score_space.pls_result <- function(x,
                                              lv = c(1L, 2L),
                                              condition_key = NULL,
+                                             formula = NULL,
                                              block = NULL) {
   lv <- as.integer(lv)
   if (length(lv) != 2L) {
@@ -180,15 +187,20 @@ as_design_score_space.pls_result <- function(x,
 
   df <- .filter_score_block(df, block)
   df <- .join_condition_key(df, condition_key)
-  grouping <- setdiff(names(df), c(".lv_x", ".lv_y", "subject"))
-  formula <- stats::as.formula(
-    paste("cbind(.lv_x, .lv_y) ~", paste(grouping, collapse = " + "))
+  default_grouping <- setdiff(names(df), c(".lv_x", ".lv_y", "subject"))
+  grouping <- .score_space_grouping(formula, default_grouping, names(df))
+  if (!length(grouping$all)) {
+    df$.all <- factor("all")
+    grouping$all <- ".all"
+  }
+  aggregation_formula <- stats::as.formula(
+    paste("cbind(.lv_x, .lv_y) ~", paste(grouping$all, collapse = " + "))
   )
 
-  means <- stats::aggregate(formula, data = df, FUN = mean)
-  sds <- stats::aggregate(formula, data = df, FUN = stats::sd)
+  means <- stats::aggregate(aggregation_formula, data = df, FUN = mean)
+  sds <- stats::aggregate(aggregation_formula, data = df, FUN = stats::sd)
   ns <- stats::aggregate(
-    stats::as.formula(paste(".lv_x ~", paste(grouping, collapse = " + "))),
+    stats::as.formula(paste(".lv_x ~", paste(grouping$all, collapse = " + "))),
     data = df,
     FUN = length
   )
@@ -201,6 +213,9 @@ as_design_score_space.pls_result <- function(x,
   means$y_se[!is.finite(means$y_se)] <- 0
   means$lv_x <- lv[[1L]]
   means$lv_y <- lv[[2L]]
+  means$.point_vars <- I(rep(list(grouping$point), nrow(means)))
+  means$.facet_vars <- I(rep(list(grouping$facet), nrow(means)))
+  means$.all <- NULL
   means$.lv_x <- NULL
   means$.lv_y <- NULL
 
@@ -428,12 +443,20 @@ plot_design_contrasts <- function(x,
 #' @param x A `pls_result` object.
 #' @param lv Integer vector of two latent variables.
 #' @param condition_key Optional condition metadata.
+#' @param formula Optional one-sided formula controlling aggregation and
+#'   faceting. Variables before `|` identify plotted points; variables after
+#'   `|` identify facets. Variables omitted from the formula are averaged over.
+#'   For example, `~ group + condition | task` labels group-condition centroids
+#'   in task facets, while `~ group | task` collapses over condition labels
+#'   inside each task.
 #' @param label Character vector of columns to paste into point labels. Defaults
 #'   to `group` and `condition` when a group column is available.
 #' @param label_sep Separator used when `label` has multiple columns.
 #' @param color Optional column name for point color. Defaults to `group` when
 #'   available.
 #' @param shape Optional column name for point shape.
+#' @param facet Optional column name or character vector used for faceting.
+#'   Defaults to the variables after `|` in `formula`.
 #' @param show_origin Logical; draw zero reference lines.
 #' @param show_segments Logical; draw segments from the origin to each centroid.
 #' @param show_se Logical; draw standard-error bars in both LV dimensions.
@@ -449,10 +472,12 @@ plot_design_contrasts <- function(x,
 plot_design_score_space <- function(x,
                                     lv = c(1L, 2L),
                                     condition_key = NULL,
+                                    formula = NULL,
                                     label = NULL,
                                     label_sep = "\n",
                                     color = NULL,
                                     shape = NULL,
+                                    facet = NULL,
                                     show_origin = TRUE,
                                     show_segments = TRUE,
                                     show_se = FALSE,
@@ -465,16 +490,29 @@ plot_design_score_space <- function(x,
     x,
     lv = lv,
     condition_key = condition_key,
+    formula = formula,
     block = block
   )
 
+  point_vars <- unlist(df$.point_vars[[1L]], use.names = FALSE)
+  facet_vars <- unlist(df$.facet_vars[[1L]], use.names = FALSE)
+  df$.point_vars <- NULL
+  df$.facet_vars <- NULL
+
   if (is.null(label)) {
-    label <- if ("group" %in% names(df)) c("group", "condition") else "condition"
+    label <- if (length(point_vars)) point_vars else if ("group" %in% names(df)) {
+      c("group", "condition")
+    } else {
+      "condition"
+    }
+  }
+  if (is.null(facet)) {
+    facet <- facet_vars
   }
   if (is.null(color) && "group" %in% names(df)) {
     color <- "group"
   }
-  .validate_design_columns(df, c(label, color, shape))
+  .validate_design_columns(df, c(label, color, shape, facet))
   df$.label <- .make_design_label(df, label, label_sep)
   limits <- .score_space_limits(df$x, df$y, padding = padding, symmetric = aspect == "fixed")
 
@@ -532,6 +570,10 @@ plot_design_score_space <- function(x,
     ) +
     theme_pls() +
     scale_color_pls_discrete()
+
+  if (length(facet)) {
+    p <- p + ggplot2::facet_wrap(stats::as.formula(paste("~", paste(facet, collapse = " + "))))
+  }
 
   if (aspect == "fixed") {
     p <- p + ggplot2::coord_fixed(xlim = limits$x, ylim = limits$y, clip = "off")
@@ -655,6 +697,35 @@ plot_design_score_space <- function(x,
     stop("Unknown design-score column(s): ", paste(missing, collapse = ", "), call. = FALSE)
   }
   invisible(TRUE)
+}
+
+.score_space_grouping <- function(formula = NULL, default_grouping, columns) {
+  if (is.null(formula)) {
+    return(list(point = default_grouping, facet = character(0), all = default_grouping))
+  }
+
+  if (!inherits(formula, "formula") || length(formula) != 2L) {
+    stop("formula must be a one-sided formula such as ~ group + condition | task.", call. = FALSE)
+  }
+
+  rhs <- formula[[2L]]
+  if (identical(rhs, 1) || identical(as.character(rhs), "1")) {
+    point <- character(0)
+    facet <- character(0)
+  } else if (is.call(rhs) && identical(as.character(rhs[[1L]]), "|")) {
+    point <- all.vars(rhs[[2L]])
+    facet <- all.vars(rhs[[3L]])
+  } else {
+    point <- all.vars(rhs)
+    facet <- character(0)
+  }
+
+  unknown <- setdiff(c(point, facet), columns)
+  if (length(unknown)) {
+    stop("Unknown design-score column(s): ", paste(unknown, collapse = ", "), call. = FALSE)
+  }
+
+  list(point = unique(point), facet = unique(facet), all = unique(c(point, facet)))
 }
 
 .make_design_label <- function(df, columns, sep = "\n") {

@@ -8,10 +8,12 @@ plot_design_score_space(
   x,
   lv = c(1L, 2L),
   condition_key = NULL,
+  formula = NULL,
   label = NULL,
   label_sep = "\\n",
   color = NULL,
   shape = NULL,
+  facet = NULL,
   show_origin = TRUE,
   show_segments = TRUE,
   show_se = FALSE,
@@ -28,6 +30,13 @@ plot_design_score_space(
 
 \item{condition_key}{Optional condition metadata.}
 
+\item{formula}{Optional one-sided formula controlling aggregation and
+faceting. Variables before \code{|} identify plotted points; variables after
+\code{|} identify facets. Variables omitted from the formula are averaged over.
+For example, \code{~ group + condition | task} labels group-condition centroids
+in task facets, while \code{~ group | task} collapses over condition labels
+inside each task.}
+
 \item{label}{Character vector of columns to paste into point labels. Defaults
 to \code{group} and \code{condition} when a group column is available.}
 
@@ -37,6 +46,9 @@ to \code{group} and \code{condition} when a group column is available.}
 available.}
 
 \item{shape}{Optional column name for point shape.}
+
+\item{facet}{Optional column name or character vector used for faceting.
+Defaults to the variables after \code{|} in \code{formula}.}
 
 \item{show_origin}{Logical; draw zero reference lines.}
 

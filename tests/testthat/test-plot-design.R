@@ -58,6 +58,23 @@ test_that("as_design_score_space summarizes cells across two latent variables", 
   expect_true(all(is.finite(space$y)))
 })
 
+test_that("as_design_score_space formula collapses omitted factors and preserves facets", {
+  result <- make_factorial_design_result()
+  space <- as_design_score_space(
+    result,
+    lv = c(1, 2),
+    condition_key = factorial_condition_key(),
+    formula = ~ group | task
+  )
+
+  expect_equal(nrow(space), 4L)
+  expect_true(all(c("group", "task", "x", "y") %in% names(space)))
+  expect_false("condition" %in% names(space))
+  expect_false("level" %in% names(space))
+  expect_equal(space$.point_vars[[1L]], "group")
+  expect_equal(space$.facet_vars[[1L]], "task")
+})
+
 test_that("design interpretation plots return ggplot objects", {
   skip_if_not_installed("ggplot2")
 
@@ -69,6 +86,10 @@ test_that("design interpretation plots return ggplot objects", {
   expect_s3_class(plot_design_contrasts(result, lv = 1, condition_key = key), "gg")
   expect_s3_class(plot_design_score_space(result, lv = c(1, 2), condition_key = key), "gg")
   expect_s3_class(plot_design_score_space(result, lv = c(1, 2), condition_key = key, aspect = "free"), "gg")
+  expect_s3_class(
+    plot_design_score_space(result, lv = c(1, 2), condition_key = key, formula = ~ group | task),
+    "gg"
+  )
 })
 
 test_that("design score space uses padded symmetric fixed-aspect limits", {

@@ -4,7 +4,13 @@
 \alias{as_design_score_space}
 \title{Two-LV Design Score Space}
 \usage{
-as_design_score_space(x, lv = c(1L, 2L), condition_key = NULL, block = NULL)
+as_design_score_space(
+  x,
+  lv = c(1L, 2L),
+  condition_key = NULL,
+  formula = NULL,
+  block = NULL
+)
 }
 \arguments{
 \item{x}{A \code{pls_result} object.}
@@ -14,13 +20,19 @@ as_design_score_space(x, lv = c(1L, 2L), condition_key = NULL, block = NULL)
 \item{condition_key}{Optional data frame with one row per condition and a
 \code{condition} column.}
 
+\item{formula}{Optional one-sided formula controlling aggregation and
+faceting. Variables before \code{|} identify plotted points; variables after
+\code{|} identify facets. Variables omitted from the formula are averaged over.
+For example, \code{~ group + level | task} plots group-by-level centroids
+separately within each task.}
+
 \item{block}{Optional score block to keep for multiblock results.}
 }
 \value{
-A data frame with one row per group-condition cell.
+A data frame with one row per requested centroid.
 }
 \description{
-Extract group-condition design-score centroids for two latent variables.
-This is useful for seeing how the flattened design pattern separates across
-more than one interpretable LV.
+Extract design-score centroids for two latent variables. This is useful for
+seeing how the flattened design pattern separates across more than one
+interpretable LV.
 }

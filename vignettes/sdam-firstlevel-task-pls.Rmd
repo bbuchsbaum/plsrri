@@ -191,6 +191,20 @@ plot_design_score_space(
 )
 ```
 
+Use the formula interface when you want to collapse over one factor or split
+the plot by another. Variables before `|` define the plotted centroids;
+variables after `|` define facets. Here the plot keeps group and level, splits
+by task, and averages over the original condition labels within each facet.
+
+```{r plot-design-score-space-faceted, fig.cap = "LV1/LV2 centroids collapsed to group-by-level points and faceted by task."}
+plot_design_score_space(
+  result,
+  lv = c(1, 2),
+  condition_key = condition_key,
+  formula = ~ group + level | task
+)
+```
+
 Brain scores show how consistently individual subject-condition observations
 express the same latent pattern.
 
