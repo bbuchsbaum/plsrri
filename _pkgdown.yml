@@ -17,6 +17,8 @@ navbar:
           href: articles/cli.html
         - text: Scripted Workflows
           href: articles/scripted-workflows.html
+        - text: Task PLS Design Subspaces
+          href: articles/task-design-subspace.html
         - text: Pipeline YAML Specification
           href: articles/pipeline-yaml-spec.html
         - text: Multisite Behavioral PLS
@@ -39,6 +41,7 @@ articles:
       - plsrri
       - cli
       - scripted-workflows
+      - task-design-subspace
       - pipeline-yaml-spec
       - site-pooling
       - predictive-measures

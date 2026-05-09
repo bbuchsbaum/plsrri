@@ -86,6 +86,7 @@ See the [pkgdown site](https://bbuchsbaum.github.io/plsrri/) for full documentat
 - [Getting Started](https://bbuchsbaum.github.io/plsrri/articles/plsrri.html)
 - [Command Line Interface](https://bbuchsbaum.github.io/plsrri/articles/cli.html)
 - [Scripted Workflows](https://bbuchsbaum.github.io/plsrri/articles/scripted-workflows.html)
+- [Task PLS Design Subspaces](https://bbuchsbaum.github.io/plsrri/articles/task-design-subspace.html)
 - [Behavior PLS](https://bbuchsbaum.github.io/plsrri/articles/behavior-pls.html)
 - [Predictive Measures](https://bbuchsbaum.github.io/plsrri/articles/predictive-measures.html)
 - [Multiblock and Seed PLS](https://bbuchsbaum.github.io/plsrri/articles/multiblock-and-seed.html)

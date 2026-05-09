@@ -248,6 +248,7 @@ If you want to move from interactive examples to reproducible scripted analysis,
 | Goal | Resource |
 |:-----|:---------|
 | Scripted R API, CLI, and report workflow | `vignette("scripted-workflows")` |
+| Factorial design-subspace summaries for Task PLS | `vignette("task-design-subspace")` |
 | Behavior PLS with continuous measures | `vignette("behavior-pls")` |
 | Multisite pooled behavior PLS with site diagnostics | `vignette("site-pooling")` |
 | Within-subject seed connectivity from trial-level data | `vignette("ws-seed-pls")` |

@@ -1,0 +1,322 @@
+---
+title: "Design-Subspace Summaries for Task PLS"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Design-Subspace Summaries for Task PLS}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 6,
+  fig.height = 4
+)
+
+ensure_local_plsrri <- function(required_exports) {
+  pkg_root <- if (file.exists("DESCRIPTION")) "." else ".."
+  if (!file.exists(file.path(pkg_root, "DESCRIPTION")) ||
+      !requireNamespace("devtools", quietly = TRUE)) {
+    return(invisible(FALSE))
+  }
+
+  installed_exports <- if (requireNamespace("plsrri", quietly = TRUE)) {
+    getNamespaceExports("plsrri")
+  } else {
+    character(0)
+  }
+
+  if (!all(required_exports %in% installed_exports)) {
+    devtools::load_all(pkg_root, quiet = TRUE)
+    return(invisible(TRUE))
+  }
+
+  invisible(FALSE)
+}
+
+ensure_local_plsrri(c(
+  "pls_design",
+  "design_cell_table",
+  "decompose_design_terms",
+  "test_design_terms",
+  "compare_designs"
+))
+```
+
+```{r load-package}
+library(plsrri)
+```
+
+Task PLS gives you latent variables over a flattened set of group-by-condition
+cells. When the conditions come from a factorial design, the next question is
+often more specific: does the covariance pattern live mostly in a task effect,
+a group-by-task interaction, or a higher-order term?
+
+The design-subspace helpers answer that question on the design side of Task
+PLS. They do not run voxelwise ANOVAs. They build factorial subspaces over the
+same centered cell rows used by Task PLS and summarize how much cross-block
+covariance lies in each subspace.
+
+## What are the data?
+
+This example uses synthetic data with two groups, two tasks, and two levels.
+The planted signal includes a group-by-task effect, a level effect, and a
+smaller three-way interaction.
+
+```{r simulate-design, include = FALSE}
+set.seed(20260509)
+
+n_subjects <- 18
+n_features <- 90
+
+condition_key <- expand.grid(
+  level = c("low", "high"),
+  task = c("recog", "nback"),
+  KEEP.OUT.ATTRS = FALSE,
+  stringsAsFactors = FALSE
+)
+condition_key$condition <- paste(condition_key$task, condition_key$level, sep = "_")
+condition_key <- condition_key[, c("condition", "task", "level")]
+
+make_group_matrix <- function(group) {
+  group_code <- if (identical(group, "sdam")) 1 else -1
+  rows <- vector("list", n_subjects * nrow(condition_key))
+  row_id <- 1L
+
+  for (subject in seq_len(n_subjects)) {
+    subject_offset <- rnorm(n_features, sd = 0.15)
+    for (condition_id in seq_len(nrow(condition_key))) {
+      task_code <- if (condition_key$task[[condition_id]] == "nback") 1 else -1
+      level_code <- if (condition_key$level[[condition_id]] == "high") 1 else -1
+
+      x <- rnorm(n_features, sd = 0.7) + subject_offset
+      x[1:25] <- x[1:25] + 0.7 * group_code * task_code
+      x[26:45] <- x[26:45] + 0.5 * level_code
+      x[46:60] <- x[46:60] + 0.35 * group_code * task_code * level_code
+      rows[[row_id]] <- x
+      row_id <- row_id + 1L
+    }
+  }
+
+  do.call(rbind, rows)
+}
+
+control <- make_group_matrix("control")
+sdam <- make_group_matrix("sdam")
+```
+
+The condition key maps each PLS condition label back to the factors that
+created it.
+
+```{r show-condition-key}
+condition_key
+```
+
+## How do we keep the Task PLS cross-block matrix?
+
+Design-subspace summaries need the cell-level cross-block matrix used by Task
+PLS before the singular value decomposition. Request it at fit time with
+`keep_crossblock = TRUE`.
+
+```{r fit-task-pls}
+fit <- pls_spec() |>
+  add_subjects(list(control, sdam), groups = c(n_subjects, n_subjects)) |>
+  add_conditions(nrow(condition_key), labels = condition_key$condition) |>
+  add_group_labels(c("control", "sdam")) |>
+  configure(method = "task", meancentering = "grand_mean") |>
+  run(progress = FALSE, keep_crossblock = TRUE)
+```
+
+```{r check-fit, include = FALSE}
+stopifnot(
+  inherits(fit, "pls_result"),
+  is.list(fit$task_pls),
+  is.matrix(fit$task_pls$crossblock),
+  all(is.finite(fit$task_pls$crossblock))
+)
+```
+
+The ordinary Task PLS result is still a latent-variable model. The new field is
+only a compact summary object needed for design-subspace calculations; it does
+not store the original subject-level imaging data.
+
+## How do we define the factorial design?
+
+Use `pls_design()` to describe the design over group-condition cells. The rows
+come from the PLS result; the condition-level factors come from the condition
+key.
+
+```{r make-design}
+design <- pls_design(
+  ~ group * task * level,
+  condition_key = condition_key,
+  between = "group",
+  within = c("task", "level")
+)
+```
+
+You can inspect the cell table to confirm the row order. These are the rows of
+the Task PLS cross-block matrix: all conditions for group 1, then all
+conditions for group 2.
+
+```{r show-cell-table}
+design_cell_table(fit, design = design)[
+  , c("row_index", "group", "condition", "task", "level")
+]
+```
+
+```{r check-cell-table, include = FALSE}
+cells <- design_cell_table(fit, design = design)
+stopifnot(
+  nrow(cells) == nrow(fit$task_pls$crossblock),
+  identical(as.character(cells$condition[seq_len(nrow(condition_key))]), condition_key$condition)
+)
+```
+
+## Which factorial terms does an LV resemble?
+
+Start descriptively. `decompose_design_terms()` projects one design-side LV
+onto the centered factorial subspaces and reports how much LV energy aligns
+with each term. This helps interpret an already selected LV; it is not a
+p-value.
+
+```{r decompose-lv}
+lv_terms <- decompose_design_terms(fit, lv = 1, design = design)
+lv_terms$fraction <- round(lv_terms$fraction, 3)
+lv_terms[order(lv_terms$fraction, decreasing = TRUE),
+         c("term", "rank", "fraction")]
+```
+
+```{r check-lv-decomposition, include = FALSE}
+stopifnot(
+  all(is.finite(lv_terms$energy)),
+  all(lv_terms$fraction >= 0),
+  all(lv_terms$fraction <= 1 + 1e-8)
+)
+```
+
+For this simulated example, LV1 should align strongly with the planted
+factorial effects. The exact ordering is data-dependent because the example
+still includes noise.
+
+A plot of the same LV-level decomposition is useful when you want a quick
+interpretive summary for a selected latent variable.
+
+```{r plot-lv-terms, fig.cap = "Effect-coded decomposition of the LV1 design scores."}
+plot_design_contrasts(fit, lv = 1, condition_key = condition_key)
+```
+
+## How much covariance is in each design subspace?
+
+`test_design_terms()` works on the stored Task PLS cross-block matrix, not just
+on one LV. The default statistic is `"trace"`, the total squared singular
+value energy in each centered term subspace.
+
+```{r test-terms}
+term_tests <- test_design_terms(
+  fit,
+  design = design,
+  statistic = "trace"
+)
+term_tests$share <- round(term_tests$statistic / sum(term_tests$statistic), 3)
+term_tests$statistic <- round(term_tests$statistic, 2)
+term_tests[, c("term", "rank", "statistic", "share", "p_value")]
+```
+
+```{r check-term-tests, include = FALSE}
+stopifnot(
+  all(is.finite(term_tests$statistic)),
+  all(term_tests$rank >= 0),
+  all(is.na(term_tests$p_value)),
+  sum(term_tests$share) > 0.9
+)
+```
+
+The `p_value` column is intentionally `NA` here. The current implementation
+computes observed design-subspace summaries; permutation p-values for nested
+factorial questions require a reduced-model-respecting null and are not
+silently approximated.
+
+If you want the most PLS-like single-root statistic instead of omnibus energy,
+use `statistic = "largest_root"`.
+
+```{r largest-root}
+largest_root <- test_design_terms(
+  fit,
+  design = design,
+  statistic = "largest_root"
+)
+largest_root$statistic <- round(largest_root$statistic, 2)
+largest_root[, c("term", "rank", "statistic")]
+```
+
+```{r check-largest-root, include = FALSE}
+trace_again <- test_design_terms(fit, design = design, statistic = "trace")
+root_again <- test_design_terms(fit, design = design, statistic = "largest_root")
+stopifnot(all(root_again$statistic <= trace_again$statistic + 1e-8))
+```
+
+## How do we ask a nested design question?
+
+Use `compare_designs()` when your question is "what is added by the full model
+beyond the reduced model?" The function residualizes the full design against
+the reduced design in the same centered Task PLS row space.
+
+```{r compare-designs}
+task_beyond_group <- compare_designs(
+  fit,
+  design = design,
+  reduced = ~ group,
+  full = ~ group * task
+)
+
+interactions_beyond_main_effects <- compare_designs(
+  fit,
+  design = design,
+  reduced = ~ group + task + level,
+  full = ~ group * task * level
+)
+
+nested_tests <- rbind(task_beyond_group, interactions_beyond_main_effects)
+nested_tests$statistic <- round(nested_tests$statistic, 2)
+nested_tests[, c("reduced", "full", "added_terms", "rank", "statistic", "p_value")]
+```
+
+```{r check-nested-tests, include = FALSE}
+stopifnot(
+  all(is.finite(nested_tests$statistic)),
+  all(nested_tests$rank >= 0),
+  all(is.na(nested_tests$p_value))
+)
+```
+
+The first comparison asks how much covariance is carried by task plus the
+group-by-task interaction after accounting for group. The second asks how much
+covariance is carried by all interactions after accounting for the three main
+effects.
+
+## How should the summaries be interpreted?
+
+Keep three distinctions clear:
+
+1. `plot_scores()` and `plot_design_contrasts()` help you interpret selected
+   LVs.
+2. `decompose_design_terms()` descriptively attributes one LV's design vector
+   to factorial terms.
+3. `test_design_terms()` and `compare_designs()` summarize covariance energy
+   in centered design subspaces of the Task PLS cross-block matrix.
+
+These are design-subspace summaries, not classical ANOVA tables and not
+voxelwise tests. They preserve the multivariate PLS object while making the
+factorial structure of the design explicit.
+
+## Where to go next
+
+Use `vignette("sdam-firstlevel-task-pls")` for a first-level image-map example
+with design-score heatmaps and contrast plots. Use `?pls_design`,
+`?decompose_design_terms`, `?test_design_terms`, and `?compare_designs` for the
+function-level reference.
