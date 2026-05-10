@@ -97,6 +97,76 @@ test_that("Freedman-Lane partial tests return bounded reproducible p-values", {
   expect_true(all(tab$status %in% c("kept", "dropped", "protected", "not_estimable")))
 })
 
+test_that("ASCA-PLS reduced-model permutations require raw spec for calibrated inference", {
+  fx <- make_asca_pls_synthetic_fixture(noise_sd = 0.10)
+
+  expect_error(
+    asca_pls(
+      fx$fit,
+      decompose = fx$formula,
+      condition_key = fx$condition_key,
+      test = partial_test(method = "freedman_lane", statistic = "trace", nperm = 9),
+      selection = hierarchical_selection(method = "none")
+    ),
+    "requires the original pls_spec"
+  )
+})
+
+test_that("ASCA-PLS interaction tests are not anti-conservative under main-effects-only synthetic data", {
+  interaction_terms <- c("group:task", "group:level", "task:level", "group:task:level")
+  main_only <- c(
+    group = 1.4,
+    task = 1.2,
+    level = 1.1,
+    `group:task` = 0,
+    `group:level` = 0,
+    `task:level` = 0,
+    `group:task:level` = 0
+  )
+  alpha <- 0.10
+  n_reps <- 12L
+  nperm <- 99L
+  p_values <- vector("list", n_reps)
+
+  for (i in seq_len(n_reps)) {
+    fx <- make_asca_pls_synthetic_fixture(
+      seed = 9000L + i,
+      n_per_group = c(control = 8L, sdam = 8L),
+      effects = main_only,
+      noise_sd = 0.8
+    )
+    set.seed(5000L + i)
+    fit <- asca_pls(
+      fx$spec,
+      fit = fx$fit,
+      decompose = fx$formula,
+      condition_key = fx$condition_key,
+      id = "subject",
+      within = c("task", "level"),
+      between = "group",
+      test = partial_test(method = "freedman_lane", statistic = "trace", nperm = nperm, correction = "none"),
+      selection = hierarchical_selection(method = "none")
+    )
+    tab <- anova(fit)
+    p_values[[i]] <- tab$p_value[match(interaction_terms, tab$term)]
+  }
+
+  p_values <- unlist(p_values, use.names = FALSE)
+  false_positives <- sum(p_values <= alpha)
+  total_tests <- length(p_values)
+  upper_99 <- stats::qbinom(0.99, size = total_tests, prob = alpha)
+
+  expect_true(all(is.finite(p_values)))
+  expect_true(all(p_values >= 0 & p_values <= 1))
+  expect_true(
+    false_positives <= upper_99,
+    label = sprintf(
+      "Observed %d/%d interaction false positives at alpha %.2f; 99%% binomial upper bound is %d.",
+      false_positives, total_tests, alpha, upper_99
+    )
+  )
+})
+
 test_that("tested-effect bridge lifts partial components into factorial cell coordinates", {
   fx <- make_asca_pls_synthetic_fixture(noise_sd = 0.05)
   fit <- asca_pls(

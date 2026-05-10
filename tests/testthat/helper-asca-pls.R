@@ -2,6 +2,7 @@ make_asca_pls_synthetic_fixture <- function(seed = 20260510,
                                             n_per_group = c(control = 10L, sdam = 10L),
                                             n_features = 48L,
                                             signal_scale = 1,
+                                            effects = NULL,
                                             noise_sd = 0.25,
                                             meancentering = "grand_mean") {
   set.seed(seed)
@@ -15,11 +16,30 @@ make_asca_pls_synthetic_fixture <- function(seed = 20260510,
   condition_key <- condition_key[, c("condition", "task", "level")]
 
   supports <- list(
-    `group:task` = 1:8,
+    group = 25:32,
+    task = 33:40,
     level = 9:16,
+    `group:task` = 1:8,
+    `group:level` = 41:44,
+    `task:level` = 45:48,
     `group:task:level` = 17:24
   )
   n_features <- max(as.integer(n_features), max(unlist(supports)))
+  default_effects <- c(
+    group = 0,
+    task = 0,
+    level = 2.0,
+    `group:task` = 2.5,
+    `group:level` = 0,
+    `task:level` = 0,
+    `group:task:level` = 1.8
+  )
+  if (is.null(effects)) {
+    effects <- default_effects
+  } else {
+    effects <- utils::modifyList(as.list(default_effects), as.list(effects))
+    effects <- unlist(effects, use.names = TRUE)
+  }
 
   metadata_rows <- list()
   make_group <- function(group, n_subjects) {
@@ -32,12 +52,17 @@ make_asca_pls_synthetic_fixture <- function(seed = 20260510,
         task_code <- if (condition_key$task[[i]] == "nback") 1 else -1
         level_code <- if (condition_key$level[[i]] == "high") 1 else -1
         x <- rnorm(n_features, sd = noise_sd) + subject_offset
+        x[supports$group] <- x[supports$group] + signal_scale * effects[["group"]] * group_code
+        x[supports$task] <- x[supports$task] + signal_scale * effects[["task"]] * task_code
+        x[supports$level] <- x[supports$level] + signal_scale * effects[["level"]] * level_code
         x[supports$`group:task`] <- x[supports$`group:task`] +
-          signal_scale * 2.5 * group_code * task_code
-        x[supports$level] <- x[supports$level] +
-          signal_scale * 2.0 * level_code
+          signal_scale * effects[["group:task"]] * group_code * task_code
+        x[supports$`group:level`] <- x[supports$`group:level`] +
+          signal_scale * effects[["group:level"]] * group_code * level_code
+        x[supports$`task:level`] <- x[supports$`task:level`] +
+          signal_scale * effects[["task:level"]] * task_code * level_code
         x[supports$`group:task:level`] <- x[supports$`group:task:level`] +
-          signal_scale * 1.8 * group_code * task_code * level_code
+          signal_scale * effects[["group:task:level"]] * group_code * task_code * level_code
         rows[[row_id]] <- x
         metadata_rows[[length(metadata_rows) + 1L]] <<- data.frame(
           subject = paste(group, subject, sep = "_"),
@@ -84,6 +109,7 @@ make_asca_pls_synthetic_fixture <- function(seed = 20260510,
     metadata = do.call(rbind, metadata_rows),
     condition_key = condition_key,
     supports = supports,
+    effects = effects,
     n_per_group = n_per_group,
     formula = ~ group * task * level
   )

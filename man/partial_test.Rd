@@ -32,8 +32,9 @@ A partial-test specification.
 }
 \description{
 Defines how formula terms are tested in \code{asca_pls()}. The current
-implementation supports observed partial statistics and a cell-level
-Freedman-Lane residual permutation for synthetic and balanced-cell Task PLS
-workflows. Subject-level exchangeability metadata is retained for diagnostics
-and future richer resampling engines.
+implementation supports observed partial statistics and raw-observation
+Freedman-Lane residual permutation when the original \code{pls_spec} is available.
+For repeated-measures terms, residuals are permuted within derived subject
+blocks so higher-order interaction tests are not calibrated from the
+anti-conservative cell-level residual fallback.
 }

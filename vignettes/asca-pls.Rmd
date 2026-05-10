@@ -91,12 +91,17 @@ it into the original term coordinates.
 
 ## Current Permutation Scope
 
-The first implementation supports a cell-level Freedman-Lane residual
-permutation for Task PLS design cross-blocks. This is useful for balanced-cell
-and synthetic validation workflows and makes the reduced/full distinction
-explicit. Richer raw subject-level exchangeability for repeated-measures and
-site-restricted designs is intentionally represented in the API metadata and is
-the next resampling hardening target.
+Reduced-model permutation inference requires the original `pls_spec`, even when
+you also pass a precomputed `fit`. The implementation uses raw-observation
+Freedman-Lane residual permutations and then rebuilds the Task PLS cross-block
+for each permutation. For repeated-measures terms, residuals are permuted within
+derived subject blocks.
+
+This distinction matters. A purely cell-level residual permutation can be
+anti-conservative when the data contain only main effects plus subject-level
+repeated-measures structure. The synthetic calibration tests therefore exercise
+main-effects-only multivariate data and check that higher-order interaction
+terms do not exceed a binomial false-positive-rate bound.
 
 For neuroimaging interpretation, use permutation p-values for term/component
 evidence and bootstrap-style stability summaries for feature saliences.

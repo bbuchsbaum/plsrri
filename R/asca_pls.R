@@ -2,10 +2,11 @@
 #'
 #' @description
 #' Defines how formula terms are tested in `asca_pls()`. The current
-#' implementation supports observed partial statistics and a cell-level
-#' Freedman-Lane residual permutation for synthetic and balanced-cell Task PLS
-#' workflows. Subject-level exchangeability metadata is retained for diagnostics
-#' and future richer resampling engines.
+#' implementation supports observed partial statistics and raw-observation
+#' Freedman-Lane residual permutation when the original `pls_spec` is available.
+#' For repeated-measures terms, residuals are permuted within derived subject
+#' blocks so higher-order interaction tests are not calibrated from the
+#' anti-conservative cell-level residual fallback.
 #'
 #' @param method Testing method. Currently `"freedman_lane"` or `"none"`.
 #' @param statistic `"trace"` for omnibus subspace energy or `"largest_root"`
@@ -145,6 +146,9 @@ asca_pls <- function(x,
     strata = .asca_role_names(substitute(strata), strata)
   )
   test <- .asca_normalize_test(test, nperm = nperm)
+  if (is.null(test$exchangeability)) {
+    test$exchangeability <- structure(roles, class = "asca_exchangeability")
+  }
   selection <- .asca_normalize_selection(selection)
   inputs <- .asca_resolve_inputs(x, fit = fit, progress = progress, ...)
 
@@ -182,6 +186,7 @@ asca_pls <- function(x,
   partial <- .asca_partial_pvalues(
     partial = partial,
     ctx = ctx,
+    spec = inputs$spec,
     test = test
   )
   selection_table <- .asca_select_terms(partial$anova, selection)
@@ -716,7 +721,7 @@ plot.asca_pls_result <- function(x,
   list(term_fits = term_fits, anova = anova, null = NULL)
 }
 
-.asca_partial_pvalues <- function(partial, ctx, test) {
+.asca_partial_pvalues <- function(partial, ctx, spec, test) {
   if (identical(test$method, "none") || test$nperm == 0L) {
     partial$anova$p_value <- NA_real_
     partial$anova$p_adjusted <- NA_real_
@@ -725,7 +730,14 @@ plot.asca_pls_result <- function(x,
   if (!identical(test$method, "freedman_lane")) {
     stop("Unsupported ASCA-PLS test method: ", test$method, call. = FALSE)
   }
-  null <- .asca_freedman_lane_null(partial$term_fits, ctx = ctx, test = test)
+  if (is.null(spec)) {
+    stop(
+      "Reduced-model ASCA-PLS permutation inference requires the original pls_spec. ",
+      "Call asca_pls(spec, fit = fit, ...) rather than asca_pls(fit, ...) when nperm > 0.",
+      call. = FALSE
+    )
+  }
+  null <- .asca_freedman_lane_raw_null(partial$term_fits, ctx = ctx, spec = spec, test = test)
   observed <- partial$anova$statistic
   partial$anova$p_value <- vapply(seq_along(observed), function(j) {
     (sum(null[, j] >= observed[[j]]) + 1) / (nrow(null) + 1)
@@ -740,6 +752,141 @@ plot.asca_pls_result <- function(x,
   }
   partial$null <- if (isTRUE(test$keep_null)) null else NULL
   partial
+}
+
+.asca_freedman_lane_raw_null <- function(term_fits, ctx, spec, test) {
+  spec <- .materialize_pls_spec(spec, derive_seed_behavior = TRUE)
+  .validate_spec(spec)
+  if (!as.integer(spec$method) %in% c(1L, 2L)) {
+    stop("Raw ASCA-PLS Freedman-Lane permutations currently support Task PLS methods 1 and 2.", call. = FALSE)
+  }
+  y <- do.call(rbind, spec$datamat_lst)
+  obs <- .asca_observation_table(spec, ctx)
+  if (nrow(obs) != nrow(y)) {
+    stop("ASCA-PLS observation metadata does not match the stacked datamat.", call. = FALSE)
+  }
+
+  nperm <- as.integer(test$nperm)
+  out <- matrix(0, nrow = nperm, ncol = length(term_fits))
+  colnames(out) <- names(term_fits)
+  bscan <- spec$bscan %||% seq_len(spec$num_cond)
+
+  for (j in seq_along(term_fits)) {
+    term_fit <- term_fits[[j]]
+    reduced <- .asca_raw_reduced_formula(term_fit$reduced, term = names(term_fits)[[j]], exchangeability = test$exchangeability)
+    x_reduced <- .asca_raw_model_matrix(reduced, obs, contrasts = ctx$contrasts)
+    fitted <- .asca_lm_fitted(x_reduced, y)
+    residual <- y - fitted
+    perms <- .asca_raw_permutation_orders(obs, term = names(term_fits)[[j]], nperm = nperm, exchangeability = test$exchangeability)
+
+    for (p in seq_len(nperm)) {
+      y_perm <- fitted + residual[perms[, p], , drop = FALSE]
+      covcor <- pls_get_covcor(
+        method = as.integer(spec$method),
+        stacked_datamat = y_perm,
+        stacked_behavdata = spec$stacked_behavdata,
+        num_groups = length(spec$num_subj_lst),
+        num_subj_lst = spec$num_subj_lst,
+        num_cond = as.integer(spec$num_cond),
+        bscan = bscan,
+        meancentering_type = as.integer(spec$meancentering_type %||% 0L),
+        cormode = as.integer(spec$cormode %||% 0L)
+      )
+      out[p, j] <- .design_subspace_stat(
+        crossblock = covcor$datamatsvd,
+        basis = term_fit$basis,
+        weights = term_fit$weights,
+        statistic = test$statistic
+      )
+    }
+  }
+
+  out
+}
+
+.asca_observation_table <- function(spec, ctx) {
+  groups <- as.character(spec$groups %||% paste0("Group", seq_along(spec$num_subj_lst)))
+  conditions <- as.character(spec$conditions %||% paste0("Cond", seq_len(spec$num_cond)))
+  key <- unique(ctx$cell_table[, setdiff(names(ctx$cell_table), c("row_index", "group", "cell_n")), drop = FALSE])
+  rows <- vector("list", sum(as.integer(spec$num_subj_lst)) * as.integer(spec$num_cond))
+  row_id <- 1L
+  for (g in seq_along(spec$num_subj_lst)) {
+    for (s in seq_len(as.integer(spec$num_subj_lst[[g]]))) {
+      for (cnd in seq_len(as.integer(spec$num_cond))) {
+        condition <- conditions[[cnd]]
+        condition_row <- key[as.character(key$condition) == condition, , drop = FALSE]
+        rows[[row_id]] <- data.frame(
+          row_index = row_id,
+          group = groups[[g]],
+          subject = paste0(groups[[g]], "_", s),
+          condition = condition,
+          stringsAsFactors = FALSE
+        )
+        rows[[row_id]] <- cbind(rows[[row_id]], condition_row[, setdiff(names(condition_row), "condition"), drop = FALSE])
+        row_id <- row_id + 1L
+      }
+    }
+  }
+  out <- do.call(rbind, rows)
+  out$group <- factor(out$group, levels = groups)
+  out$subject <- factor(out$subject, levels = unique(out$subject))
+  out$condition <- factor(out$condition, levels = conditions)
+  .factorize_design_columns(out)
+}
+
+.asca_raw_reduced_formula <- function(reduced, term, exchangeability) {
+  within <- exchangeability$within %||% character(0)
+  include_subject <- length(intersect(strsplit(term, ":", fixed = TRUE)[[1L]], within)) > 0L
+  reduced_terms <- attr(stats::terms(reduced), "term.labels")
+  if (isTRUE(include_subject)) {
+    reduced_terms <- c("subject", reduced_terms)
+  }
+  .asca_formula_from_terms(reduced_terms)
+}
+
+.asca_raw_model_matrix <- function(formula, obs, contrasts = "sum") {
+  vars <- all.vars(formula)
+  data <- obs
+  factor_cols <- vars[vapply(data[intersect(vars, names(data))], is.factor, logical(1))]
+  contrast_args <- if (length(factor_cols)) {
+    stats::setNames(rep(list(stats::contr.sum), length(factor_cols)), factor_cols)
+  } else {
+    NULL
+  }
+  stats::model.matrix(formula, data = data, contrasts.arg = contrast_args)
+}
+
+.asca_lm_fitted <- function(x, y) {
+  fit <- stats::lm.fit(x = x, y = y)
+  fitted <- fit$fitted.values
+  if (is.null(dim(fitted))) {
+    fitted <- matrix(fitted, ncol = 1L)
+  }
+  fitted
+}
+
+.asca_raw_permutation_orders <- function(obs, term, nperm, exchangeability) {
+  n <- nrow(obs)
+  out <- matrix(0L, nrow = n, ncol = nperm)
+  within <- exchangeability$within %||% character(0)
+  strata <- intersect(exchangeability$strata %||% character(0), names(obs))
+  term_parts <- strsplit(term, ":", fixed = TRUE)[[1L]]
+  has_within <- length(intersect(term_parts, within)) > 0L
+
+  if (isTRUE(has_within) && "subject" %in% names(obs)) {
+    groups <- split(seq_len(n), obs$subject)
+  } else if (length(strata)) {
+    groups <- split(seq_len(n), interaction(obs[, strata, drop = FALSE], drop = TRUE, lex.order = TRUE))
+  } else {
+    groups <- list(seq_len(n))
+  }
+
+  for (p in seq_len(nperm)) {
+    idx <- seq_len(n)
+    for (g in groups) idx[g] <- sample(g, length(g))
+    out[, p] <- idx
+  }
+  out
 }
 
 .asca_freedman_lane_null <- function(term_fits, ctx, test) {
