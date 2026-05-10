@@ -118,11 +118,11 @@ test_that("install_cli copies wrapper and refuses overwrite by default", {
 })
 
 test_that("exec/plscli wrapper runs help successfully", {
-  wrapper <- normalizePath(
-    file.path(testthat::test_path("..", ".."), "exec", "plscli"),
-    winslash = "/",
-    mustWork = TRUE
-  )
+  wrapper <- system.file("exec", "plscli", package = "plsrri")
+  if (!nzchar(wrapper)) {
+    wrapper <- file.path(testthat::test_path("..", ".."), "exec", "plscli")
+  }
+  wrapper <- normalizePath(wrapper, winslash = "/", mustWork = TRUE)
   cmd <- file.path(R.home("bin"), "Rscript")
   out <- system2(cmd, c(wrapper, "--help"), stdout = TRUE, stderr = TRUE)
   status <- attr(out, "status") %||% 0L

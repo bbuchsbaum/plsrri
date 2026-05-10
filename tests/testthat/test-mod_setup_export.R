@@ -193,19 +193,21 @@ test_that("pipeline_spec_to_setup_values recovers exported pipeline UI fields", 
 })
 
 test_that("setup_export_yaml_content writes YAML including UI analyze mode", {
-  spec <- .make_pipeline_spec(analyze_mode = "firstlevel_only")
-  prepared <- build_prepared_analysis_from_bids_pipeline(
-    pipeline_spec = spec,
-    pls_options = list(method = "task"),
-    analyze_mode = "firstlevel_only"
-  )
-  out <- tempfile(fileext = ".yml")
+  with_recent_dir({
+    spec <- .make_pipeline_spec(analyze_mode = "firstlevel_only")
+    prepared <- build_prepared_analysis_from_bids_pipeline(
+      pipeline_spec = spec,
+      pls_options = list(method = "task"),
+      analyze_mode = "firstlevel_only"
+    )
+    out <- tempfile(fileext = ".yml")
 
-  setup_export_yaml_content(prepared, out)
-  txt <- paste(readLines(out, warn = FALSE), collapse = "\n")
+    setup_export_yaml_content(prepared, out)
+    txt <- paste(readLines(out, warn = FALSE), collapse = "\n")
 
-  expect_match(txt, "ui:")
-  expect_match(txt, "analyze_mode: firstlevel_only")
+    expect_match(txt, "ui:")
+    expect_match(txt, "analyze_mode: firstlevel_only")
+  })
 })
 
 test_that("setup_cli_modal_body includes staged array guidance", {
@@ -346,7 +348,7 @@ test_that("setup_export_yaml_content also records recent snapshot", {
 })
 
 test_that("setup export download button writes pipeline YAML", {
-  shiny::testServer(setup_server, args = list(state_rv = make_test_state_rv_export()), {
+  with_recent_dir(shiny::testServer(setup_server, args = list(state_rv = make_test_state_rv_export()), {
     local_rv$analysis_source <- "direct"
     local_rv$bids_path <- tempdir()
     local_rv$bids_output_root <- file.path(tempdir(), "plsrri-yaml-out")
@@ -381,5 +383,5 @@ test_that("setup export download button writes pipeline YAML", {
     expect_match(txt, "dataset:")
     expect_match(txt, "ui:")
     expect_match(txt, "analyze_mode: firstlevel_only")
-  })
+  }))
 })

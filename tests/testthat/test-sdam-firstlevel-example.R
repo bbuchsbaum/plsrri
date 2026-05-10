@@ -40,7 +40,7 @@ test_that("SDAM first-level tutorial manifest and smoke fit are valid", {
   )
 
   set.seed(example_env$SDAM_SEED)
-  result <- run(spec, progress = FALSE)
+  result <- run(spec, progress = FALSE, keep_crossblock = TRUE)
   expect_s3_class(result, "pls_result")
   expect_equal(n_features(result), 32L)
   expect_equal(result$groups, c("control", "sdam"))
@@ -68,4 +68,13 @@ test_that("SDAM first-level tutorial manifest and smoke fit are valid", {
   expect_true(all(is.finite(overlay_lim)))
   expect_lt(overlay_lim[[1]], 0)
   expect_gt(overlay_lim[[2]], 0)
+
+  asca <- example_env$run_sdam_asca_pls(
+    list(manifest = manifest, mask = mask, spec = spec, result = result),
+    nperm = 0L
+  )
+  expect_s3_class(asca, "asca_pls_result")
+  asca_summary <- example_env$summarise_sdam_asca(asca)
+  expect_true(all(c("term", "statistic", "status") %in% names(asca_summary)))
+  expect_true("group:task:level" %in% asca_summary$term)
 })

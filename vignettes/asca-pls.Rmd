@@ -1,0 +1,102 @@
+---
+title: "Formula-Aware ASCA-PLS"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Formula-Aware ASCA-PLS}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+ASCA-PLS adds a formula-aware layer to Task PLS. The goal is to make the
+design side behave like an ANOVA-style decomposition without pretending that
+residualized test components are ordinary factorial effects.
+
+The rule is:
+
+> Inference is partial. Interpretation is factorial. The bridge is explicit.
+
+Each formula term carries three linked objects:
+
+- an **estimand**, the named factorial effect such as `group:task:level`;
+- a **test**, the lower-order-residualized partial space used for evidence;
+- a **display view**, usually `tested_effect`, which lifts the tested partial
+  direction back into named factorial cell coordinates.
+
+## Basic Workflow
+
+```{r example, eval = FALSE}
+fit <- asca_pls(
+  spec,
+  decompose = ~ group * task * level,
+  condition_key = condition_key,
+  id = "subject",
+  within = c("task", "level"),
+  between = "group",
+  test = partial_test(
+    method = "freedman_lane",
+    statistic = "trace",
+    nperm = 1000,
+    correction = "maxT"
+  ),
+  selection = hierarchical_selection(
+    method = "backward",
+    heredity = "strong",
+    alpha = 0.05
+  )
+)
+```
+
+`anova(fit)` returns the partial evidence table. `plot(fit, term = ...)`
+defaults to the tested-effect display: the tested partial component chooses the
+brain direction, while the design profile is shown in the original factorial
+cell coordinates.
+
+```{r accessors, eval = FALSE}
+anova(fit)
+selected_formula(fit)
+asca_term_table(fit)
+
+asca_components(fit, term = "group:task:level")
+brain_saliences(fit, term = "group:task:level")
+design_saliences(fit, term = "group:task:level")
+
+plot_asca_effect_profile(
+  fit,
+  term = "group:task:level",
+  x_axis = "level",
+  line = "task",
+  facet = "group"
+)
+plot_asca_alignment(fit)
+plot_asca_selection(fit)
+```
+
+## Views
+
+`view = "partial"` is the raw lower-order-residualized evidence space. It is
+the right space for nested tests, but it is not the easiest scientific object
+to interpret.
+
+`view = "effect"` is the named factorial effect-space SVD. It is readable, but
+its component orientation is descriptive rather than necessarily the component
+used by the partial test.
+
+`view = "tested_effect"` is the default compromise. It uses the partial
+component for orientation and displays the corresponding profile after lifting
+it into the original term coordinates.
+
+## Current Permutation Scope
+
+The first implementation supports a cell-level Freedman-Lane residual
+permutation for Task PLS design cross-blocks. This is useful for balanced-cell
+and synthetic validation workflows and makes the reduced/full distinction
+explicit. Richer raw subject-level exchangeability for repeated-measures and
+site-restricted designs is intentionally represented in the API metadata and is
+the next resampling hardening target.
+
+For neuroimaging interpretation, use permutation p-values for term/component
+evidence and bootstrap-style stability summaries for feature saliences.

@@ -342,6 +342,51 @@ plot_sdam_bsr_surface <- function(result,
     patchwork::plot_layout(heights = c(1, 0.08))
 }
 
+make_sdam_asca_design <- function() {
+  plsrri::pls_design(
+    ~ group * task * level,
+    condition_key = sdam_condition_key(),
+    between = "group",
+    within = c("task", "level")
+  )
+}
+
+run_sdam_asca_pls <- function(analysis,
+                              nperm = 0L,
+                              statistic = "trace",
+                              selection_alpha = 0.05) {
+  nperm <- as.integer(nperm)
+  test_method <- if (nperm > 0L) "freedman_lane" else "none"
+  selection_method <- if (nperm > 0L) "backward" else "none"
+  plsrri::asca_pls(
+    analysis$spec,
+    fit = analysis$result,
+    decompose = ~ group * task * level,
+    condition_key = sdam_condition_key(),
+    id = "subject",
+    within = c("task", "level"),
+    between = "group",
+    test = plsrri::partial_test(
+      method = test_method,
+      statistic = statistic,
+      nperm = nperm,
+      correction = "maxT"
+    ),
+    selection = plsrri::hierarchical_selection(
+      method = selection_method,
+      alpha = selection_alpha
+    )
+  )
+}
+
+summarise_sdam_asca <- function(asca_result) {
+  tab <- stats::anova(asca_result)
+  tab$statistic <- round(tab$statistic, 4)
+  tab$p_value <- round(tab$p_value, 4)
+  tab$p_adjusted <- round(tab$p_adjusted, 4)
+  tab
+}
+
 save_sdam_plots <- function(result, output_dir, lv = 1L, bsr_threshold = 3) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     stop("Package 'ggplot2' is required to save SDAM tutorial plots.", call. = FALSE)
@@ -459,7 +504,7 @@ run_sdam_task_pls <- function(root = sdam_testdata_root(),
   )
 
   set.seed(seed)
-  result <- plsrri::run(spec, progress = progress)
+  result <- plsrri::run(spec, progress = progress, keep_crossblock = TRUE)
   list(manifest = manifest, mask = mask, spec = spec, result = result)
 }
 
@@ -467,8 +512,10 @@ main <- function() {
   output_dir <- file.path("artifacts", "sdam-firstlevel-task-pls")
   nperm <- as.integer(Sys.getenv("PLSRRI_SDAM_NPERM", "1000"))
   nboot <- as.integer(Sys.getenv("PLSRRI_SDAM_NBOOT", "500"))
+  asca_nperm <- as.integer(Sys.getenv("PLSRRI_SDAM_ASCA_NPERM", "0"))
 
   analysis <- run_sdam_task_pls(nperm = nperm, nboot = nboot)
+  asca <- run_sdam_asca_pls(analysis, nperm = asca_nperm)
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
   saveRDS(analysis$result, file.path(output_dir, "sdam-task-pls-result.rds"))
@@ -477,10 +524,16 @@ main <- function() {
     file.path(output_dir, "latent-variable-summary.csv"),
     row.names = FALSE
   )
+  utils::write.csv(
+    summarise_sdam_asca(asca),
+    file.path(output_dir, "asca-term-summary.csv"),
+    row.names = FALSE
+  )
   save_sdam_plots(analysis$result, output_dir = output_dir, lv = 1L)
 
   print(summarise_sdam_design(analysis$manifest))
   print(summarise_sdam_result(analysis$result))
+  print(summarise_sdam_asca(asca))
   invisible(analysis)
 }
 
