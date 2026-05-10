@@ -67,6 +67,66 @@ test_that("synthetic ASCA-PLS fixture plants expected term structure", {
   expect_true(all(term_fit$statistics$trace >= 0))
 })
 
+test_that("synthetic ASCA-PLS fixture and raw metadata use Task PLS row order", {
+  fx <- make_asca_pls_synthetic_fixture(noise_sd = 0.02)
+  expected_condition <- unlist(lapply(names(fx$n_per_group), function(group) {
+    rep(fx$condition_key$condition, each = fx$n_per_group[[group]])
+  }), use.names = FALSE)
+
+  expect_equal(fx$metadata$condition, expected_condition)
+
+  ctx <- plsrri:::.design_subspace_context(
+    result = fx$fit,
+    design = fx$design,
+    formula = fx$formula,
+    condition_key = fx$condition_key,
+    weights = "cell_equal",
+    require_crossblock = TRUE
+  )
+  obs <- plsrri:::.asca_observation_table(fx$spec, ctx)
+
+  expect_equal(as.character(obs$group), fx$metadata$group)
+  expect_equal(as.character(obs$subject), fx$metadata$subject)
+  expect_equal(as.character(obs$condition), fx$metadata$condition)
+  expect_equal(as.character(obs$task), fx$metadata$task)
+  expect_equal(as.character(obs$level), fx$metadata$level)
+})
+
+test_that("ASCA-PLS raw permutation orders respect within and between exchangeability", {
+  fx <- make_asca_pls_synthetic_fixture(noise_sd = 0.02)
+  ctx <- plsrri:::.design_subspace_context(
+    result = fx$fit,
+    design = fx$design,
+    formula = fx$formula,
+    condition_key = fx$condition_key,
+    weights = "cell_equal",
+    require_crossblock = TRUE
+  )
+  obs <- plsrri:::.asca_observation_table(fx$spec, ctx)
+  exch <- exchangeability(unit = "subject", within = c("task", "level"), between = "group")
+
+  set.seed(101)
+  between_perm <- plsrri:::.asca_raw_permutation_orders(obs, term = "group", nperm = 8L, exchangeability = exch)
+  for (p in seq_len(ncol(between_perm))) {
+    for (subject in unique(as.character(obs$subject))) {
+      target <- which(as.character(obs$subject) == subject)
+      source_subject <- unique(as.character(obs$subject[between_perm[target, p]]))
+      expect_length(source_subject, 1L)
+      expect_equal(as.character(obs$condition[between_perm[target, p]]), as.character(obs$condition[target]))
+    }
+  }
+
+  set.seed(102)
+  within_perm <- plsrri:::.asca_raw_permutation_orders(obs, term = "task", nperm = 8L, exchangeability = exch)
+  for (p in seq_len(ncol(within_perm))) {
+    for (subject in unique(as.character(obs$subject))) {
+      target <- which(as.character(obs$subject) == subject)
+      expect_equal(unique(as.character(obs$subject[within_perm[target, p]])), subject)
+      expect_setequal(as.character(obs$condition[within_perm[target, p]]), as.character(obs$condition[target]))
+    }
+  }
+})
+
 test_that("Freedman-Lane partial tests return bounded reproducible p-values", {
   fx <- make_asca_pls_synthetic_fixture(noise_sd = 0.10)
   set.seed(77)
@@ -163,6 +223,58 @@ test_that("ASCA-PLS interaction tests are not anti-conservative under main-effec
     label = sprintf(
       "Observed %d/%d interaction false positives at alpha %.2f; 99%% binomial upper bound is %d.",
       false_positives, total_tests, alpha, upper_99
+    )
+  )
+})
+
+test_that("ASCA-PLS between-subject tests are not anti-conservative under group-null synthetic data", {
+  group_null <- c(
+    group = 0,
+    task = 1.2,
+    level = 1.1,
+    `group:task` = 0,
+    `group:level` = 0,
+    `task:level` = 0,
+    `group:task:level` = 0
+  )
+  alpha <- 0.10
+  n_reps <- 12L
+  nperm <- 99L
+  p_values <- numeric(n_reps)
+
+  for (i in seq_len(n_reps)) {
+    fx <- make_asca_pls_synthetic_fixture(
+      seed = 12000L + i,
+      n_per_group = c(control = 8L, sdam = 8L),
+      effects = group_null,
+      noise_sd = 0.8
+    )
+    set.seed(13000L + i)
+    fit <- asca_pls(
+      fx$spec,
+      fit = fx$fit,
+      decompose = fx$formula,
+      condition_key = fx$condition_key,
+      id = "subject",
+      within = c("task", "level"),
+      between = "group",
+      test = partial_test(method = "freedman_lane", statistic = "trace", nperm = nperm, correction = "none"),
+      selection = hierarchical_selection(method = "none")
+    )
+    tab <- anova(fit)
+    p_values[[i]] <- tab$p_value[match("group", tab$term)]
+  }
+
+  false_positives <- sum(p_values <= alpha)
+  upper_99 <- stats::qbinom(0.99, size = length(p_values), prob = alpha)
+
+  expect_true(all(is.finite(p_values)))
+  expect_true(all(p_values >= 0 & p_values <= 1))
+  expect_true(
+    false_positives <= upper_99,
+    label = sprintf(
+      "Observed %d/%d group false positives at alpha %.2f; 99%% binomial upper bound is %d.",
+      false_positives, length(p_values), alpha, upper_99
     )
   )
 })

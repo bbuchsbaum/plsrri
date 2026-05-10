@@ -3,10 +3,11 @@
 #' @description
 #' Defines how formula terms are tested in `asca_pls()`. The current
 #' implementation supports observed partial statistics and raw-observation
-#' Freedman-Lane residual permutation when the original `pls_spec` is available.
+#' Freedman-Lane residual permutation. Permutation inference with `nperm > 0`
+#' requires the original `pls_spec`; passing only a fitted `pls_result` errors.
 #' For repeated-measures terms, residuals are permuted within derived subject
-#' blocks so higher-order interaction tests are not calibrated from the
-#' anti-conservative cell-level residual fallback.
+#' blocks. For between-unit terms, residuals are permuted as whole subject
+#' blocks while preserving condition order.
 #'
 #' @param method Testing method. Currently `"freedman_lane"` or `"none"`.
 #' @param statistic `"trace"` for omnibus subspace energy or `"largest_root"`
@@ -805,14 +806,17 @@ plot.asca_pls_result <- function(x,
 }
 
 .asca_observation_table <- function(spec, ctx) {
+  if (is.list(spec$num_subj_lst)) {
+    stop("Raw ASCA-PLS permutation metadata currently requires balanced subject counts per group.", call. = FALSE)
+  }
   groups <- as.character(spec$groups %||% paste0("Group", seq_along(spec$num_subj_lst)))
   conditions <- as.character(spec$conditions %||% paste0("Cond", seq_len(spec$num_cond)))
   key <- unique(ctx$cell_table[, setdiff(names(ctx$cell_table), c("row_index", "group", "cell_n")), drop = FALSE])
   rows <- vector("list", sum(as.integer(spec$num_subj_lst)) * as.integer(spec$num_cond))
   row_id <- 1L
   for (g in seq_along(spec$num_subj_lst)) {
-    for (s in seq_len(as.integer(spec$num_subj_lst[[g]]))) {
-      for (cnd in seq_len(as.integer(spec$num_cond))) {
+    for (cnd in seq_len(as.integer(spec$num_cond))) {
+      for (s in seq_len(as.integer(spec$num_subj_lst[[g]]))) {
         condition <- conditions[[cnd]]
         condition_row <- key[as.character(key$condition) == condition, , drop = FALSE]
         rows[[row_id]] <- data.frame(
@@ -875,6 +879,8 @@ plot.asca_pls_result <- function(x,
 
   if (isTRUE(has_within) && "subject" %in% names(obs)) {
     groups <- split(seq_len(n), obs$subject)
+  } else if ("subject" %in% names(obs)) {
+    return(.asca_subject_block_permutation_orders(obs, nperm = nperm, strata = strata))
   } else if (length(strata)) {
     groups <- split(seq_len(n), interaction(obs[, strata, drop = FALSE], drop = TRUE, lex.order = TRUE))
   } else {
@@ -889,60 +895,48 @@ plot.asca_pls_result <- function(x,
   out
 }
 
-.asca_freedman_lane_null <- function(term_fits, ctx, test) {
-  nperm <- as.integer(test$nperm)
-  out <- matrix(0, nrow = nperm, ncol = length(term_fits))
-  colnames(out) <- names(term_fits)
-  for (j in seq_along(term_fits)) {
-    term_fit <- term_fits[[j]]
-    reduced <- term_fit$reduced
-    x_reduced <- .design_model_matrix(reduced, ctx$cell_table, contrasts = ctx$contrasts)
-    x_reduced <- ctx$centering_operator %*% x_reduced
-    xw <- x_reduced * sqrt(ctx$weights)
-    yw <- ctx$crossblock * sqrt(ctx$weights)
-    basis_r <- .weighted_basis(x_reduced, ctx$weights)
-    fitted <- matrix(0, nrow = nrow(yw), ncol = ncol(yw))
-    if (basis_r$rank > 0L) {
-      fitted <- basis_r$q %*% crossprod(basis_r$q, yw)
-    }
-    residual <- yw - fitted
-    perms <- .asca_cell_permutation_orders(ctx$cell_table, nperm = nperm, strata = test$exchangeability$strata %||% character(0))
-    for (p in seq_len(nperm)) {
-      y_perm_w <- fitted + residual[perms[, p], , drop = FALSE]
-      out[p, j] <- .asca_weighted_stat(y_perm_w, basis = term_fit$basis, statistic = test$statistic)
-    }
+.asca_subject_block_permutation_orders <- function(obs, nperm, strata = character(0)) {
+  subjects <- unique(as.character(obs$subject))
+  subject_strata <- data.frame(subject = subjects, stringsAsFactors = FALSE)
+  for (st in strata) {
+    values <- vapply(subjects, function(s) {
+      vals <- unique(as.character(obs[[st]][as.character(obs$subject) == s]))
+      if (length(vals) != 1L) {
+        stop("ASCA-PLS permutation strata must be constant within subject.", call. = FALSE)
+      }
+      vals[[1L]]
+    }, character(1))
+    subject_strata[[st]] <- values
   }
-  out
-}
 
-.asca_cell_permutation_orders <- function(cell_table, nperm, strata = character(0)) {
-  n <- nrow(cell_table)
-  out <- matrix(0L, nrow = n, ncol = nperm)
-  strata <- intersect(strata, names(cell_table))
-  if (!length(strata)) {
-    for (p in seq_len(nperm)) out[, p] <- sample.int(n)
-    return(out)
+  subject_groups <- if (length(strata)) {
+    split(subjects, interaction(subject_strata[, strata, drop = FALSE], drop = TRUE, lex.order = TRUE))
+  } else {
+    list(subjects)
   }
-  key <- interaction(cell_table[, strata, drop = FALSE], drop = TRUE, lex.order = TRUE)
-  groups <- split(seq_len(n), key)
+  by_subject <- split(seq_len(nrow(obs)), as.character(obs$subject))
+  out <- matrix(0L, nrow = nrow(obs), ncol = nperm)
+
   for (p in seq_len(nperm)) {
-    idx <- seq_len(n)
-    for (g in groups) idx[g] <- sample(g, length(g))
+    source_for_target <- stats::setNames(subjects, subjects)
+    for (g in subject_groups) {
+      source_for_target[g] <- sample(g, length(g))
+    }
+    idx <- integer(nrow(obs))
+    for (target in subjects) {
+      target_rows <- by_subject[[target]]
+      source_rows <- by_subject[[source_for_target[[target]]]]
+      source_condition <- as.character(obs$condition[source_rows])
+      match_pos <- match(as.character(obs$condition[target_rows]), source_condition)
+      if (anyNA(match_pos)) {
+        stop("ASCA-PLS subject-block permutation requires matching conditions for every subject.", call. = FALSE)
+      }
+      idx[target_rows] <- source_rows[match_pos]
+    }
     out[, p] <- idx
   }
-  out
-}
 
-.asca_weighted_stat <- function(crossblock_w, basis, statistic) {
-  if (ncol(basis) == 0L) {
-    return(0)
-  }
-  coordinates <- crossprod(basis, crossblock_w)
-  if (identical(statistic, "trace")) {
-    return(sum(coordinates^2))
-  }
-  d <- svd(coordinates, nu = 0L, nv = 0L)$d
-  if (!length(d)) 0 else d[[1L]]^2
+  out
 }
 
 .asca_partial_basis <- function(ctx, term, reduced) {

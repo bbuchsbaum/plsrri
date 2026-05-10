@@ -95,13 +95,15 @@ Reduced-model permutation inference requires the original `pls_spec`, even when
 you also pass a precomputed `fit`. The implementation uses raw-observation
 Freedman-Lane residual permutations and then rebuilds the Task PLS cross-block
 for each permutation. For repeated-measures terms, residuals are permuted within
-derived subject blocks.
+derived subject blocks. For pure between-subject terms, residuals are permuted
+as whole subject blocks while preserving the condition-major row order expected
+by Task PLS.
 
 This distinction matters. A purely cell-level residual permutation can be
 anti-conservative when the data contain only main effects plus subject-level
 repeated-measures structure. The synthetic calibration tests therefore exercise
-main-effects-only multivariate data and check that higher-order interaction
-terms do not exceed a binomial false-positive-rate bound.
+main-effects-only multivariate data and check that higher-order interaction and
+between-subject null terms do not exceed binomial false-positive-rate bounds.
 
 For neuroimaging interpretation, use permutation p-values for term/component
 evidence and bootstrap-style stability summaries for feature saliences.

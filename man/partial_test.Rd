@@ -33,8 +33,9 @@ A partial-test specification.
 \description{
 Defines how formula terms are tested in \code{asca_pls()}. The current
 implementation supports observed partial statistics and raw-observation
-Freedman-Lane residual permutation when the original \code{pls_spec} is available.
+Freedman-Lane residual permutation. Permutation inference with \code{nperm > 0}
+requires the original \code{pls_spec}; passing only a fitted \code{pls_result} errors.
 For repeated-measures terms, residuals are permuted within derived subject
-blocks so higher-order interaction tests are not calibrated from the
-anti-conservative cell-level residual fallback.
+blocks. For between-unit terms, residuals are permuted as whole subject
+blocks while preserving condition order.
 }

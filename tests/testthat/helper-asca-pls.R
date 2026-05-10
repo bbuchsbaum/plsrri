@@ -44,14 +44,14 @@ make_asca_pls_synthetic_fixture <- function(seed = 20260510,
   metadata_rows <- list()
   make_group <- function(group, n_subjects) {
     group_code <- if (identical(group, "sdam")) 1 else -1
+    subject_offsets <- replicate(n_subjects, rnorm(n_features, sd = 0.10), simplify = FALSE)
     rows <- vector("list", n_subjects * nrow(condition_key))
     row_id <- 1L
-    for (subject in seq_len(n_subjects)) {
-      subject_offset <- rnorm(n_features, sd = 0.10)
-      for (i in seq_len(nrow(condition_key))) {
+    for (i in seq_len(nrow(condition_key))) {
+      for (subject in seq_len(n_subjects)) {
         task_code <- if (condition_key$task[[i]] == "nback") 1 else -1
         level_code <- if (condition_key$level[[i]] == "high") 1 else -1
-        x <- rnorm(n_features, sd = noise_sd) + subject_offset
+        x <- rnorm(n_features, sd = noise_sd) + subject_offsets[[subject]]
         x[supports$group] <- x[supports$group] + signal_scale * effects[["group"]] * group_code
         x[supports$task] <- x[supports$task] + signal_scale * effects[["task"]] * task_code
         x[supports$level] <- x[supports$level] + signal_scale * effects[["level"]] * level_code
