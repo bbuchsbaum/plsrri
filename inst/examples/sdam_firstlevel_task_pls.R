@@ -434,6 +434,12 @@ sdam_asca_plottable_terms <- function(asca_result,
   }, logical(1))]
 }
 
+sdam_asca_supported_terms <- function(asca_result,
+                                      statuses = c("kept", "protected")) {
+  tab <- stats::anova(asca_result)
+  tab$term[tab$status %in% statuses]
+}
+
 save_sdam_asca_outputs <- function(asca_result,
                                    output_dir,
                                    component = 1L,
@@ -463,7 +469,7 @@ save_sdam_asca_outputs <- function(asca_result,
   )
 
   if (is.null(terms)) {
-    terms <- stats::anova(asca_result)$term
+    terms <- sdam_asca_supported_terms(asca_result)
   }
   profile_terms <- sdam_asca_plottable_terms(asca_result, terms = terms, component = component)
 

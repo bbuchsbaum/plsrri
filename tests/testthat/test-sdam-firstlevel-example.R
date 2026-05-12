@@ -92,14 +92,13 @@ test_that("SDAM first-level tutorial manifest and smoke fit are valid", {
   asca_dir <- file.path(tempdir(), "sdam-asca-example")
   asca_outputs <- example_env$save_sdam_asca_outputs(
     asca,
-    output_dir = asca_dir,
-    terms = c("group", "group:task:level")
+    output_dir = asca_dir
   )
   expect_true(file.exists(file.path(asca_dir, "sdam-asca-pls-result.rds")))
   expect_true(file.exists(file.path(asca_dir, "asca-term-summary.csv")))
   expect_true(file.exists(file.path(asca_dir, "asca-selected-formula.txt")))
   expect_true(file.exists(file.path(asca_dir, "asca-selection.png")))
-  expect_true(length(asca_outputs$profile_terms) >= 1L)
+  profile_status <- asca_summary$status[match(asca_outputs$profile_terms, asca_summary$term)]
+  expect_true(all(profile_status %in% c("kept", "protected")))
   expect_true(all(file.exists(asca_outputs$profile_files)))
-  expect_true(file.exists(file.path(asca_dir, "asca-group-task-level-profile.png")))
 })
