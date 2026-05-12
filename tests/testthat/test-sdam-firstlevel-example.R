@@ -71,10 +71,35 @@ test_that("SDAM first-level tutorial manifest and smoke fit are valid", {
 
   asca <- example_env$run_sdam_asca_pls(
     list(manifest = manifest, mask = mask, spec = spec, result = result),
-    nperm = 0L
+    nperm = 9L
   )
   expect_s3_class(asca, "asca_pls_result")
   asca_summary <- example_env$summarise_sdam_asca(asca)
-  expect_true(all(c("term", "statistic", "status") %in% names(asca_summary)))
+  expect_true(all(c("term", "effect_type", "statistic", "p_value", "p_adjusted", "status") %in% names(asca_summary)))
+  expect_true(all(is.finite(asca_summary$p_value)))
+  expect_true(all(is.finite(asca_summary$p_adjusted)))
+  expect_true(all(c("main_effect", "two_way_interaction", "three_way_interaction") %in% asca_summary$effect_type))
   expect_true("group:task:level" %in% asca_summary$term)
+  expect_equal(
+    asca_summary$term,
+    c("group", "task", "level", "group:task", "group:level", "task:level", "group:task:level")
+  )
+  expect_match(
+    paste(deparse(selected_formula(asca)), collapse = ""),
+    "^~"
+  )
+
+  asca_dir <- file.path(tempdir(), "sdam-asca-example")
+  asca_outputs <- example_env$save_sdam_asca_outputs(
+    asca,
+    output_dir = asca_dir,
+    terms = c("group", "group:task:level")
+  )
+  expect_true(file.exists(file.path(asca_dir, "sdam-asca-pls-result.rds")))
+  expect_true(file.exists(file.path(asca_dir, "asca-term-summary.csv")))
+  expect_true(file.exists(file.path(asca_dir, "asca-selected-formula.txt")))
+  expect_true(file.exists(file.path(asca_dir, "asca-selection.png")))
+  expect_true(length(asca_outputs$profile_terms) >= 1L)
+  expect_true(all(file.exists(asca_outputs$profile_files)))
+  expect_true(file.exists(file.path(asca_dir, "asca-group-task-level-profile.png")))
 })

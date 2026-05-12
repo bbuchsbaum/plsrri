@@ -352,9 +352,10 @@ make_sdam_asca_design <- function() {
 }
 
 run_sdam_asca_pls <- function(analysis,
-                              nperm = 0L,
+                              nperm = 1000L,
                               statistic = "trace",
-                              selection_alpha = 0.05) {
+                              selection_alpha = 0.05,
+                              correction = "maxT") {
   nperm <- as.integer(nperm)
   test_method <- if (nperm > 0L) "freedman_lane" else "none"
   selection_method <- if (nperm > 0L) "backward" else "none"
@@ -370,7 +371,7 @@ run_sdam_asca_pls <- function(analysis,
       method = test_method,
       statistic = statistic,
       nperm = nperm,
-      correction = "maxT"
+      correction = correction
     ),
     selection = plsrri::hierarchical_selection(
       method = selection_method,
@@ -381,10 +382,132 @@ run_sdam_asca_pls <- function(analysis,
 
 summarise_sdam_asca <- function(asca_result) {
   tab <- stats::anova(asca_result)
+  formula_terms <- attr(stats::terms(asca_result$decompose), "term.labels")
+  formula_terms <- formula_terms[formula_terms %in% tab$term]
+  if (length(formula_terms)) {
+    tab <- tab[match(formula_terms, tab$term), , drop = FALSE]
+    rownames(tab) <- NULL
+  }
+  tab$order <- lengths(strsplit(tab$term, ":", fixed = TRUE))
+  tab$effect_type <- c(
+    "main_effect",
+    "two_way_interaction",
+    "three_way_interaction"
+  )[pmin(tab$order, 3L)]
+  tab <- tab[, c(
+    "term",
+    "effect_type",
+    "order",
+    "rank_effect",
+    "rank_partial",
+    "statistic",
+    "statistic_type",
+    "p_value",
+    "p_adjusted",
+    "status"
+  )]
   tab$statistic <- round(tab$statistic, 4)
   tab$p_value <- round(tab$p_value, 4)
   tab$p_adjusted <- round(tab$p_adjusted, 4)
   tab
+}
+
+write_sdam_asca_formula <- function(asca_result, file) {
+  formula_text <- paste(deparse(plsrri::selected_formula(asca_result)), collapse = "")
+  writeLines(formula_text, con = file)
+  invisible(formula_text)
+}
+
+sdam_asca_plottable_terms <- function(asca_result,
+                                      terms = stats::anova(asca_result)$term,
+                                      component = 1L) {
+  terms[vapply(terms, function(term) {
+    isTRUE(tryCatch({
+      plsrri::asca_components(
+        asca_result,
+        term = term,
+        view = "tested_effect",
+        component = component
+      )
+      TRUE
+    }, error = function(e) FALSE))
+  }, logical(1))]
+}
+
+save_sdam_asca_outputs <- function(asca_result,
+                                   output_dir,
+                                   component = 1L,
+                                   terms = NULL) {
+  if (!requireNamespace("ggplot2", quietly = TRUE)) {
+    stop("Package 'ggplot2' is required to save SDAM ASCA plots.", call. = FALSE)
+  }
+
+  dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+  saveRDS(asca_result, file.path(output_dir, "sdam-asca-pls-result.rds"))
+  utils::write.csv(
+    summarise_sdam_asca(asca_result),
+    file.path(output_dir, "asca-term-summary.csv"),
+    row.names = FALSE
+  )
+  write_sdam_asca_formula(
+    asca_result,
+    file.path(output_dir, "asca-selected-formula.txt")
+  )
+
+  ggplot2::ggsave(
+    file.path(output_dir, "asca-selection.png"),
+    plsrri::plot_asca_selection(asca_result),
+    width = 7,
+    height = 4,
+    dpi = 150
+  )
+
+  if (is.null(terms)) {
+    terms <- stats::anova(asca_result)$term
+  }
+  profile_terms <- sdam_asca_plottable_terms(asca_result, terms = terms, component = component)
+
+  alignment_terms <- sdam_asca_plottable_terms(
+    asca_result,
+    terms = stats::anova(asca_result)$term,
+    component = component
+  )
+  if (length(alignment_terms)) {
+    ggplot2::ggsave(
+      file.path(output_dir, "asca-alignment.png"),
+      plsrri::plot_asca_alignment(asca_result, term = alignment_terms),
+      width = 7,
+      height = 4,
+      dpi = 150
+    )
+  }
+
+  profile_files <- character(0)
+  for (term in profile_terms) {
+    profile_file <- file.path(output_dir, sprintf("asca-%s-profile.png", gsub(":", "-", term, fixed = TRUE)))
+    ggplot2::ggsave(
+      profile_file,
+      plsrri::plot_asca_effect_profile(
+        asca_result,
+        term = term,
+        view = "tested_effect",
+        component = component,
+        x_axis = "level",
+        line = "task",
+        facet = "group"
+      ),
+      width = 7,
+      height = 4,
+      dpi = 150
+    )
+    profile_files <- c(profile_files, profile_file)
+  }
+
+  invisible(list(
+    result = asca_result,
+    profile_terms = profile_terms,
+    profile_files = profile_files
+  ))
 }
 
 save_sdam_plots <- function(result, output_dir, lv = 1L, bsr_threshold = 3) {
@@ -512,7 +635,7 @@ main <- function() {
   output_dir <- file.path("artifacts", "sdam-firstlevel-task-pls")
   nperm <- as.integer(Sys.getenv("PLSRRI_SDAM_NPERM", "1000"))
   nboot <- as.integer(Sys.getenv("PLSRRI_SDAM_NBOOT", "500"))
-  asca_nperm <- as.integer(Sys.getenv("PLSRRI_SDAM_ASCA_NPERM", "0"))
+  asca_nperm <- as.integer(Sys.getenv("PLSRRI_SDAM_ASCA_NPERM", as.character(nperm)))
 
   analysis <- run_sdam_task_pls(nperm = nperm, nboot = nboot)
   asca <- run_sdam_asca_pls(analysis, nperm = asca_nperm)
@@ -524,17 +647,13 @@ main <- function() {
     file.path(output_dir, "latent-variable-summary.csv"),
     row.names = FALSE
   )
-  utils::write.csv(
-    summarise_sdam_asca(asca),
-    file.path(output_dir, "asca-term-summary.csv"),
-    row.names = FALSE
-  )
   save_sdam_plots(analysis$result, output_dir = output_dir, lv = 1L)
+  save_sdam_asca_outputs(asca, output_dir = output_dir, component = 1L)
 
   print(summarise_sdam_design(analysis$manifest))
   print(summarise_sdam_result(analysis$result))
   print(summarise_sdam_asca(asca))
-  invisible(analysis)
+  invisible(list(analysis = analysis, asca = asca))
 }
 
 if (sys.nframe() == 0L) {
