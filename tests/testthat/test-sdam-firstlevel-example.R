@@ -54,6 +54,10 @@ test_that("SDAM first-level tutorial manifest and smoke fit are valid", {
   expect_equal(nrow(design_contrasts), 7L)
   expect_true(all(is.finite(design_contrasts$magnitude)))
 
+  task_plot_dir <- file.path(tempdir(), "sdam-task-example")
+  example_env$save_sdam_design_plots(result, output_dir = task_plot_dir, lv = 2L)
+  expect_true(file.exists(file.path(task_plot_dir, "lv2-design-interaction.png")))
+
   lv_summary <- example_env$summarise_sdam_result(result)
   expect_equal(nrow(lv_summary), length(result$s))
   expect_true(all(is.finite(lv_summary$variance_percent)))

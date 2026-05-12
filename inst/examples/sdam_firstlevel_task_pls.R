@@ -516,20 +516,13 @@ save_sdam_asca_outputs <- function(asca_result,
   ))
 }
 
-save_sdam_plots <- function(result, output_dir, lv = 1L, bsr_threshold = 3) {
+save_sdam_design_plots <- function(result, output_dir, lv = 1L) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     stop("Package 'ggplot2' is required to save SDAM tutorial plots.", call. = FALSE)
   }
 
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
-  ggplot2::ggsave(
-    file.path(output_dir, "singular-values.png"),
-    plsrri::plot_singular_values(result),
-    width = 7,
-    height = 4,
-    dpi = 150
-  )
   ggplot2::ggsave(
     file.path(output_dir, sprintf("lv%d-design-scores.png", lv)),
     plsrri::plot_scores(result, lv = lv, type = "design", plot_type = "bar"),
@@ -577,6 +570,24 @@ save_sdam_plots <- function(result, output_dir, lv = 1L, bsr_threshold = 3) {
     height = 4,
     dpi = 150
   )
+}
+
+save_sdam_plots <- function(result, output_dir, lv = 1L, bsr_threshold = 3) {
+  if (!requireNamespace("ggplot2", quietly = TRUE)) {
+    stop("Package 'ggplot2' is required to save SDAM tutorial plots.", call. = FALSE)
+  }
+
+  dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
+  ggplot2::ggsave(
+    file.path(output_dir, "singular-values.png"),
+    plsrri::plot_singular_values(result),
+    width = 7,
+    height = 4,
+    dpi = 150
+  )
+  save_sdam_design_plots(result, output_dir = output_dir, lv = lv)
+  condition_key <- sdam_condition_key()
   if (length(result$s) >= 2L) {
     ggplot2::ggsave(
       file.path(output_dir, "lv1-lv2-design-space.png"),
@@ -654,6 +665,9 @@ main <- function() {
     row.names = FALSE
   )
   save_sdam_plots(analysis$result, output_dir = output_dir, lv = 1L)
+  if (length(analysis$result$s) >= 2L) {
+    save_sdam_design_plots(analysis$result, output_dir = output_dir, lv = 2L)
+  }
   save_sdam_asca_outputs(asca, output_dir = output_dir, component = 1L)
 
   print(summarise_sdam_design(analysis$manifest))
