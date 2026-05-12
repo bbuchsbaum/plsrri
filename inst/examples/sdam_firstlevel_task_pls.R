@@ -443,7 +443,7 @@ sdam_asca_supported_terms <- function(asca_result,
 save_sdam_asca_outputs <- function(asca_result,
                                    output_dir,
                                    component = 1L,
-                                   terms = NULL) {
+                                   terms = character(0)) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     stop("Package 'ggplot2' is required to save SDAM ASCA plots.", call. = FALSE)
   }
@@ -468,9 +468,6 @@ save_sdam_asca_outputs <- function(asca_result,
     dpi = 150
   )
 
-  if (is.null(terms)) {
-    terms <- sdam_asca_supported_terms(asca_result)
-  }
   profile_terms <- sdam_asca_plottable_terms(asca_result, terms = terms, component = component)
 
   alignment_terms <- sdam_asca_plottable_terms(
