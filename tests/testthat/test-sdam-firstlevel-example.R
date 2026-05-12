@@ -56,7 +56,13 @@ test_that("SDAM first-level tutorial manifest and smoke fit are valid", {
 
   task_plot_dir <- file.path(tempdir(), "sdam-task-example")
   example_env$save_sdam_design_plots(result, output_dir = task_plot_dir, lv = 2L)
+  brain_profile <- example_env$sdam_brain_score_profile(result, lv = 2L, condition_key = condition_key)
+  expect_true(all(c("mean", "lower", "upper", "clim") %in% names(brain_profile)))
+  expect_true(all(is.finite(brain_profile$lower)))
+  expect_true(all(is.finite(brain_profile$upper)))
+  expect_true(all(brain_profile$lower <= brain_profile$upper))
   expect_true(file.exists(file.path(task_plot_dir, "lv2-design-interaction.png")))
+  expect_true(file.exists(file.path(task_plot_dir, "lv2-brain-score-profile.png")))
 
   lv_summary <- example_env$summarise_sdam_result(result)
   expect_equal(nrow(lv_summary), length(result$s))

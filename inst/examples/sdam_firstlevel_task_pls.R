@@ -513,6 +513,101 @@ save_sdam_asca_outputs <- function(asca_result,
   ))
 }
 
+sdam_brain_score_profile <- function(result,
+                                     lv = 1L,
+                                     condition_key = sdam_condition_key(),
+                                     adjusted = FALSE) {
+  boot <- result$boot_result
+  if (is.null(boot) || is.null(boot$orig_usc)) {
+    stop("Bootstrap brain-score intervals require a result fit with nboot > 0.", call. = FALSE)
+  }
+
+  lower <- if (isTRUE(adjusted) && !is.null(boot$llusc_adj)) boot$llusc_adj else boot$llusc
+  upper <- if (isTRUE(adjusted) && !is.null(boot$ulusc_adj)) boot$ulusc_adj else boot$ulusc
+  if (is.null(lower) || is.null(upper)) {
+    stop("Bootstrap brain-score interval limits are missing.", call. = FALSE)
+  }
+
+  groups <- if (is.null(result$groups)) paste0("Group", seq_along(result$num_subj_lst)) else result$groups
+  conditions <- if (is.null(result$conditions)) paste0("Cond", seq_len(result$num_cond)) else result$conditions
+  expected_rows <- length(groups) * length(conditions)
+  if (nrow(boot$orig_usc) != expected_rows) {
+    stop("Bootstrap brain-score rows do not match group-condition layout.", call. = FALSE)
+  }
+
+  df <- data.frame(
+    group = factor(rep(groups, each = length(conditions)), levels = groups),
+    condition = factor(rep(conditions, times = length(groups)), levels = conditions),
+    mean = boot$orig_usc[, lv],
+    lower = lower[, lv],
+    upper = upper[, lv],
+    stringsAsFactors = FALSE
+  )
+
+  key_match <- match(as.character(df$condition), condition_key$condition)
+  if (anyNA(key_match)) {
+    stop("condition_key is missing condition labels.", call. = FALSE)
+  }
+  key_columns <- setdiff(names(condition_key), "condition")
+  for (column in key_columns) {
+    values <- condition_key[[column]][key_match]
+    df[[column]] <- factor(values, levels = unique(condition_key[[column]]))
+  }
+  df$clim <- boot$clim
+  df
+}
+
+plot_sdam_brain_score_profile <- function(result,
+                                          lv = 1L,
+                                          condition_key = sdam_condition_key(),
+                                          x_axis = "task",
+                                          trace = "level",
+                                          facet = "group",
+                                          adjusted = FALSE) {
+  if (!requireNamespace("ggplot2", quietly = TRUE)) {
+    stop("Package 'ggplot2' is required to plot SDAM brain-score profiles.", call. = FALSE)
+  }
+
+  df <- sdam_brain_score_profile(
+    result,
+    lv = lv,
+    condition_key = condition_key,
+    adjusted = adjusted
+  )
+  dodge <- ggplot2::position_dodge(width = 0.18)
+  p <- ggplot2::ggplot(
+    df,
+    ggplot2::aes(
+      x = .data[[x_axis]],
+      y = mean,
+      color = .data[[trace]],
+      group = .data[[trace]]
+    )
+  ) +
+    ggplot2::geom_hline(yintercept = 0, color = "#555555", linewidth = 0.35) +
+    ggplot2::geom_errorbar(
+      ggplot2::aes(ymin = lower, ymax = upper),
+      width = 0.08,
+      position = dodge,
+      linewidth = 0.35
+    ) +
+    ggplot2::geom_line(position = dodge, linewidth = 0.9) +
+    ggplot2::geom_point(position = dodge, size = 2.4) +
+    ggplot2::labs(
+      title = sprintf("Bootstrap Brain Score Profile (LV%d)", lv),
+      x = tools::toTitleCase(x_axis),
+      y = sprintf("Mean brain score (%g%% CI)", unique(df$clim)),
+      color = tools::toTitleCase(trace)
+    ) +
+    plsrri::theme_pls() +
+    plsrri::scale_color_pls_discrete()
+
+  if (!is.null(facet)) {
+    p <- p + ggplot2::facet_wrap(stats::as.formula(paste("~", facet)))
+  }
+  p
+}
+
 save_sdam_design_plots <- function(result, output_dir, lv = 1L) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     stop("Package 'ggplot2' is required to save SDAM tutorial plots.", call. = FALSE)
@@ -522,7 +617,15 @@ save_sdam_design_plots <- function(result, output_dir, lv = 1L) {
 
   ggplot2::ggsave(
     file.path(output_dir, sprintf("lv%d-design-scores.png", lv)),
-    plsrri::plot_scores(result, lv = lv, type = "design", plot_type = "bar"),
+    plsrri::plot_scores(
+      result,
+      lv = lv,
+      type = "design",
+      plot_type = "bar",
+      show_ci = FALSE,
+      title = sprintf("Design Saliences (LV%d)", lv)
+    ) +
+      ggplot2::labs(y = "Design salience"),
     width = 7,
     height = 4,
     dpi = 150
@@ -567,6 +670,23 @@ save_sdam_design_plots <- function(result, output_dir, lv = 1L) {
     height = 4,
     dpi = 150
   )
+
+  if (!is.null(result$boot_result) && !is.null(result$boot_result$orig_usc)) {
+    ggplot2::ggsave(
+      file.path(output_dir, sprintf("lv%d-brain-score-profile.png", lv)),
+      plot_sdam_brain_score_profile(
+        result,
+        lv = lv,
+        condition_key = condition_key,
+        x_axis = "task",
+        trace = "level",
+        facet = "group"
+      ),
+      width = 7,
+      height = 4,
+      dpi = 150
+    )
+  }
 }
 
 save_sdam_plots <- function(result, output_dir, lv = 1L, bsr_threshold = 3) {

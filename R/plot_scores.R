@@ -73,7 +73,7 @@ plot_scores.pls_result <- function(x,
 
   # Create appropriate plot
   p <- switch(plot_type,
-    bar = .plot_scores_bar(df, group_by, color_by, facet_by),
+    bar = .plot_scores_bar(df, group_by, color_by, facet_by, show_ci = show_ci),
     scatter = .plot_scores_scatter(df, group_by, color_by, facet_by),
     violin = .plot_scores_violin(df, group_by, color_by, facet_by),
     box = .plot_scores_box(df, group_by, color_by, facet_by),
@@ -149,7 +149,7 @@ plot_scores.pls_result <- function(x,
 #' Score Bar Plot
 #'
 #' @keywords internal
-.plot_scores_bar <- function(df, group_by, color_by, facet_by) {
+.plot_scores_bar <- function(df, group_by, color_by, facet_by, show_ci = TRUE) {
 
   # Compute means and SEs
   if (!is.null(group_by)) {
@@ -180,22 +180,34 @@ plot_scores.pls_result <- function(x,
       p <- ggplot2::ggplot(agg, ggplot2::aes(x = .data[[group_by]],
                                               y = mean,
                                               fill = .data[[color_by]])) +
-        ggplot2::geom_col(position = ggplot2::position_dodge(0.8), width = 0.7) +
-        ggplot2::geom_errorbar(ggplot2::aes(ymin = mean - se, ymax = mean + se),
-                               position = ggplot2::position_dodge(0.8),
-                               width = 0.2)
+        ggplot2::geom_col(position = ggplot2::position_dodge(0.8), width = 0.7)
+      if (isTRUE(show_ci)) {
+        p <- p + ggplot2::geom_errorbar(
+          ggplot2::aes(ymin = mean - se, ymax = mean + se),
+          position = ggplot2::position_dodge(0.8),
+          width = 0.2
+        )
+      }
     } else {
       p <- ggplot2::ggplot(agg, ggplot2::aes(x = .data[[group_by]], y = mean)) +
-        ggplot2::geom_col(width = 0.7, fill = pls_colors(1, "qualitative")) +
-        ggplot2::geom_errorbar(ggplot2::aes(ymin = mean - se, ymax = mean + se),
-                               width = 0.2)
+        ggplot2::geom_col(width = 0.7, fill = pls_colors(1, "qualitative"))
+      if (isTRUE(show_ci)) {
+        p <- p + ggplot2::geom_errorbar(
+          ggplot2::aes(ymin = mean - se, ymax = mean + se),
+          width = 0.2
+        )
+      }
     }
     p <- p + ggplot2::labs(x = tools::toTitleCase(group_by))
   } else {
     p <- ggplot2::ggplot(agg, ggplot2::aes(x = 1, y = mean)) +
-      ggplot2::geom_col(width = 0.5) +
-      ggplot2::geom_errorbar(ggplot2::aes(ymin = mean - se, ymax = mean + se),
-                             width = 0.1)
+      ggplot2::geom_col(width = 0.5)
+    if (isTRUE(show_ci)) {
+      p <- p + ggplot2::geom_errorbar(
+        ggplot2::aes(ymin = mean - se, ymax = mean + se),
+        width = 0.1
+      )
+    }
   }
 
   # Add faceting

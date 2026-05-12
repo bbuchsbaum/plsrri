@@ -23,6 +23,14 @@ test_that("plot_scores returns a ggplot for plot_type = 'bar'", {
   expect_s3_class(p, "gg")
 })
 
+test_that("plot_scores can suppress pseudo-CIs for bar plots", {
+  skip_if_not_installed("ggplot2")
+  res <- make_pls_result()
+  p <- plot_scores(res, lv = 1, type = "design", plot_type = "bar", show_ci = FALSE)
+  geom_classes <- vapply(p$layers, function(layer) class(layer$geom)[[1L]], character(1))
+  expect_false("GeomErrorbar" %in% geom_classes)
+})
+
 test_that("plot_scores returns a ggplot for plot_type = 'violin'", {
   skip_if_not_installed("ggplot2")
   res <- make_pls_result()
