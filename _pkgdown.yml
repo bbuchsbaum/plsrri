@@ -50,5 +50,6 @@ articles:
       - predictive-measures
       - behavior-pls
       - group-covariate-design
+      - asca-pls
       - ws-seed-pls
       - multiblock-and-seed
